@@ -1,0 +1,1 @@
+export const passengerRoutes = ['login', 'register', 'routes', 'tracking', 'notifications'];

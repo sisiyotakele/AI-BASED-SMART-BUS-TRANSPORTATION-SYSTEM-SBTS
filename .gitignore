@@ -1,0 +1,17 @@
+node_modules
+dist
+build
+coverage
+.turbo
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log
+__pycache__
+.pytest_cache
+.venv
+venv
+*.pyc
+/.idea
+/.vscode
