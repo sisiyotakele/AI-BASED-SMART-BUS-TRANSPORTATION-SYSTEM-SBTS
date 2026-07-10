@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: sbts
+      POSTGRES_USER: sbts
+      POSTGRES_PASSWORD: sbts
+    ports:
+      - '5432:5432'
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/docker/backend.Dockerfile
+    environment:
+      BACKEND_PORT: 4000
+    depends_on:
+      - postgres
+
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ai-service.Dockerfile
+    depends_on:
+      - postgres
+
+  passenger-app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/passenger-app.Dockerfile
+
+  staff-app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/staff-app.Dockerfile

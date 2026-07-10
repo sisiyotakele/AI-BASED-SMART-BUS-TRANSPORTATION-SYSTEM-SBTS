@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@sbts/shared-types": ["packages/shared-types/src"],
+      "@sbts/shared-types/*": ["packages/shared-types/src/*"],
+      "@sbts/api-client": ["packages/api-client/src"],
+      "@sbts/api-client/*": ["packages/api-client/src/*"],
+      "@sbts/ui-kit": ["packages/ui-kit/src"],
+      "@sbts/ui-kit/*": ["packages/ui-kit/src/*"]
+    }
+  }
+}

@@ -1,0 +1,1 @@
+export const driverRoutes = ['trip-lifecycle', 'gps-transmit', 'incident-report'];

@@ -1,9 +1,36 @@
 {
-  "name": "demo-repo",
-  "version": "0.2.0",
-  "description": "A sample package.json",
-  "dependencies": {
-    "@primer/css": "17.0.1"
+  "name": "sbts",
+  "private": true,
+  "version": "1.0.0",
+  "description": "SBTS monorepo scaffold",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "prisma:generate": "prisma generate",
+    "db:seed": "tsx prisma/seed.ts"
   },
-  "license": "MIT"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TransitVision/AI-BASED-SMART-BUS-TRANSPORTATION-SYSTEM-SBTS-.git"
+  },
+  "keywords": [
+    "smart-bus",
+    "transportation",
+    "monorepo"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/TransitVision/AI-BASED-SMART-BUS-TRANSPORTATION-SYSTEM-SBTS-/issues"
+  },
+  "homepage": "https://github.com/TransitVision/AI-BASED-SMART-BUS-TRANSPORTATION-SYSTEM-SBTS-#readme",
+  "devDependencies": {
+    "typescript": "^5.5.4"
+  }
 }
