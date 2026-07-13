@@ -1,0 +1,39 @@
+﻿generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+}
+
+model User { id String @id @default(cuid()) email String @unique role UserRole createdAt DateTime @default(now()) }
+model Session { id String @id @default(cuid()) userId String token String @unique }
+model Route { id String @id @default(cuid()) code String @unique name String }
+model Stop { id String @id @default(cuid()) name String }
+model RouteStop { id String @id @default(cuid()) routeId String stopId String sequence Int }
+model Terminal { id String @id @default(cuid()) name String }
+model Bus { id String @id @default(cuid()) plateNumber String @unique terminalId String? }
+model DriverProfile { id String @id @default(cuid()) userId String @unique licenseNo String @unique }
+model Shift { id String @id @default(cuid()) driverId String terminalId String }
+model Schedule { id String @id @default(cuid()) routeId String departureTime String }
+model Pricing { id String @id @default(cuid()) routeId String baseFare Float }
+model Trip { id String @id @default(cuid()) routeId String busId String driverId String status String }
+model Assignment { id String @id @default(cuid()) tripId String userId String }
+model GpsReading { id String @id @default(cuid()) tripId String busId String latitude Float longitude Float }
+model EtaPrediction { id String @id @default(cuid()) tripId String stopId String predictedArrival DateTime }
+model Incident { id String @id @default(cuid()) reportedById String tripId String? status String }
+model Notification { id String @id @default(cuid()) userId String title String body String }
+model AuditLog { id String @id @default(cuid()) userId String? action String entity String }
+model RefreshToken { id String @id @default(cuid()) userId String token String @unique }
+model DeviceToken { id String @id @default(cuid()) userId String token String @unique }
+model FarePolicy { id String @id @default(cuid()) name String ruleJson Json }
+model TripReport { id String @id @default(cuid()) tripId String createdById String summary String }
+model PassengerFeedback { id String @id @default(cuid()) userId String tripId String? rating Int }
+model MaintenanceRecord { id String @id @default(cuid()) busId String notes String }

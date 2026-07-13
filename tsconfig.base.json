@@ -1,0 +1,1 @@
+﻿{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"esModuleInterop":true,"skipLibCheck":true,"baseUrl":".","paths":{"@sbts/shared-types/*":["packages/shared-types/src/*"],"@sbts/api-client/*":["packages/api-client/src/*"],"@sbts/ui-kit/*":["packages/ui-kit/src/*"]}}}

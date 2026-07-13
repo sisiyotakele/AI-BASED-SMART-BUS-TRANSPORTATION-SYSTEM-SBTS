@@ -1,0 +1,21 @@
+﻿version: '3.9'
+services:
+  postgres:
+    image: postgres:16
+  backend:
+    build:
+      context: ../..
+      dockerfile: infra/docker/backend.Dockerfile
+  ai-service:
+    build:
+      context: ../..
+      dockerfile: infra/docker/ai-service.Dockerfile
+  passenger-app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/passenger-app.Dockerfile
+  staff-app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/staff-app.Dockerfile
+
