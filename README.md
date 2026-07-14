@@ -1,4 +1,4 @@
 ﻿# SBTS
 
-Smart Bus Transportation System monorepo scaffold.
+Smart Bus Transportation System monorepo.
 
