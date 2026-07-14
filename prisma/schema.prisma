@@ -7,33 +7,230 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  PASSENGER
-  DRIVER
-  ADMIN
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  passwordHash      String
+  fullName          String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  roles             UserRole[]
+  passengerProfile  PassengerProfile?
+  driverProfile     DriverProfile?
+  auditLogs         AuditLog[]
 }
 
-model User { id String @id @default(cuid()) email String @unique role UserRole createdAt DateTime @default(now()) }
-model Session { id String @id @default(cuid()) userId String token String @unique }
-model Route { id String @id @default(cuid()) code String @unique name String }
-model Stop { id String @id @default(cuid()) name String }
-model RouteStop { id String @id @default(cuid()) routeId String stopId String sequence Int }
-model Terminal { id String @id @default(cuid()) name String }
-model Bus { id String @id @default(cuid()) plateNumber String @unique terminalId String? }
-model DriverProfile { id String @id @default(cuid()) userId String @unique licenseNo String @unique }
-model Shift { id String @id @default(cuid()) driverId String terminalId String }
-model Schedule { id String @id @default(cuid()) routeId String departureTime String }
-model Pricing { id String @id @default(cuid()) routeId String baseFare Float }
-model Trip { id String @id @default(cuid()) routeId String busId String driverId String status String }
-model Assignment { id String @id @default(cuid()) tripId String userId String }
-model GpsReading { id String @id @default(cuid()) tripId String busId String latitude Float longitude Float }
-model EtaPrediction { id String @id @default(cuid()) tripId String stopId String predictedArrival DateTime }
-model Incident { id String @id @default(cuid()) reportedById String tripId String? status String }
-model Notification { id String @id @default(cuid()) userId String title String body String }
-model AuditLog { id String @id @default(cuid()) userId String? action String entity String }
-model RefreshToken { id String @id @default(cuid()) userId String token String @unique }
-model DeviceToken { id String @id @default(cuid()) userId String token String @unique }
-model FarePolicy { id String @id @default(cuid()) name String ruleJson Json }
-model TripReport { id String @id @default(cuid()) tripId String createdById String summary String }
-model PassengerFeedback { id String @id @default(cuid()) userId String tripId String? rating Int }
-model MaintenanceRecord { id String @id @default(cuid()) busId String notes String }
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  users       UserRole[]
+  permissions RolePermission[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  roles       RolePermission[]
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId])
+}
+
+model Route {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  name        String
+  description String?
+  routeStops  RouteStop[]
+  schedules   Schedule[]
+  trips       Trip[]
+}
+
+model Stop {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  name        String
+  latitude    Float?
+  longitude   Float?
+  routeStops  RouteStop[]
+}
+
+model RouteStop {
+  id        String @id @default(cuid())
+  routeId   String
+  stopId    String
+  position  Int
+  route     Route  @relation(fields: [routeId], references: [id])
+  stop      Stop   @relation(fields: [stopId], references: [id])
+
+  @@unique([routeId, stopId])
+}
+
+model Pricing {
+  id        String   @id @default(cuid())
+  routeId   String
+  baseFare  Decimal  @db.Decimal(10, 2)
+  currency  String   @default("USD")
+  route     Route    @relation(fields: [routeId], references: [id])
+}
+
+model Schedule {
+  id          String   @id @default(cuid())
+  routeId     String
+  departureAt DateTime
+  arrivalAt   DateTime
+  route       Route    @relation(fields: [routeId], references: [id])
+}
+
+model Bus {
+  id          String   @id @default(cuid())
+  plateNumber String   @unique
+  capacity    Int
+  status      String
+  terminalId  String?
+  terminal    Terminal? @relation(fields: [terminalId], references: [id])
+  trips       Trip[]
+  maintenanceRecords MaintenanceRecord[]
+}
+
+model Driver {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  licenseNumber String  @unique
+  status       String
+  user         User     @relation(fields: [userId], references: [id])
+  shifts       Shift[]
+  tripAssignments TripAssignment[]
+  driverProfile DriverProfile?
+}
+
+model Terminal {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  name        String
+  buses       Bus[]
+  shifts      Shift[]
+}
+
+model Shift {
+  id         String   @id @default(cuid())
+  driverId   String
+  terminalId String?
+  startsAt   DateTime
+  endsAt     DateTime
+  driver     Driver   @relation(fields: [driverId], references: [id])
+  terminal   Terminal? @relation(fields: [terminalId], references: [id])
+}
+
+model Trip {
+  id         String   @id @default(cuid())
+  routeId    String
+  busId      String?
+  status     String
+  startedAt  DateTime?
+  endedAt    DateTime?
+  route      Route    @relation(fields: [routeId], references: [id])
+  bus        Bus?     @relation(fields: [busId], references: [id])
+  assignments TripAssignment[]
+  trackingEvents TrackingEvent[]
+  predictions Prediction[]
+  incidents  Incident[]
+  notifications Notification[]
+}
+
+model TripAssignment {
+  id        String @id @default(cuid())
+  tripId    String
+  driverId  String
+  trip      Trip   @relation(fields: [tripId], references: [id])
+  driver    Driver @relation(fields: [driverId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tripId    String?
+  userId    String?
+  title     String
+  body      String
+  readAt    DateTime?
+  trip      Trip?    @relation(fields: [tripId], references: [id])
+}
+
+model Incident {
+  id          String   @id @default(cuid())
+  tripId      String?
+  reportedBy  String?
+  severity    String
+  description String
+  trip        Trip?    @relation(fields: [tripId], references: [id])
+}
+
+model TrackingEvent {
+  id        String   @id @default(cuid())
+  tripId    String
+  latitude  Float
+  longitude Float
+  recordedAt DateTime @default(now())
+  trip      Trip     @relation(fields: [tripId], references: [id])
+}
+
+model Prediction {
+  id         String   @id @default(cuid())
+  tripId     String
+  predictedAt DateTime @default(now())
+  etaMinutes Int
+  confidence Float
+  trip       Trip     @relation(fields: [tripId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [actorUserId], references: [id])
+}
+
+model PassengerProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  phone     String?
+  user      User   @relation(fields: [userId], references: [id])
+}
+
+model DriverProfile {
+  id        String @id @default(cuid())
+  userId    String @unique
+  employeeNo String?
+  user      User   @relation(fields: [userId], references: [id])
+}
+
+model MaintenanceRecord {
+  id          String @id @default(cuid())
+  busId       String
+  notes       String
+  servicedAt  DateTime @default(now())
+  bus         Bus    @relation(fields: [busId], references: [id])
+}
