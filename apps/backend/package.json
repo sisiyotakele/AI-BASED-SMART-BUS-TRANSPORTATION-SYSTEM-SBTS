@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon src/app.ts",
     "build": "tsc",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.3",
