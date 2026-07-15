@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "jsonwebtoken": "^9.0.3",
-    "zod": "^4.4.3"
+    "zod": "^4.4.3",
+    "bcryptjs": "^2.4.3",
+    "@prisma/client": "^5.0.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
