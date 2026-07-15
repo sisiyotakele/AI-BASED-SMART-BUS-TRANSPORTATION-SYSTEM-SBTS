@@ -42,3 +42,36 @@ export const loginUser = async (authData: { email: string; password: string }) =
   const token = generateToken(user.email, user.role);
   return { user: { email: user.email, role: user.role }, token };
 };
+
+export const registerUser = async (registerData: { email: string; password: string; name?: string; role?: string }) => {
+  const { email, password, name, role } = registerData;
+
+  // If Prisma is available, create the user in the database with a hashed password
+  if (prisma) {
+    try {
+      const existing = await (prisma as any).user.findUnique({ where: { email } });
+      if (existing) throw new Error('Email already in use');
+
+      const passwordHash = await bcrypt.hash(password, 10);
+      const created = await (prisma as any).user.create({
+        data: {
+          email,
+          name: name || undefined,
+          passwordHash,
+          roles: { create: [{ role: role || 'user' }] },
+        },
+        include: { roles: true },
+      });
+
+      const token = generateToken(created.id, created.roles?.[0]?.role ?? 'user');
+      return { user: { id: created.id, email: created.email, role: created.roles?.[0]?.role ?? 'user' }, token };
+    } catch (err) {
+      throw err;
+    }
+  }
+
+  // Fallback: return a token for a non-persistent demo user
+  const demo = { email, name: name || 'Demo User', role: role || 'user' };
+  const token = generateToken(email, demo.role);
+  return { user: demo, token };
+};
