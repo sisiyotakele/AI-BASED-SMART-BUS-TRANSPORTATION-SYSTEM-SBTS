@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: sbts-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sbts_user
+      POSTGRES_PASSWORD: sbts_password
+      POSTGRES_DB: sbts_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sbts_user -d sbts_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache (optional but recommended)
+  redis:
+    image: redis:7-alpine
+    container_name: sbts-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sbts-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      API_PREFIX: /api/v1
+      
+      # Database
+      DATABASE_URL: postgresql://sbts_user:sbts_password@postgres:5432/sbts_db?schema=public
+      
+      # Redis
+      REDIS_URL: redis://redis:6379
+      REDIS_TTL: 3600
+      
+      # JWT (CHANGE THESE IN PRODUCTION!)
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-minimum-32-characters-long}
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-in-production-minimum-32-characters-long}
+      JWT_REFRESH_EXPIRES_IN: 7d
+      
+      # Security
+      BCRYPT_ROUNDS: 12
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000,http://localhost:5173}
+      
+      # Rate Limiting
+      RATE_LIMIT_WINDOW_MS: 900000
+      RATE_LIMIT_MAX: 1000
+      AUTH_RATE_LIMIT_WINDOW_MS: 900000
+      AUTH_RATE_LIMIT_MAX: 5
+      
+      # Account Lockout
+      MAX_LOGIN_ATTEMPTS: 5
+      LOCKOUT_DURATION_MINUTES: 30
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:4000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
