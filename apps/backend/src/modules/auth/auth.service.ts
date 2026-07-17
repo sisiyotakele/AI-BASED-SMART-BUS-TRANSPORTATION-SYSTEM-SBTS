@@ -12,19 +12,22 @@ export const loginUser = async (authData: { email: string; password: string }) =
   // If Prisma client is available and DATABASE_URL is configured, use DB-backed auth
   if (prisma) {
     try {
-      const user = await (prisma as any).user.findUnique({ where: { email } });
+      const user = await (prisma as any).user.findUnique({
+        where: { email },
+        include: { roles: { include: { role: true } } },
+      });
       if (!user) throw new Error('Invalid email or password');
 
-      const passwordHash = user.passwordHash || user.password || null;
+      const passwordHash = user.passwordHash || null;
       if (!passwordHash || !(await bcrypt.compare(password, passwordHash))) {
         throw new Error('Invalid email or password');
       }
 
-      const token = generateToken(user.id, user.roles?.[0]?.role ?? 'user');
+      const roleName = user.roles?.[0]?.role?.name ?? 'user';
+      const token = generateToken(user.id, roleName);
 
-      return { user: { id: user.id, email: user.email, role: user.roles?.[0]?.role ?? 'user' }, token };
+      return { user: { id: user.id, email: user.email, role: roleName }, token };
     } catch (err) {
-      // If Prisma is configured but user lookup fails unexpectedly, rethrow
       throw err;
     }
   }
@@ -53,18 +56,30 @@ export const registerUser = async (registerData: { email: string; password: stri
       if (existing) throw new Error('Email already in use');
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const created = await (prisma as any).user.create({
+      const roleName = role || 'user';
+
+      let roleRecord = await (prisma as any).role.findUnique({ where: { name: roleName } });
+      if (!roleRecord) {
+        roleRecord = await (prisma as any).role.create({ data: { name: roleName } });
+      }
+
+      const createdUser = await (prisma as any).user.create({
         data: {
           email,
-          name: name || undefined,
+          fullName: name || undefined,
           passwordHash,
-          roles: { create: [{ role: role || 'user' }] },
         },
-        include: { roles: true },
       });
 
-      const token = generateToken(created.id, created.roles?.[0]?.role ?? 'user');
-      return { user: { id: created.id, email: created.email, role: created.roles?.[0]?.role ?? 'user' }, token };
+      await (prisma as any).userRole.create({
+        data: {
+          userId: createdUser.id,
+          roleId: roleRecord.id,
+        },
+      });
+
+      const token = generateToken(createdUser.id, roleName);
+      return { user: { id: createdUser.id, email: createdUser.email, role: roleName }, token };
     } catch (err) {
       throw err;
     }

@@ -56,6 +56,13 @@ A good first milestone is:
 - Add proper error responses
 - Ensure the server can start successfully
 
+### Priority 1.1: Database integration
+- Set `DATABASE_URL` for a local/Postgres database
+- Run Prisma generation and migrations from `apps/backend`
+- Seed the database with an initial admin user
+- Verify `/api/auth/login` and `/api/auth/register` against Postgres
+- Remove or reduce in-memory demo fallback once DB auth works
+
 ### Priority 2: Core module implementation
 - Implement one module fully, such as auth or trips
 - Keep controllers thin and move logic into services
@@ -110,8 +117,6 @@ A task is considered done when:
 - Errors are handled properly
 - The work is documented clearly enough for the next person
 
-## Important Note
-Do not try to build everything at once. Focus on one complete flow first, then expand from there.
 
 ## Best First Task
 Start with the authentication flow and make sure it works end to end.

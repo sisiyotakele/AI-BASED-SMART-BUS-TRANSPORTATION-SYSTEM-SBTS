@@ -76,5 +76,30 @@ node --test test/auth.service.test.js
 
 The tests exercise `loginUser` against the compiled `dist` output.
 
+## Database-backed auth
+
+To enable the real database path, set `DATABASE_URL` and run Prisma commands from `apps/backend`:
+
+```bash
+npm --workspace apps/backend run prisma:generate
+npm --workspace apps/backend run prisma:migrate
+npm --workspace apps/backend run seed
+```
+
+If you want to use Prisma without migrations first, use:
+
+```bash
+npm --workspace apps/backend run prisma:dbpush
+npm --workspace apps/backend run seed
+```
+
+Then build and start:
+
+```bash
+npm --workspace apps/backend run build
+node apps/backend/dist/server.js
+```
+
 ## Notes
-- This demo login uses in-memory demo users. Replace with Prisma-backed logic when the database is ready.
+- This demo login uses in-memory demo users when `DATABASE_URL` is not set.
+- When the database is configured, auth will use Prisma and hashed passwords.

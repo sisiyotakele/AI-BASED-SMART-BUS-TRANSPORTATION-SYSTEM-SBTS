@@ -1,4 +1,4 @@
-﻿generator client {
+generator client {
   provider = "prisma-client-js"
 }
 
@@ -17,6 +17,7 @@ model User {
   roles             UserRole[]
   passengerProfile  PassengerProfile?
   driverProfile     DriverProfile?
+  driver            Driver?
   auditLogs         AuditLog[]
 }
 
@@ -63,6 +64,7 @@ model Route {
   routeStops  RouteStop[]
   schedules   Schedule[]
   trips       Trip[]
+  pricing     Pricing[]
 }
 
 model Stop {
@@ -120,7 +122,6 @@ model Driver {
   user         User     @relation(fields: [userId], references: [id])
   shifts       Shift[]
   tripAssignments TripAssignment[]
-  driverProfile DriverProfile?
 }
 
 model Terminal {
