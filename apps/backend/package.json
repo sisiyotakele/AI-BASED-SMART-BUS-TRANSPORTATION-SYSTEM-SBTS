@@ -58,6 +58,7 @@
     "typescript": "^5.5.2"
   },
   "prisma": {
-    "schema": "src/prisma/schema.prisma"
+    "schema": "src/prisma/schema.prisma",
+    "seed": "tsx src/prisma/seed.ts"
   }
 }

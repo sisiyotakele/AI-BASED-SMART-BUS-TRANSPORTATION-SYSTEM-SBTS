@@ -73,7 +73,7 @@ export const envSchema = z.object({
     REDIS_PASSWORD: z.string().optional(),
     REDIS_DB: z.coerce.number().int().min(0).max(15).default(0),
     REDIS_KEY_PREFIX: z.string().default('transit:'),
-    REDIS_ENABLED: BooleanSchema.default(true),
+    REDIS_ENABLED: BooleanSchema.default('true'),
 
     // JWT
     JWT_SECRET: JwtSecretSchema,
@@ -91,7 +91,7 @@ export const envSchema = z.object({
 
     // CORS
     CORS_ORIGIN: z.string().default('*'),
-    CORS_CREDENTIALS: BooleanSchema.default(true),
+    CORS_CREDENTIALS: BooleanSchema.default('true'),
     CORS_MAX_AGE: z.coerce.number().int().min(0).default(86400),
 
     // Rate Limiting
@@ -101,7 +101,7 @@ export const envSchema = z.object({
     RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().int().min(1).default(5),
 
     // Socket.io
-    SOCKET_ENABLED: BooleanSchema.default(false),
+    SOCKET_ENABLED: BooleanSchema.default('false'),
     SOCKET_PATH: z.string().default('/socket.io'),
     SOCKET_CORS_ORIGIN: z.string().default('*'),
     SOCKET_PING_TIMEOUT: z.coerce.number().int().min(1000).default(60000),
@@ -111,12 +111,12 @@ export const envSchema = z.object({
     // Logging
     LOG_LEVEL: z.enum(['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly']).default('info'),
     LOG_FORMAT: z.enum(['json', 'simple', 'combined']).default('json'),
-    LOG_FILE_ENABLED: BooleanSchema.default(false),
+    LOG_FILE_ENABLED: BooleanSchema.default('false'),
     LOG_FILE_PATH: z.string().default('./logs'),
 
     // Monitoring
-    ENABLE_REQUEST_LOGGING: BooleanSchema.default(true),
-    ENABLE_PERFORMANCE_MONITORING: BooleanSchema.default(true),
+    ENABLE_REQUEST_LOGGING: BooleanSchema.default('true'),
+    ENABLE_PERFORMANCE_MONITORING: BooleanSchema.default('true'),
     SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().min(100).default(1000),
 
     // Pagination
@@ -134,10 +134,10 @@ export const envSchema = z.object({
     EMAIL_API_KEY: z.string().optional(),
 
     // Feature Flags
-    ENABLE_SWAGGER: BooleanSchema.default(false),
-    ENABLE_GRAPHQL: BooleanSchema.default(false),
-    ENABLE_METRICS: BooleanSchema.default(false),
-    ENABLE_HEALTH_CHECK: BooleanSchema.default(true),
+    ENABLE_SWAGGER: BooleanSchema.default('false'),
+    ENABLE_GRAPHQL: BooleanSchema.default('false'),
+    ENABLE_METRICS: BooleanSchema.default('false'),
+    ENABLE_HEALTH_CHECK: BooleanSchema.default('true'),
 
     // AI/ML Service (for predictions module)
     AI_SERVICE_URL: UrlSchema.optional(),

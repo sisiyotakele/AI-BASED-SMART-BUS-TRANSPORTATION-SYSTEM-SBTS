@@ -66,6 +66,26 @@ export const config = {
   cors: {
     origin: env.CORS_ORIGIN.split(',').map(s => s.trim()),
   },
+
+  rateLimit: {
+    auth: {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 5, // 5 requests per windowMs
+    },
+    general: {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 100, // 100 requests per windowMs
+    },
+    strict: {
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: 10, // 10 requests per windowMs
+    },
+  },
+
+  security: {
+    maxLoginAttempts: 5,
+    lockoutDurationMinutes: 15,
+  },
 } as const;
 
 export type Config = typeof config;

@@ -42,7 +42,7 @@ export const jwtUtils = {
      */
     signAccessToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
         const options: SignOptions = {
-            expiresIn: jwtConfig.access.expiresIn,
+            expiresIn: jwtConfig.access.expiresIn as any,
             issuer: jwtConfig.access.issuer,
             audience: jwtConfig.access.audience,
         };
@@ -59,7 +59,7 @@ export const jwtUtils = {
      */
     signRefreshToken(payload: Omit<JwtPayload, 'type' | 'iat' | 'exp'>): string {
         const options: SignOptions = {
-            expiresIn: jwtConfig.refresh.expiresIn,
+            expiresIn: jwtConfig.refresh.expiresIn as any,
             issuer: jwtConfig.refresh.issuer,
             audience: jwtConfig.refresh.audience,
         };

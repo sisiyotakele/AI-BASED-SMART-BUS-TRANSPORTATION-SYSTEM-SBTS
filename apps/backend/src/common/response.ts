@@ -1,3 +1,5 @@
+import { Response } from 'express';
+
 export interface ApiResponse<T = unknown> {
   success: boolean;
   message: string;
@@ -15,16 +17,16 @@ export interface ApiResponse<T = unknown> {
 }
 
 export function successResponse<T>(
+  res: Response,
   data: T,
   message: string = 'Success',
-  meta?: ApiResponse<T>['meta']
-): ApiResponse<T> {
-  return {
+  statusCode: number = 200
+): Response {
+  return res.status(statusCode).json({
     success: true,
     message,
     data,
-    meta,
-  };
+  });
 }
 
 export function errorResponse(

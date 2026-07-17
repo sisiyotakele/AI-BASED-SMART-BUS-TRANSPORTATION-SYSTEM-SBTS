@@ -22,6 +22,7 @@ export async function resetDatabase() {
   const tables = [
     'audit_logs',
     'login_history',
+    'refresh_tokens',
     'notification_users',
     'notifications',
     'traffic_predictions',
