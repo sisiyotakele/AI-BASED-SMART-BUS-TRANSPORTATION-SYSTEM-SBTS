@@ -7,6 +7,12 @@ beforeAll(() => {
   if (authService.setPrismaClient) {
     authService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into rbac service
+  const rbacService = require('@/modules/rbac/rbac.service');
+  if (rbacService.setPrismaClient) {
+    rbacService.setPrismaClient(prismaTest);
+  }
 });
 
 afterAll(async () => {
