@@ -1,1 +1,3 @@
-﻿export const stub = () => 'ok';
+﻿export const rbacService = {
+  name: 'rbac-service',
+};
