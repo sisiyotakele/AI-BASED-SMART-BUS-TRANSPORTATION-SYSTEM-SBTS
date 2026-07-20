@@ -13,6 +13,12 @@ beforeAll(() => {
   if (rbacService.setPrismaClient) {
     rbacService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into terminals service
+  const terminalsService = require('@/modules/terminals/terminals.service');
+  if (terminalsService.setPrismaClient) {
+    terminalsService.setPrismaClient(prismaTest);
+  }
 });
 
 afterAll(async () => {
