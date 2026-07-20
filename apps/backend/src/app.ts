@@ -52,13 +52,13 @@ app.get('/health', (_req: Request, res: Response) => {
 // API routes
 const apiPrefix = config.apiPrefix;
 
-// Auth routes
+// Authentication
 app.use(`${apiPrefix}/auth`, authRoutes);
 
-// RBAC routes
+// RBAC
 app.use(`${apiPrefix}/rbac`, rbacRoutes);
 
-// Terminal routes
+// Terminals
 app.use(`${apiPrefix}/terminals`, terminalRoutes);
 
 // 404 handler

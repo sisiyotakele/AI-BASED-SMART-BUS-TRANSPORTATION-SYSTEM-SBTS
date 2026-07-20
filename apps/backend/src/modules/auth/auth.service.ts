@@ -104,11 +104,24 @@ export async function login(email: string, password: string, ipAddress?: string)
         throw new UnauthorizedError('Invalid credentials');
     }
 
-    // Generate tokens
+    // Generate tokens - Including roles and permissions in the Access Token
     const accessToken = jwt.sign(
-        { userId: user.id, email: user.email, jti: randomBytes(16).toString('hex') },
+        {
+            userId: user.id,
+            email: user.email,
+            roles: user.userRoles.map((ur) => ({
+                id: ur.role.id,
+                name: ur.role.roleName,
+                permissions: ur.role.rolePermissions.map(
+                    (rp) => rp.permission.permissionName
+                ),
+            })),
+            jti: randomBytes(16).toString("hex"),
+        },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn as any }
+        {
+            expiresIn: config.jwt.expiresIn as any,
+        }
     );
 
     const refreshToken = jwt.sign(
@@ -173,11 +186,50 @@ export async function refreshTokens(refreshToken: string) {
         throw new UnauthorizedError('Invalid refresh token');
     }
 
+    // Fetch the user with roles and permissions
+    const user = await prisma.user.findUnique({
+        where: {
+            id: payload.userId,
+        },
+        include: {
+            userRoles: {
+                include: {
+                    role: {
+                        include: {
+                            rolePermissions: {
+                                include: {
+                                    permission: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    });
+
+    if (!user) {
+        throw new UnauthorizedError("User not found");
+    }
+
     // Generate new tokens
     const accessToken = jwt.sign(
-        { userId: payload.userId, email: payload.email, jti: randomBytes(16).toString('hex') },
+        {
+            userId: user.id,
+            email: user.email,
+            roles: user.userRoles.map((ur) => ({
+                id: ur.role.id,
+                name: ur.role.roleName,
+                permissions: ur.role.rolePermissions.map(
+                    (rp) => rp.permission.permissionName
+                ),
+            })),
+            jti: randomBytes(16).toString("hex"),
+        },
         config.jwt.secret,
-        { expiresIn: config.jwt.expiresIn as any }
+        {
+            expiresIn: config.jwt.expiresIn as any,
+        }
     );
 
     const newRefreshToken = jwt.sign(
