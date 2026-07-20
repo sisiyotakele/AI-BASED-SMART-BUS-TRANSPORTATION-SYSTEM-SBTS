@@ -14,6 +14,7 @@ import { getSimpleHealth } from '@/common/health';
 import { authRoutes } from '@/modules/auth';
 import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
+import { busRoutes } from '@/modules/buses';
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.get('/', (_req: Request, res: Response) => {
       auth: `${config.apiPrefix}/auth`,
       rbac: `${config.apiPrefix}/rbac`,
       terminals: `${config.apiPrefix}/terminals`,
+      buses: `${config.apiPrefix}/buses`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -60,6 +62,9 @@ app.use(`${apiPrefix}/rbac`, rbacRoutes);
 
 // Terminals
 app.use(`${apiPrefix}/terminals`, terminalRoutes);
+
+// Buses
+app.use(`${apiPrefix}/buses`, busRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
