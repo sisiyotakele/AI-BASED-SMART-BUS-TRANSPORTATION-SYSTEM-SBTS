@@ -1,46 +1,32 @@
 import winston from 'winston';
 import { config } from '@/config';
 
-const { combine, timestamp, printf, colorize, errors } = winston.format;
-
-const logFormat = printf(({ level, message, timestamp, stack, ...metadata }) => {
-  let msg = `${timestamp} [${level}]: ${message}`;
-  if (Object.keys(metadata).length > 0) {
-    msg += ` ${JSON.stringify(metadata)}`;
-  }
-  if (stack) {
-    msg += `\n${stack}`;
-  }
-  return msg;
-});
-
 export const logger = winston.createLogger({
-  level: config.env === 'development' ? 'debug' : 'info',
+  level: process.env.NODE_ENV === 'development' ? 'debug' : 'info',  // Line 18 - CHANGED
   defaultMeta: { service: 'sbts-backend' },
   transports: [
     new winston.transports.Console({
-      format: combine(
-        colorize(),
-        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-        errors({ stack: true }),
-        logFormat
+      format: winston.format.combine(
+        winston.format.colorize(),
+        winston.format.timestamp(),
+        winston.format.printf(({ timestamp, level, message, ...meta }) => {
+          return `${timestamp} [${level}]: ${message} ${Object.keys(meta).length ? JSON.stringify(meta) : ''}`;
+        })
       ),
     }),
   ],
 });
 
-if (config.env === 'production') {
+if (process.env.NODE_ENV === 'production') {  // Line 32 - CHANGED
   logger.add(
     new winston.transports.File({
       filename: 'logs/error.log',
       level: 'error',
-      format: combine(timestamp(), winston.format.json()),
     })
   );
   logger.add(
     new winston.transports.File({
       filename: 'logs/combined.log',
-      format: combine(timestamp(), winston.format.json()),
     })
   );
 }

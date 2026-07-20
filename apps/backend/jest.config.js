@@ -1,3 +1,5 @@
+require('dotenv').config(); // Add this line at the top!
+
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   preset: 'ts-jest',

@@ -14,14 +14,16 @@ export function responseTimeMiddleware(req: Request, res: Response, next: NextFu
     const startTime = Date.now();
 
     // Capture the original end function
-    const originalEnd = res.end;
+    const originalEnd = res.end.bind(res);
 
     // Override res.end to calculate response time
-    res.end = function (this: Response, ...args: any[]): Response {
+    res.end = function (chunk?: any, encoding?: any, callback?: any): Response {
         const responseTime = Date.now() - startTime;
 
-        // Add response time header
-        res.setHeader('X-Response-Time', `${responseTime}ms`);
+        // Add response time header only if headers haven't been sent yet
+        if (!res.headersSent) {
+            res.setHeader('X-Response-Time', `${responseTime}ms`);
+        }
 
         // Log slow requests
         if (responseTime > SLOW_REQUEST_THRESHOLD_MS) {
@@ -46,8 +48,8 @@ export function responseTimeMiddleware(req: Request, res: Response, next: NextFu
         }
 
         // Call original end function
-        return originalEnd.apply(this, args);
-    };
+        return originalEnd(chunk, encoding, callback);
+    } as any;
 
     next();
 }

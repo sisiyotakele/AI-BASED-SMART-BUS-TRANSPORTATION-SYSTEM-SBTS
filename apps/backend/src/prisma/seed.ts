@@ -1,182 +1,270 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
+    console.log('🌱 Starting database seed...');
 
-  // ============================================================
-  // 1. PERMISSIONS
-  // ============================================================
-  const permissionsData = [
-    // Fleet
-    { permissionName: 'manage_fleet', resource: 'buses', action: 'manage', description: 'Full CRUD on fleet' },
-    { permissionName: 'view_fleet', resource: 'buses', action: 'read', description: 'View fleet data' },
-    
-    // Terminals
-    { permissionName: 'manage_terminals', resource: 'terminals', action: 'manage', description: 'Full CRUD on terminals' },
-    { permissionName: 'view_terminals', resource: 'terminals', action: 'read', description: 'View terminals' },
-    
-    // Routes & Stops
-    { permissionName: 'manage_routes', resource: 'routes', action: 'manage', description: 'Full CRUD on routes and stops' },
-    { permissionName: 'view_routes', resource: 'routes', action: 'read', description: 'View routes and stops' },
-    
-    // Drivers / Users
-    { permissionName: 'manage_drivers', resource: 'drivers', action: 'manage', description: 'Create and manage driver accounts' },
-    { permissionName: 'view_drivers', resource: 'drivers', action: 'read', description: 'View driver profiles' },
-    
-    // Shifts
-    { permissionName: 'manage_shifts', resource: 'shifts', action: 'manage', description: 'Full CRUD on shifts' },
-    { permissionName: 'view_shifts', resource: 'shifts', action: 'read', description: 'View shifts' },
-    
-    // Pricing
-    { permissionName: 'manage_pricing', resource: 'prices', action: 'manage', description: 'Manage fare pricing' },
-    { permissionName: 'view_pricing', resource: 'prices', action: 'read', description: 'View pricing' },
-    
-    // Schedules
-    { permissionName: 'manage_schedules', resource: 'schedules', action: 'manage', description: 'Manage bus schedules' },
-    { permissionName: 'view_schedules', resource: 'schedules', action: 'read', description: 'View schedules' },
-    
-    // Assignments
-    { permissionName: 'manage_assignments', resource: 'assignments', action: 'manage', description: 'Manage bus-driver and bus-route assignments' },
-    { permissionName: 'view_assignments', resource: 'assignments', action: 'read', description: 'View assignments' },
-    
-    // Key Handovers
-    { permissionName: 'manage_key_handovers', resource: 'key_handovers', action: 'manage', description: 'Manage key handovers' },
-    { permissionName: 'view_key_handovers', resource: 'key_handovers', action: 'read', description: 'View key handovers' },
-    
-    // Trips
-    { permissionName: 'create_trip', resource: 'trips', action: 'create', description: 'Create new trips' },
-    { permissionName: 'start_trip', resource: 'trips', action: 'start', description: 'Start a trip (driver)' },
-    { permissionName: 'end_trip', resource: 'trips', action: 'end', description: 'End a trip (driver)' },
-    { permissionName: 'cancel_trip', resource: 'trips', action: 'cancel', description: 'Cancel a trip' },
-    { permissionName: 'view_trips', resource: 'trips', action: 'read', description: 'View trips' },
-    
-    // Incidents
-    { permissionName: 'report_incident', resource: 'incidents', action: 'create', description: 'Report incidents (driver)' },
-    { permissionName: 'resolve_incident', resource: 'incidents', action: 'resolve', description: 'Resolve incidents (admin)' },
-    { permissionName: 'view_incidents', resource: 'incidents', action: 'read', description: 'View incidents' },
-    
-    // Notifications
-    { permissionName: 'manage_notifications', resource: 'notifications', action: 'manage', description: 'Send and manage notifications' },
-    
-    // AI
-    { permissionName: 'manage_ai_models', resource: 'ai_models', action: 'manage', description: 'Manage AI prediction models' },
-    { permissionName: 'view_predictions', resource: 'predictions', action: 'read', description: 'View traffic predictions' },
-    
-    // Reporting
-    { permissionName: 'generate_report', resource: 'reports', action: 'create', description: 'Generate operational reports' },
-    { permissionName: 'view_reports', resource: 'reports', action: 'read', description: 'View reports' },
-    
-    // RBAC
-    { permissionName: 'manage_roles', resource: 'roles', action: 'manage', description: 'Manage roles and permissions' },
-    { permissionName: 'view_roles', resource: 'roles', action: 'read', description: 'View roles and permissions' },
-    { permissionName: 'assign_roles', resource: 'user_roles', action: 'manage', description: 'Assign roles to users' },
-    
-    // Audit
-    { permissionName: 'view_audit_logs', resource: 'audit_logs', action: 'read', description: 'View audit logs' },
-  ];
+    // Clean existing data in correct order (respecting foreign keys)
+    console.log('🧹 Cleaning existing seed data...');
+    await prisma.rolePermission.deleteMany({});
+    await prisma.userRole.deleteMany({});
+    await prisma.permission.deleteMany({});
+    await prisma.role.deleteMany({});
+    await prisma.user.deleteMany({});
 
-  const permissions = await Promise.all(
-    permissionsData.map((p: any) =>
-      prisma.permission.upsert({
-        where: { permissionName: p.permissionName },
-        update: {},
-        create: p,
-      })
-    )
-  );
+    console.log('📝 Creating permissions...');
 
-  console.log(`✅ Seeded ${permissions.length} permissions`);
+    // Define all permissions with correct field names
+    const permissions = [
+        // User management
+        { permissionName: 'users:read', description: 'View users', resource: 'User', action: 'read' },
+        { permissionName: 'users:create', description: 'Create users', resource: 'User', action: 'create' },
+        { permissionName: 'users:update', description: 'Update users', resource: 'User', action: 'update' },
+        { permissionName: 'users:delete', description: 'Delete users', resource: 'User', action: 'delete' },
 
-  // ============================================================
-  // 2. ROLES
-  // ============================================================
-  const adminRole = await prisma.role.upsert({
-    where: { roleName: 'admin' },
-    update: {},
-    create: {
-      roleName: 'admin',
-      description: 'System Administrator with full access',
-    },
-  });
+        // Role management
+        { permissionName: 'roles:read', description: 'View roles', resource: 'Role', action: 'read' },
+        { permissionName: 'roles:create', description: 'Create roles', resource: 'Role', action: 'create' },
+        { permissionName: 'roles:update', description: 'Update roles', resource: 'Role', action: 'update' },
+        { permissionName: 'roles:delete', description: 'Delete roles', resource: 'Role', action: 'delete' },
 
-  const driverRole = await prisma.role.upsert({
-    where: { roleName: 'driver' },
-    update: {},
-    create: {
-      roleName: 'driver',
-      description: 'Bus Driver with operational permissions',
-    },
-  });
+        // Terminal management
+        { permissionName: 'terminals:read', description: 'View terminals', resource: 'Terminal', action: 'read' },
+        { permissionName: 'terminals:create', description: 'Create terminals', resource: 'Terminal', action: 'create' },
+        { permissionName: 'terminals:update', description: 'Update terminals', resource: 'Terminal', action: 'update' },
+        { permissionName: 'terminals:delete', description: 'Delete terminals', resource: 'Terminal', action: 'delete' },
 
-  const passengerRole = await prisma.role.upsert({
-    where: { roleName: 'passenger' },
-    update: {},
-    create: {
-      roleName: 'passenger',
-      description: 'Passenger with read-only public access',
-    },
-  });
+        // Bus management
+        { permissionName: 'buses:read', description: 'View buses', resource: 'Bus', action: 'read' },
+        { permissionName: 'buses:create', description: 'Create buses', resource: 'Bus', action: 'create' },
+        { permissionName: 'buses:update', description: 'Update buses', resource: 'Bus', action: 'update' },
+        { permissionName: 'buses:delete', description: 'Delete buses', resource: 'Bus', action: 'delete' },
 
-  console.log('✅ Seeded 3 roles: admin, driver, passenger');
+        // Driver management
+        { permissionName: 'drivers:read', description: 'View drivers', resource: 'Driver', action: 'read' },
+        { permissionName: 'drivers:create', description: 'Create drivers', resource: 'Driver', action: 'create' },
+        { permissionName: 'drivers:update', description: 'Update drivers', resource: 'Driver', action: 'update' },
+        { permissionName: 'drivers:delete', description: 'Delete drivers', resource: 'Driver', action: 'delete' },
 
-  // ============================================================
-  // 3. ROLE PERMISSIONS
-  // ============================================================
-  const permissionMap = new Map(permissions.map((p: any) => [p.permissionName, p.id]));
+        // Audit logs
+        { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
-  // Admin gets everything
-  const adminPermissions = permissions.map(p => ({
-    roleId: adminRole.id,
-    permissionId: p.id,
-  }));
+        // Reports
+        { permissionName: 'reports:read', description: 'View reports', resource: 'Report', action: 'read' },
+        { permissionName: 'reports:create', description: 'Generate reports', resource: 'Report', action: 'create' },
 
-  // Driver gets operational permissions
-  const driverPermissionNames = [
-    'view_fleet', 'view_terminals', 'view_routes', 'view_shifts', 'view_schedules',
-    'view_assignments', 'view_key_handovers', 'start_trip', 'end_trip', 'view_trips',
-    'report_incident', 'view_incidents', 'view_predictions', 'view_pricing',
-  ];
-  const driverPermissions = driverPermissionNames
-    .map(name => permissionMap.get(name))
-    .filter((id): id is string => !!id)
-    .map(permissionId => ({
-      roleId: driverRole.id,
-      permissionId,
-    }));
+        // Bookings
+        { permissionName: 'bookings:read', description: 'View bookings', resource: 'Booking', action: 'read' },
+        { permissionName: 'bookings:create', description: 'Create bookings', resource: 'Booking', action: 'create' },
+        { permissionName: 'bookings:update', description: 'Update bookings', resource: 'Booking', action: 'update' },
+    ];
 
-  // Passenger gets minimal read access
-  const passengerPermissionNames = [
-    'view_routes', 'view_terminals', 'view_schedules', 'view_pricing', 'view_predictions',
-  ];
-  const passengerPermissions = passengerPermissionNames
-    .map(name => permissionMap.get(name))
-    .filter((id): id is string => !!id)
-    .map(permissionId => ({
-      roleId: passengerRole.id,
-      permissionId,
-    }));
+    const createdPermissions = await Promise.all(
+        permissions.map((permission) =>
+            prisma.permission.create({
+                data: permission,
+            })
+        )
+    );
 
-  await prisma.rolePermission.deleteMany({});
-  await prisma.rolePermission.createMany({
-    data: [...adminPermissions, ...driverPermissions, ...passengerPermissions],
-    skipDuplicates: true,
-  });
+    console.log(`✅ Created ${createdPermissions.length} permissions`);
 
-  console.log('✅ Seeded role-permission mappings');
-  console.log('   - Admin: all permissions');
-  console.log(`   - Driver: ${driverPermissions.length} permissions`);
-  console.log(`   - Passenger: ${passengerPermissions.length} permissions`);
+    console.log('👥 Creating roles...');
 
-  console.log('🎉 Seed completed successfully');
+    // SUPER_ADMIN - All permissions
+    const superAdminRole = await prisma.role.create({
+        data: {
+            roleName: 'SUPER_ADMIN',
+            description: 'Full system access',
+            rolePermissions: {
+                create: createdPermissions.map(p => ({
+                    permissionId: p.id,
+                })),
+            },
+        },
+    });
+
+    // ADMIN - Most permissions except critical system operations
+    const adminPermissions = createdPermissions.filter(p =>
+        !p.permissionName.includes('roles:delete') &&
+        !p.permissionName.includes('users:delete')
+    );
+
+    const adminRole = await prisma.role.create({
+        data: {
+            roleName: 'ADMIN',
+            description: 'Administrative access',
+            rolePermissions: {
+                create: adminPermissions.map(p => ({
+                    permissionId: p.id,
+                })),
+            },
+        },
+    });
+
+    // MANAGER - Read all, manage terminals, buses, drivers
+    const managerPermissions = createdPermissions.filter(p =>
+        p.action === 'read' ||
+        p.resource === 'Terminal' ||
+        p.resource === 'Bus' ||
+        p.resource === 'Driver' ||
+        p.resource === 'Booking'
+    );
+
+    const managerRole = await prisma.role.create({
+        data: {
+            roleName: 'MANAGER',
+            description: 'Operations manager',
+            rolePermissions: {
+                create: managerPermissions.map(p => ({
+                    permissionId: p.id,
+                })),
+            },
+        },
+    });
+
+    // DRIVER - Read buses, terminals, own profile
+    const driverPermissions = createdPermissions.filter(p =>
+        (p.resource === 'Bus' && p.action === 'read') ||
+        (p.resource === 'Terminal' && p.action === 'read') ||
+        (p.resource === 'Driver' && p.action === 'read')
+    );
+
+    const driverRole = await prisma.role.create({
+        data: {
+            roleName: 'DRIVER',
+            description: 'Bus driver',
+            rolePermissions: {
+                create: driverPermissions.map(p => ({
+                    permissionId: p.id,
+                })),
+            },
+        },
+    });
+
+    // PASSENGER - Read public info, manage own bookings
+    const passengerPermissions = createdPermissions.filter(p =>
+        (p.resource === 'Booking') ||
+        (p.resource === 'Terminal' && p.action === 'read') ||
+        (p.resource === 'Bus' && p.action === 'read')
+    );
+
+    const passengerRole = await prisma.role.create({
+        data: {
+            roleName: 'PASSENGER',
+            description: 'Regular passenger',
+            rolePermissions: {
+                create: passengerPermissions.map(p => ({
+                    permissionId: p.id,
+                })),
+            },
+        },
+    });
+
+    console.log('✅ Created 5 roles');
+
+    console.log('👤 Creating seed users...');
+
+    // Hash passwords
+    const hashedPassword = await bcrypt.hash('Password123!', 10);
+
+    // Super Admin user
+    const superAdmin = await prisma.user.create({
+        data: {
+            email: 'superadmin@sbts.com',
+            fullName: 'Super Admin',
+            phone: '+1234567890',
+            passwordHash: hashedPassword,
+            userRoles: {
+                create: {
+                    roleId: superAdminRole.id,
+                },
+            },
+        },
+    });
+
+    // Admin user
+    const admin = await prisma.user.create({
+        data: {
+            email: 'admin@sbts.com',
+            fullName: 'Admin User',
+            phone: '+1234567891',
+            passwordHash: hashedPassword,
+            userRoles: {
+                create: {
+                    roleId: adminRole.id,
+                },
+            },
+        },
+    });
+
+    // Manager user
+    const manager = await prisma.user.create({
+        data: {
+            email: 'manager@sbts.com',
+            fullName: 'Manager User',
+            phone: '+1234567892',
+            passwordHash: hashedPassword,
+            userRoles: {
+                create: {
+                    roleId: managerRole.id,
+                },
+            },
+        },
+    });
+
+    // Driver user
+    const driver = await prisma.user.create({
+        data: {
+            email: 'driver@sbts.com',
+            fullName: 'Driver User',
+            phone: '+1234567893',
+            passwordHash: hashedPassword,
+            userRoles: {
+                create: {
+                    roleId: driverRole.id,
+                },
+            },
+        },
+    });
+
+    // Passenger user
+    const passenger = await prisma.user.create({
+        data: {
+            email: 'passenger@sbts.com',
+            fullName: 'Passenger User',
+            phone: '+1234567894',
+            passwordHash: hashedPassword,
+            userRoles: {
+                create: {
+                    roleId: passengerRole.id,
+                },
+            },
+        },
+    });
+
+    console.log('✅ Created 5 seed users');
+
+    console.log('✅ Database seeded successfully!');
+    console.log('\n📊 Summary:');
+    console.log(`   - ${createdPermissions.length} permissions`);
+    console.log('   - 5 roles');
+    console.log('   - 5 users');
+    console.log('\n🔐 Test credentials (password: Password123!):');
+    console.log('   - superadmin@sbts.com (SUPER_ADMIN)');
+    console.log('   - admin@sbts.com (ADMIN)');
+    console.log('   - manager@sbts.com (MANAGER)');
+    console.log('   - driver@sbts.com (DRIVER)');
+    console.log('   - passenger@sbts.com (PASSENGER)');
 }
 
 main()
-  .catch((e) => {
-    console.error('❌ Seed failed:', e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+    .catch((e) => {
+        console.error('❌ Seed failed:', e);
+        process.exit(1);
+    })
+    .finally(async () => {
+        await prisma.$disconnect();
+    });
