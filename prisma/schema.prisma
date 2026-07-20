@@ -7,72 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-}
-
-enum LoginStatus {
-  SUCCESS
-  FAILED
-  LOCKED
-}
-
 model User {
-  id            String @id @default(uuid())
-  email         String @unique
-  phone         String @unique
-  password_hash String
-  full_name     String
+  id                 String             @id @default(uuid())
+  email              String             @unique
+  phone              String             @unique
+  password_hash      String
+  full_name          String
+  status             UserStatus         @default(ACTIVE)
+  created_at         DateTime           @default(now())
+  updated_at         DateTime           @updatedAt
+  created_by_id      String?
+  deleted_at         DateTime?
+  deleted_by_id      String?
+  department         String?
+  home_terminal_id   String?
+  license_expiry     DateTime?
+  license_number     String?
+  preferred_language String?
+  updated_by_id      String?
+  audit_logs         AuditLog[]
+  live_locations     BusLiveLocation[]  @relation("driver_locations")
+  incidents          Incident[]         @relation("driver_incidents")
+  resolved_incidents Incident[]         @relation("ResolvedBy")
+  login_history      LoginHistory[]
+  notification_users NotificationUser[]
+  shifts             Shift[]
+  driver_trips       Trip[]             @relation("driver_trips")
+  trip_gps_logs      TripGPSLog[]
+  home_terminal      Terminal?          @relation("home_terminal", fields: [home_terminal_id], references: [id])
+  roles              UserRole[]
 
-  status UserStatus @default(ACTIVE)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  roles            UserRole[]
-  login_history    LoginHistory[]
-  audit_logs       AuditLog[]
-  driver           Driver?
-  passengerProfile PassengerProfile?
-  driverProfile    DriverProfile?
+  @@index([email])
+  @@index([phone])
+  @@index([home_terminal_id])
+  @@index([status])
+  @@index([deleted_at])
 }
 
 model Role {
-  id          String  @id @default(uuid())
-  role_name   String  @unique
-  description String?
+  id            String           @id @default(uuid())
+  role_name     String           @unique
+  description   String?
+  created_at    DateTime         @default(now())
+  updated_at    DateTime         @updatedAt
+  created_by_id String?
+  deleted_at    DateTime?
+  deleted_by_id String?
+  updated_by_id String?
+  permissions   RolePermission[]
+  users         UserRole[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  users       UserRole[]
-  permissions RolePermission[]
+  @@index([role_name])
+  @@index([deleted_at])
 }
 
 model Permission {
-  id String @id @default(uuid())
-
-  permission_name String  @unique
+  id              String           @id @default(uuid())
+  permission_name String           @unique
   description     String?
+  created_at      DateTime         @default(now())
+  updated_at      DateTime         @updatedAt
+  action          String
+  created_by_id   String?
+  deleted_at      DateTime?
+  deleted_by_id   String?
+  resource        String
+  updated_by_id   String?
+  roles           RolePermission[]
 
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  roles RolePermission[]
+  @@unique([resource, action])
+  @@index([resource])
+  @@index([action])
+  @@index([deleted_at])
 }
 
 model UserRole {
-  id String @id @default(uuid())
-
-  user_id String
-  role_id String
-
-  assigned_at DateTime @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  role Role @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid())
+  user_id       String
+  role_id       String
+  created_at    DateTime @default(now())
+  created_by_id String?
+  role          Role     @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, role_id])
   @@index([user_id])
@@ -80,15 +96,13 @@ model UserRole {
 }
 
 model RolePermission {
-  id String @id @default(uuid())
-
+  id            String     @id @default(uuid())
   role_id       String
   permission_id String
-
-  assigned_at DateTime @default(now())
-
-  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  created_at    DateTime   @default(now())
+  created_by_id String?
+  permission    Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+  role          Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
 
   @@unique([role_id, permission_id])
   @@index([role_id])
@@ -96,216 +110,841 @@ model RolePermission {
 }
 
 model LoginHistory {
-  id String @id @default(uuid())
-
-  user_id String?
-
-  email      String
-  ip_address String?
-  user_agent String?
-
+  id           String      @id @default(uuid())
+  user_id      String?
+  email        String
+  ip_address   String?
+  user_agent   String?
   login_status LoginStatus
-
-  login_at DateTime @default(now())
-
-  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  action       String
+  created_at   DateTime    @default(now())
+  device_info  String?
+  user         User?       @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
-  @@index([login_at])
-}
-
-model Route {
-  id          String      @id @default(cuid())
-  code        String      @unique
-  name        String
-  description String?
-  routeStops  RouteStop[]
-  schedules   Schedule[]
-  trips       Trip[]
-  pricings    Pricing[]
-}
-
-model Stop {
-  id         String      @id @default(cuid())
-  code       String      @unique
-  name       String
-  latitude   Float?
-  longitude  Float?
-  routeStops RouteStop[]
-}
-
-model RouteStop {
-  id       String @id @default(cuid())
-  routeId  String
-  stopId   String
-  position Int
-  route    Route  @relation(fields: [routeId], references: [id])
-  stop     Stop   @relation(fields: [stopId], references: [id])
-
-  @@unique([routeId, stopId])
-}
-
-model Pricing {
-  id       String  @id @default(cuid())
-  routeId  String
-  baseFare Decimal @db.Decimal(10, 2)
-  currency String  @default("USD")
-  route    Route   @relation(fields: [routeId], references: [id])
-}
-
-model Schedule {
-  id          String   @id @default(cuid())
-  routeId     String
-  departureAt DateTime
-  arrivalAt   DateTime
-  route       Route    @relation(fields: [routeId], references: [id])
-}
-
-model Bus {
-  id                 String              @id @default(cuid())
-  plateNumber        String              @unique
-  capacity           Int
-  status             String
-  terminalId         String?
-  terminal           Terminal?           @relation(fields: [terminalId], references: [id])
-  trips              Trip[]
-  maintenanceRecords MaintenanceRecord[]
-}
-
-model Driver {
-  id              String           @id @default(cuid())
-  userId          String           @unique
-  licenseNumber   String           @unique
-  status          String
-  user            User             @relation(fields: [userId], references: [id])
-  shifts          Shift[]
-  tripAssignments TripAssignment[]
-  driverProfile   DriverProfile?   @relation(fields: [driverProfileId], references: [id])
-  driverProfileId String?
-}
-
-model Terminal {
-  id     String  @id @default(cuid())
-  code   String  @unique
-  name   String
-  buses  Bus[]
-  shifts Shift[]
-}
-
-model Shift {
-  id         String    @id @default(cuid())
-  driverId   String
-  terminalId String?
-  startsAt   DateTime
-  endsAt     DateTime
-  driver     Driver    @relation(fields: [driverId], references: [id])
-  terminal   Terminal? @relation(fields: [terminalId], references: [id])
-}
-
-model Trip {
-  id             String           @id @default(cuid())
-  routeId        String
-  busId          String?
-  status         String
-  startedAt      DateTime?
-  endedAt        DateTime?
-  route          Route            @relation(fields: [routeId], references: [id])
-  bus            Bus?             @relation(fields: [busId], references: [id])
-  assignments    TripAssignment[]
-  trackingEvents TrackingEvent[]
-  predictions    Prediction[]
-  incidents      Incident[]
-  notifications  Notification[]
-}
-
-model TripAssignment {
-  id       String @id @default(cuid())
-  tripId   String
-  driverId String
-  trip     Trip   @relation(fields: [tripId], references: [id])
-  driver   Driver @relation(fields: [driverId], references: [id])
-}
-
-model Notification {
-  id     String    @id @default(cuid())
-  tripId String?
-  userId String?
-  title  String
-  body   String
-  readAt DateTime?
-  trip   Trip?     @relation(fields: [tripId], references: [id])
-}
-
-model Incident {
-  id          String  @id @default(cuid())
-  tripId      String?
-  reportedBy  String?
-  severity    String
-  description String
-  trip        Trip?   @relation(fields: [tripId], references: [id])
-}
-
-model TrackingEvent {
-  id         String   @id @default(cuid())
-  tripId     String
-  latitude   Float
-  longitude  Float
-  recordedAt DateTime @default(now())
-  trip       Trip     @relation(fields: [tripId], references: [id])
-}
-
-model Prediction {
-  id          String   @id @default(cuid())
-  tripId      String
-  predictedAt DateTime @default(now())
-  etaMinutes  Int
-  confidence  Float
-  trip        Trip     @relation(fields: [tripId], references: [id])
+  @@index([created_at])
+  @@index([email])
+  @@index([login_status])
 }
 
 model AuditLog {
-  id String @id @default(uuid())
-
-  user_id String?
-
+  id          String   @id @default(uuid())
+  user_id     String?
   action      String
   entity_name String
   entity_id   String?
-
-  old_values Json?
-  new_values Json?
-
-  ip_address String?
-  user_agent String?
-
-  created_at DateTime @default(now())
-
-  user User? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+  old_values  Json?
+  new_values  Json?
+  ip_address  String?
+  user_agent  String?
+  created_at  DateTime @default(now())
+  description String?
+  user        User?    @relation(fields: [user_id], references: [id])
 
   @@index([user_id])
   @@index([entity_name])
+  @@index([entity_id])
   @@index([created_at])
+  @@index([action])
 }
 
-model PassengerProfile {
-  id     String  @id @default(cuid())
-  userId String  @unique
-  phone  String?
-  user   User    @relation(fields: [userId], references: [id])
+model Terminal {
+  id              String         @id @default(uuid())
+  address         String?
+  capacity        Int?
+  contact_email   String?
+  contact_phone   String?
+  created_at      DateTime       @default(now())
+  created_by_id   String?
+  deleted_at      DateTime?
+  deleted_by_id   String?
+  facilities      String?
+  latitude        Decimal?       @db.Decimal(9, 6)
+  longitude       Decimal?       @db.Decimal(9, 6)
+  operating_hours String?
+  status          TerminalStatus @default(ACTIVE)
+  terminal_code   String         @unique
+  terminal_name   String
+  timezone        String?        @default("Africa/Addis_Ababa")
+  updated_at      DateTime       @updatedAt
+  updated_by_id   String?
+  buses           Bus[]
+  key_handovers   KeyHandover[]
+  stops           Stop[]
+  trip_gps_logs   TripGPSLog[]
+  users_home      User[]         @relation("home_terminal")
+
+  @@index([terminal_code])
+  @@index([terminal_name])
+  @@index([status])
+  @@index([latitude, longitude])
+  @@index([deleted_at])
 }
 
-model DriverProfile {
-  id         String   @id @default(cuid())
-  userId     String   @unique
-  employeeNo String?
-  user       User     @relation(fields: [userId], references: [id])
-  drivers    Driver[]
+model Stop {
+  id                 String      @id @default(uuid())
+  latitude           Decimal     @db.Decimal(9, 6)
+  longitude          Decimal     @db.Decimal(9, 6)
+  address            String?
+  created_at         DateTime    @default(now())
+  created_by_id      String?
+  deleted_at         DateTime?
+  deleted_by_id      String?
+  landmark           String?
+  status             StopStatus  @default(ACTIVE)
+  stop_code          String      @unique
+  stop_name          String
+  terminal_id        String?
+  updated_at         DateTime    @updatedAt
+  updated_by_id      String?
+  zone               String?
+  from_stop_pricings Pricing[]   @relation("pricing_from_stop")
+  to_stop_pricings   Pricing[]   @relation("pricing_to_stop")
+  end_routes         Route[]     @relation("route_end")
+  start_routes       Route[]     @relation("route_start")
+  route_stops        RouteStop[]
+  terminal           Terminal?   @relation(fields: [terminal_id], references: [id])
+
+  @@index([terminal_id])
+  @@index([stop_code])
+  @@index([stop_name])
+  @@index([zone])
+  @@index([status])
+  @@index([latitude, longitude])
+  @@index([deleted_at])
 }
 
-model MaintenanceRecord {
-  id         String   @id @default(cuid())
-  busId      String
-  notes      String
-  servicedAt DateTime @default(now())
-  bus        Bus      @relation(fields: [busId], references: [id])
+model Route {
+  id                         String               @id @default(uuid())
+  description                String?
+  created_at                 DateTime             @default(now())
+  created_by_id              String?
+  deleted_at                 DateTime?
+  deleted_by_id              String?
+  distance_km                Decimal?             @db.Decimal(6, 2)
+  end_stop_id                String?
+  estimated_duration_minutes Int?
+  route_code                 String               @unique
+  route_name                 String
+  start_stop_id              String?
+  status                     RouteStatus          @default(ACTIVE)
+  updated_at                 DateTime             @updatedAt
+  updated_by_id              String?
+  bus_route_assignments      BusRouteAssignment[]
+  pricings                   Pricing[]            @relation("route_pricings")
+  end_stop                   Stop?                @relation("route_end", fields: [end_stop_id], references: [id])
+  start_stop                 Stop?                @relation("route_start", fields: [start_stop_id], references: [id])
+  route_versions             RouteVersion[]
+  schedules                  Schedule[]
+  traffic_predictions        TrafficPrediction[]
+  trips                      Trip[]               @relation("route_trips")
+
+  @@index([route_code])
+  @@index([route_name])
+  @@index([status])
+  @@index([start_stop_id])
+  @@index([end_stop_id])
+  @@index([deleted_at])
+}
+
+model RouteVersion {
+  id                  String              @id @default(uuid())
+  route_id            String
+  version_number      Int
+  version_name        String?
+  effective_from      DateTime
+  effective_to        DateTime?
+  status              RouteVersionStatus  @default(DRAFT)
+  description         String?
+  created_at          DateTime            @default(now())
+  updated_at          DateTime            @updatedAt
+  deleted_at          DateTime?
+  created_by_id       String?
+  updated_by_id       String?
+  deleted_by_id       String?
+  pricings            Pricing[]
+  route_stops         RouteStop[]
+  route               Route               @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  schedules           Schedule[]
+  traffic_predictions TrafficPrediction[]
+  trips               Trip[]
+
+  @@unique([route_id, version_number])
+  @@index([route_id])
+  @@index([status])
+  @@index([effective_from])
+  @@index([deleted_at])
+}
+
+model RouteStop {
+  id                String       @id @default(uuid())
+  created_at        DateTime     @default(now())
+  created_by_id     String?
+  deleted_at        DateTime?
+  deleted_by_id     String?
+  distance_km       Decimal?     @db.Decimal(5, 2)
+  estimated_minutes Int
+  sequence_number   Int
+  stop_id           String
+  updated_at        DateTime     @updatedAt
+  updated_by_id     String?
+  version_id        String
+  stop              Stop         @relation(fields: [stop_id], references: [id], onDelete: Cascade)
+  version           RouteVersion @relation(fields: [version_id], references: [id], onDelete: Cascade)
+
+  @@unique([version_id, sequence_number])
+  @@unique([version_id, stop_id])
+  @@index([version_id])
+  @@index([stop_id])
+  @@index([sequence_number])
+  @@index([deleted_at])
+}
+
+model Pricing {
+  id               String        @id @default(uuid())
+  currency         String        @default("ETB")
+  base_price       Decimal       @db.Decimal(10, 2)
+  created_at       DateTime      @default(now())
+  created_by_id    String?
+  deleted_at       DateTime?
+  deleted_by_id    String?
+  effective_from   DateTime
+  effective_to     DateTime?
+  from_stop_id     String
+  off_peak_price   Decimal?      @db.Decimal(10, 2)
+  peak_price       Decimal?      @db.Decimal(10, 2)
+  route_id         String
+  route_version_id String
+  status           PricingStatus @default(ACTIVE)
+  to_stop_id       String
+  updated_at       DateTime      @updatedAt
+  updated_by_id    String?
+  from_stop        Stop          @relation("pricing_from_stop", fields: [from_stop_id], references: [id], onDelete: Cascade)
+  route            Route         @relation("route_pricings", fields: [route_id], references: [id], onDelete: Cascade)
+  route_version    RouteVersion  @relation(fields: [route_version_id], references: [id], onDelete: Cascade)
+  to_stop          Stop          @relation("pricing_to_stop", fields: [to_stop_id], references: [id], onDelete: Cascade)
+
+  @@unique([route_version_id, from_stop_id, to_stop_id, effective_from])
+  @@index([route_id])
+  @@index([route_version_id])
+  @@index([from_stop_id])
+  @@index([to_stop_id])
+  @@index([status])
+  @@index([deleted_at])
+}
+
+model Schedule {
+  id                String         @id @default(uuid())
+  arrival_time      String?
+  created_at        DateTime       @default(now())
+  created_by_id     String?
+  deleted_at        DateTime?
+  deleted_by_id     String?
+  departure_time    String
+  description       String?
+  effective_from    DateTime
+  effective_to      DateTime?
+  frequency_minutes Int?
+  is_peak           Boolean        @default(false)
+  notes             String?
+  operating_days    String
+  priority          Int            @default(1)
+  route_id          String
+  schedule_name     String?
+  status            ScheduleStatus @default(ACTIVE)
+  updated_at        DateTime       @updatedAt
+  updated_by_id     String?
+  version_id        String
+  route             Route          @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  version           RouteVersion   @relation(fields: [version_id], references: [id], onDelete: Cascade)
+  trips             Trip[]         @relation("schedule_trips")
+
+  @@unique([version_id, departure_time, effective_from])
+  @@index([route_id])
+  @@index([version_id])
+  @@index([status])
+  @@index([departure_time])
+  @@index([effective_from])
+  @@index([deleted_at])
+}
+
+model Bus {
+  id                     String                @id @default(uuid())
+  capacity               Int
+  color                  String?
+  created_at             DateTime              @default(now())
+  created_by_id          String?
+  deleted_at             DateTime?
+  deleted_by_id          String?
+  fleet_number           String                @unique
+  fuel_type              FuelType
+  gps_device_id          String?               @unique
+  inspection_expiry      DateTime?
+  insurance_expiry       DateTime?
+  last_service_date      DateTime?
+  manufacture_year       Int
+  manufacturer           String
+  model                  String
+  next_service_date      DateTime?
+  notes                  String?
+  odometer_km            Decimal?              @db.Decimal(12, 2)
+  plate_number           String                @unique
+  registration_date      DateTime?
+  standing_capacity      Int?
+  terminal_id            String?
+  total_trips            Int?                  @default(0)
+  updated_at             DateTime              @updatedAt
+  updated_by_id          String?
+  vin_number             String?               @unique
+  status                 BusStatus             @default(ACTIVE)
+  terminal               Terminal?             @relation(fields: [terminal_id], references: [id])
+  bus_driver_assignments BusDriverAssignment[]
+  bus_live_locations     BusLiveLocation?
+  route_assignments      BusRouteAssignment[]
+  incidents              Incident[]
+  key_handovers          KeyHandover[]
+  trips                  Trip[]                @relation("bus_trips")
+
+  @@index([terminal_id])
+  @@index([status])
+  @@index([manufacturer])
+  @@index([fleet_number])
+  @@index([plate_number])
+  @@index([vin_number])
+  @@index([registration_date])
+  @@index([insurance_expiry])
+  @@index([inspection_expiry])
+  @@index([deleted_at])
+}
+
+model BusRouteAssignment {
+  id            String    @id @default(uuid())
+  bus_id        String
+  route_id      String
+  assigned_date DateTime
+  end_date      DateTime?
+  is_active     Boolean   @default(true)
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  deleted_at    DateTime?
+  created_by_id String?
+  updated_by_id String?
+  deleted_by_id String?
+  bus           Bus       @relation(fields: [bus_id], references: [id], onDelete: Cascade)
+  route         Route     @relation(fields: [route_id], references: [id], onDelete: Cascade)
+
+  @@unique([bus_id, route_id, assigned_date])
+  @@index([bus_id])
+  @@index([route_id])
+  @@index([assigned_date])
+  @@index([end_date])
+  @@index([is_active])
+  @@index([deleted_at])
+}
+
+model BusDriverAssignment {
+  id            String                    @id @default(uuid())
+  bus_id        String
+  shift_id      String
+  assigned_date DateTime
+  status        BusDriverAssignmentStatus @default(ACTIVE)
+  created_at    DateTime                  @default(now())
+  updated_at    DateTime                  @updatedAt
+  deleted_at    DateTime?
+  created_by_id String?
+  updated_by_id String?
+  deleted_by_id String?
+  bus           Bus                       @relation(fields: [bus_id], references: [id], onDelete: Cascade)
+  shift         Shift                     @relation(fields: [shift_id], references: [id], onDelete: Cascade)
+
+  @@index([bus_id])
+  @@index([shift_id])
+  @@index([assigned_date])
+  @@index([status])
+  @@index([deleted_at])
+}
+
+model Shift {
+  id                     String                @id @default(uuid())
+  created_at             DateTime              @default(now())
+  created_by_id          String?
+  deleted_at             DateTime?
+  deleted_by_id          String?
+  driver_id              String
+  is_active              Boolean               @default(true)
+  shift_date             DateTime              @db.Date
+  shift_end              String
+  shift_name             String
+  shift_start            String
+  updated_at             DateTime              @updatedAt
+  updated_by_id          String?
+  bus_driver_assignments BusDriverAssignment[]
+  from_key_handovers     KeyHandover[]         @relation("FromShift")
+  to_key_handovers       KeyHandover[]         @relation("ToShift")
+  driver                 User                  @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+  trips                  Trip[]                @relation("shift_trips")
+
+  @@index([driver_id])
+  @@index([shift_date])
+  @@index([is_active])
+  @@index([deleted_at])
+}
+
+model KeyHandover {
+  id                String            @id @default(uuid())
+  bus_id            String
+  terminal_id       String
+  from_shift_id     String
+  to_shift_id       String
+  handover_time     DateTime          @default(now())
+  status            KeyHandoverStatus @default(PENDING)
+  confirmed_by_from Boolean           @default(false)
+  confirmed_by_to   Boolean           @default(false)
+  notes             String?
+  created_at        DateTime          @default(now())
+  updated_at        DateTime          @updatedAt
+  deleted_at        DateTime?
+  created_by_id     String?
+  updated_by_id     String?
+  deleted_by_id     String?
+  bus               Bus               @relation(fields: [bus_id], references: [id], onDelete: Cascade)
+  from_shift        Shift             @relation("FromShift", fields: [from_shift_id], references: [id], onDelete: Cascade)
+  terminal          Terminal          @relation(fields: [terminal_id], references: [id], onDelete: Cascade)
+  to_shift          Shift             @relation("ToShift", fields: [to_shift_id], references: [id], onDelete: Cascade)
+  trips             Trip[]            @relation("handover_trips")
+
+  @@index([bus_id])
+  @@index([terminal_id])
+  @@index([from_shift_id])
+  @@index([to_shift_id])
+  @@index([handover_time])
+  @@index([status])
+  @@index([confirmed_by_from])
+  @@index([confirmed_by_to])
+  @@index([deleted_at])
+}
+
+model Trip {
+  id              String            @id @default(uuid())
+  routeId         String?
+  actual_end      DateTime?
+  actual_start    DateTime?
+  bus_id          String
+  created_at      DateTime          @default(now())
+  created_by_id   String?
+  deleted_at      DateTime?
+  deleted_by_id   String?
+  driver_id       String
+  key_handover_id String?
+  schedule_id     String
+  scheduled_end   DateTime
+  scheduled_start DateTime
+  shiftId         String?
+  updated_at      DateTime          @updatedAt
+  updated_by_id   String?
+  version_id      String
+  status          TripStatus        @default(SCHEDULED)
+  live_locations  BusLiveLocation[] @relation("live_locations")
+  incidents       Incident[]
+  bus             Bus               @relation("bus_trips", fields: [bus_id], references: [id], onDelete: Cascade)
+  driver          User              @relation("driver_trips", fields: [driver_id], references: [id], onDelete: Cascade)
+  key_handover    KeyHandover?      @relation("handover_trips", fields: [key_handover_id], references: [id])
+  route           Route?            @relation("route_trips", fields: [routeId], references: [id])
+  schedule        Schedule          @relation("schedule_trips", fields: [schedule_id], references: [id], onDelete: Cascade)
+  shift           Shift?            @relation("shift_trips", fields: [shiftId], references: [id])
+  version         RouteVersion      @relation(fields: [version_id], references: [id], onDelete: Cascade)
+  gps_logs        TripGPSLog[]
+
+  @@index([bus_id])
+  @@index([driver_id])
+  @@index([version_id])
+  @@index([schedule_id])
+  @@index([key_handover_id])
+  @@index([scheduled_start])
+  @@index([scheduled_end])
+  @@index([status])
+  @@index([deleted_at])
+}
+
+model TripGPSLog {
+  id          String    @id @default(uuid())
+  trip_id     String
+  driver_id   String
+  terminal_id String?
+  latitude    Decimal   @db.Decimal(9, 6)
+  longitude   Decimal   @db.Decimal(9, 6)
+  speed       Decimal?  @db.Decimal(5, 2)
+  direction   Decimal?  @db.Decimal(5, 2)
+  altitude    Decimal?  @db.Decimal(7, 2)
+  recorded_at DateTime  @default(now())
+  created_at  DateTime  @default(now())
+  driver      User      @relation(fields: [driver_id], references: [id], onDelete: Cascade)
+  terminal    Terminal? @relation(fields: [terminal_id], references: [id])
+  trip        Trip      @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+
+  @@index([trip_id])
+  @@index([driver_id])
+  @@index([terminal_id])
+  @@index([recorded_at])
+  @@index([latitude, longitude])
+}
+
+model BusLiveLocation {
+  id          String   @id @default(uuid())
+  bus_id      String   @unique
+  trip_id     String?
+  driver_id   String
+  latitude    Decimal  @db.Decimal(9, 6)
+  longitude   Decimal  @db.Decimal(9, 6)
+  speed       Decimal? @db.Decimal(5, 2)
+  direction   Decimal? @db.Decimal(5, 2)
+  altitude    Decimal? @db.Decimal(7, 2)
+  recorded_at DateTime @default(now())
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  bus         Bus      @relation(fields: [bus_id], references: [id], onDelete: Cascade)
+  driver      User     @relation("driver_locations", fields: [driver_id], references: [id], onDelete: Cascade)
+  trip        Trip?    @relation("live_locations", fields: [trip_id], references: [id])
+
+  @@index([bus_id])
+  @@index([trip_id])
+  @@index([driver_id])
+  @@index([recorded_at])
+  @@index([latitude, longitude])
+}
+
+model Incident {
+  id               String           @id @default(uuid())
+  description      String
+  bus_id           String?
+  created_at       DateTime         @default(now())
+  created_by_id    String?
+  deleted_at       DateTime?
+  deleted_by_id    String?
+  driver_id        String?
+  incident_type    IncidentType
+  latitude         Decimal?         @db.Decimal(9, 6)
+  longitude        Decimal?         @db.Decimal(9, 6)
+  photo_url        String?
+  resolution_notes String?
+  resolved_at      DateTime?
+  resolved_by      String?
+  status           IncidentStatus   @default(OPEN)
+  trip_id          String?
+  updated_at       DateTime         @updatedAt
+  updated_by_id    String?
+  severity         IncidentSeverity
+  bus              Bus?             @relation(fields: [bus_id], references: [id])
+  driver           User?            @relation("driver_incidents", fields: [driver_id], references: [id])
+  resolver         User?            @relation("ResolvedBy", fields: [resolved_by], references: [id])
+  trip             Trip?            @relation(fields: [trip_id], references: [id])
+
+  @@index([trip_id])
+  @@index([bus_id])
+  @@index([driver_id])
+  @@index([incident_type])
+  @@index([severity])
+  @@index([status])
+  @@index([created_at])
+  @@index([deleted_at])
+}
+
+model Notification {
+  id                String               @id @default(uuid())
+  title             String
+  created_at        DateTime             @default(now())
+  created_by_id     String?
+  deleted_at        DateTime?
+  deleted_by_id     String?
+  message           String
+  notification_type NotificationType
+  priority          NotificationPriority @default(MEDIUM)
+  updated_at        DateTime             @updatedAt
+  updated_by_id     String?
+  recipients        NotificationUser[]
+
+  @@index([notification_type])
+  @@index([priority])
+  @@index([created_at])
+  @@index([deleted_at])
+}
+
+model NotificationUser {
+  id              String       @id @default(uuid())
+  notification_id String
+  user_id         String
+  is_read         Boolean      @default(false)
+  read_at         DateTime?
+  created_at      DateTime     @default(now())
+  notification    Notification @relation(fields: [notification_id], references: [id], onDelete: Cascade)
+  user            User         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([notification_id, user_id])
+  @@index([notification_id])
+  @@index([user_id])
+  @@index([is_read])
+  @@index([read_at])
+}
+
+model AIModel {
+  id                    String              @id @default(uuid())
+  model_name            String
+  version               String
+  model_type            AIModelType
+  algorithm             String
+  accuracy              Decimal?            @db.Decimal(5, 2)
+  precision_score       Decimal?            @db.Decimal(5, 2)
+  recall_score          Decimal?            @db.Decimal(5, 2)
+  f1_score              Decimal?            @db.Decimal(5, 2)
+  training_dataset_size Int?
+  training_started_at   DateTime?
+  training_completed_at DateTime?
+  trained_at            DateTime?
+  model_parameters      String?
+  deployed_at           DateTime?
+  status                AIModelStatus       @default(TRAINING)
+  model_path            String?
+  notes                 String?
+  created_at            DateTime            @default(now())
+  updated_at            DateTime            @updatedAt
+  deleted_at            DateTime?
+  created_by_id         String?
+  updated_by_id         String?
+  deleted_by_id         String?
+  traffic_predictions   TrafficPrediction[]
+
+  @@unique([model_name, version])
+  @@index([model_name])
+  @@index([version])
+  @@index([model_type])
+  @@index([status])
+  @@index([deleted_at])
+}
+
+model TrafficPrediction {
+  id                      String       @id @default(uuid())
+  model_id                String
+  route_id                String
+  version_id              String
+  prediction_time         DateTime     @default(now())
+  traffic_level           TrafficLevel
+  predicted_delay_minutes Int
+  confidence              Decimal?     @db.Decimal(5, 2)
+  created_at              DateTime     @default(now())
+  updated_at              DateTime     @updatedAt
+  deleted_at              DateTime?
+  created_by_id           String?
+  updated_by_id           String?
+  deleted_by_id           String?
+  model                   AIModel      @relation(fields: [model_id], references: [id], onDelete: Cascade)
+  route                   Route        @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  version                 RouteVersion @relation(fields: [version_id], references: [id], onDelete: Cascade)
+
+  @@index([model_id])
+  @@index([route_id])
+  @@index([version_id])
+  @@index([prediction_time])
+  @@index([traffic_level])
+  @@index([deleted_at])
+}
+
+/// Lifecycle states for a platform user account.
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+  BLOCKED
+}
+
+/// Outcome of a single authentication attempt.
+enum LoginStatus {
+  SUCCESS
+  FAILED
+  LOCKED
+}
+
+/// Operational state of a bus route.
+enum RouteStatus {
+  ACTIVE
+  INACTIVE
+  PLANNING
+  SUSPENDED
+  ARCHIVED
+}
+
+/// Lifecycle of a specific version of a route's stop sequence.
+enum RouteVersionStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+/// Operational state of a physical bus stop.
+enum StopStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+  TEMPORARILY_CLOSED
+}
+
+/// Lifecycle state of a published schedule entry.
+enum ScheduleStatus {
+  ACTIVE
+  INACTIVE
+  DRAFT
+  EXPIRED
+  SUSPENDED
+}
+
+/// Operational state of a bus terminal / depot.
+enum TerminalStatus {
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+  PLANNED
+  CLOSED
+}
+
+/// Operational / maintenance state of a bus in the fleet.
+enum BusStatus {
+  ACTIVE
+  IN_MAINTENANCE
+  OUT_OF_SERVICE
+  RETIRED
+  RESERVED
+  INSPECTION
+  AWAITING_PART
+}
+
+/// Fuel / powertrain type of a bus.
+enum FuelType {
+  DIESEL
+  PETROL
+  ELECTRIC
+  HYBRID
+  CNG
+  LNG
+  HYDROGEN
+}
+
+/// State of a bus-to-route assignment.
+enum BusRouteAssignmentStatus {
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+  CANCELLED
+}
+
+/// State of a bus-to-driver (shift-based) assignment.
+enum BusDriverAssignmentStatus {
+  ACTIVE
+  INACTIVE
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+/// State of a physical bus-key handover between two shifts.
+enum KeyHandoverStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  CANCELLED
+  REJECTED
+}
+
+/// Lifecycle state of a single scheduled trip.
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DELAYED
+  DIVERTED
+  NO_SHOW
+}
+
+/// Lifecycle state of a fare/pricing entry.
+enum PricingStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  UPCOMING
+}
+
+/// Category of an in-app notification.
+enum NotificationType {
+  INFO
+  WARNING
+  ALERT
+  SUCCESS
+  ERROR
+}
+
+/// Urgency level of a notification.
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+/// Category of an operational incident.
+enum IncidentType {
+  BREAKDOWN
+  ACCIDENT
+  TRAFFIC
+  ROAD_CLOSURE
+  PASSENGER_EMERGENCY
+  VEHICLE_DAMAGE
+  FLAT_TIRE
+  FUEL_SHORTAGE
+  DRIVER_ISSUE
+  SECURITY
+  WEATHER
+  OTHER
+}
+
+/// Severity level of an incident.
+enum IncidentSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+/// Lifecycle state of an incident report.
+enum IncidentStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+/// Lifecycle state of an AI/ML model artifact.
+enum AIModelStatus {
+  TRAINING
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  FAILED
+}
+
+/// Purpose/category of an AI/ML model.
+enum AIModelType {
+  TRAFFIC_PREDICTION
+  ETA_PREDICTION
+  DEMAND_FORECAST
+  ROUTE_OPTIMIZATION
+}
+
+/// Predicted or observed congestion level on a route.
+enum TrafficLevel {
+  LOW
+  MODERATE
+  HIGH
+  SEVERE
 }
