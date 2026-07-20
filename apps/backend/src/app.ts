@@ -10,8 +10,9 @@ import { requestIdMiddleware } from '@/common/middleware/request-id.middleware';
 import { responseTimeMiddleware } from '@/common/middleware/response-time.middleware';
 import { getSimpleHealth } from '@/common/health';
 
-// Import only auth module for now
+// Import modules
 import { authRoutes } from '@/modules/auth';
+import { rbacRoutes } from '@/modules/rbac';
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.get('/', (_req: Request, res: Response) => {
       health: '/health',
       api: config.apiPrefix,
       auth: `${config.apiPrefix}/auth`,
+      rbac: `${config.apiPrefix}/rbac`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -45,9 +47,14 @@ app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json(getSimpleHealth());
 });
 
-// Auth routes only (Day 1)
+// API Routes
 const apiPrefix = config.apiPrefix;
+
+// Authentication
 app.use(`${apiPrefix}/auth`, authRoutes);
+
+// RBAC
+app.use(`${apiPrefix}/rbac`, rbacRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
