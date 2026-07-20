@@ -1,0 +1,911 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum BusMaintenanceStatus {
+  operational
+  in_maintenance
+  retired
+}
+
+enum TripStatus {
+  scheduled
+  in_progress
+  paused
+  completed
+  cancelled
+}
+
+enum IncidentSeverity {
+  low
+  medium
+  high
+  critical
+}
+
+enum IncidentStatus {
+  reported
+  investigating
+  resolved
+  closed
+}
+
+enum KeyHandoverStatus {
+  pending
+  confirmed
+  cancelled
+}
+
+enum NotificationPriority {
+  low
+  normal
+  high
+  urgent
+}
+
+enum NotificationDeliveryStatus {
+  pending
+  sent
+  delivered
+  failed
+  bounced
+}
+
+enum ReportType {
+  trip
+  incident
+  fleet
+  revenue
+  driver_performance
+  route_analytics
+  maintenance
+  custom
+}
+
+enum ReportStatus {
+  generating
+  completed
+  failed
+  expired
+}
+
+enum ReportFormat {
+  pdf
+  excel
+  csv
+  json
+}
+
+enum DayOfWeek {
+  monday
+  tuesday
+  wednesday
+  thursday
+  friday
+  saturday
+  sunday
+}
+
+enum TrafficLevel {
+  low
+  moderate
+  high
+  severe
+}
+
+enum AssignmentStatus {
+  active
+  inactive
+  cancelled
+}
+
+// ============================================================
+// 1. RBAC CORE
+// ============================================================
+
+model Permission {
+  id          String   @id @default(uuid()) @db.Uuid
+  permissionName String @unique @map("permission_name") @db.VarChar(255)
+  resource    String   @db.VarChar(255)
+  action      String   @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  createdById String?  @map("created_by") @db.Uuid
+  updatedById String?  @map("updated_by") @db.Uuid
+  deletedById String?  @map("deleted_by") @db.Uuid
+
+  createdBy   User?    @relation("PermissionCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("PermissionUpdatedBy", fields: [updatedById], references: [id])
+  deletedBy   User?    @relation("PermissionDeletedBy", fields: [deletedById], references: [id])
+
+  rolePermissions RolePermission[]
+
+  @@index([deletedAt], map: "permissions_deleted_at_idx")
+  @@map("permissions")
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  roleName    String   @unique @map("role_name") @db.VarChar(255)
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  createdById String?  @map("created_by") @db.Uuid
+  updatedById String?  @map("updated_by") @db.Uuid
+  deletedById String?  @map("deleted_by") @db.Uuid
+
+  createdBy   User?    @relation("RoleCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?    @relation("RoleUpdatedBy", fields: [updatedById], references: [id])
+  deletedBy   User?    @relation("RoleDeletedBy", fields: [deletedById], references: [id])
+
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@index([deletedAt], map: "roles_deleted_at_idx")
+  @@map("roles")
+}
+
+model RolePermission {
+  id           String   @id @default(uuid()) @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  permissionId String   @map("permission_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  createdById  String?  @map("created_by") @db.Uuid
+  createdBy    User?    @relation("RolePermissionCreatedBy", fields: [createdById], references: [id])
+
+  role       Role       @relation(fields: [roleId], references: [id])
+  permission Permission @relation(fields: [permissionId], references: [id])
+
+  @@unique([roleId, permissionId], map: "role_permissions_role_id_permission_id_unique")
+  @@map("role_permissions")
+}
+
+// ============================================================
+// 2. USERS & AUTH
+// ============================================================
+
+model RefreshToken {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  token       String   @unique @db.VarChar(500)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz(6)
+  isRevoked   Boolean  @default(false) @map("is_revoked")
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
+  replacedBy  String?  @map("replaced_by") @db.Uuid
+  ipAddress   String?  @map("ip_address") @db.VarChar(255)
+  userAgent   String?  @map("user_agent") @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "refresh_tokens_user_idx")
+  @@index([token], map: "refresh_tokens_token_idx")
+  @@index([expiresAt], map: "refresh_tokens_expires_idx")
+  @@map("refresh_tokens")
+}
+
+model User {
+  id                String   @id @default(uuid()) @db.Uuid
+  fullName          String   @map("full_name") @db.VarChar(255)
+  email             String   @unique @db.VarChar(255)
+  phone             String   @unique @db.VarChar(255)
+  passwordHash      String   @map("password_hash") @db.VarChar(255)
+  isActive          Boolean  @default(true) @map("is_active")
+  failedLoginCount  Int      @default(0) @map("failed_login_count")
+  lockedUntil       DateTime? @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt       DateTime? @map("last_login_at") @db.Timestamptz(6)
+
+  homeTerminalId    String?  @map("home_terminal_id") @db.Uuid
+  licenseNumber     String?  @unique @map("license_number") @db.VarChar(255)
+  licenseExpiry     DateTime? @map("license_expiry") @db.Date
+  preferredLanguage String?  @map("preferred_language") @db.VarChar(50)
+  department        String?  @map("department") @db.VarChar(255)
+
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  createdById       String?  @map("created_by") @db.Uuid
+  updatedById       String?  @map("updated_by") @db.Uuid
+  deletedById       String?  @map("deleted_by") @db.Uuid
+
+  // Self-references
+  createdBy         User?    @relation("UserCreatedBy", fields: [createdById], references: [id])
+  updatedBy         User?    @relation("UserUpdatedBy", fields: [updatedById], references: [id])
+  deletedBy         User?    @relation("UserDeletedBy", fields: [deletedById], references: [id])
+  usersCreated      User[]   @relation("UserCreatedBy")
+  usersUpdated      User[]   @relation("UserUpdatedBy")
+  usersDeleted      User[]   @relation("UserDeletedBy")
+
+  // RBAC relations
+  refreshTokens     RefreshToken[] @relation
+  userRoles         UserRole[] @relation("UserRoleUser")
+  userRolesCreated  UserRole[] @relation("UserRoleCreatedBy")
+  permissionsCreated Permission[] @relation("PermissionCreatedBy")
+  permissionsUpdated Permission[] @relation("PermissionUpdatedBy")
+  permissionsDeleted Permission[] @relation("PermissionDeletedBy")
+  rolesCreated      Role[]   @relation("RoleCreatedBy")
+  rolesUpdated      Role[]   @relation("RoleUpdatedBy")
+  rolesDeleted      Role[]   @relation("RoleDeletedBy")
+  rolePermissionsCreated RolePermission[] @relation("RolePermissionCreatedBy")
+
+  // Fleet & Operations
+  homeTerminal      Terminal? @relation(fields: [homeTerminalId], references: [id])
+  shifts            Shift[]
+  tripsAsDriver     Trip[]
+  gpsLogs           TripGpsLog[]
+  liveLocations     BusLiveLocation[]
+  incidentsReported Incident[] @relation("IncidentDriver")
+  incidentsResolved Incident[] @relation("IncidentResolvedBy")
+  notifications     NotificationUser[]
+  loginHistory      LoginHistory[]
+  auditLogs         AuditLog[]
+  
+  // Reports
+  reportsCreated    Report[] @relation("ReportCreatedBy")
+  reportDownloads   ReportDownload[]
+
+  @@index([email], map: "users_email_idx")
+  @@index([deletedAt], map: "users_deleted_at_idx")
+  @@index([isActive], map: "users_is_active_idx")
+  @@map("users")
+}
+
+model UserRole {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  roleId    String   @map("role_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  createdById String? @map("created_by") @db.Uuid
+  createdBy   User?   @relation("UserRoleCreatedBy", fields: [createdById], references: [id])
+
+  user      User     @relation("UserRoleUser", fields: [userId], references: [id])
+  role      Role     @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId], map: "user_roles_user_id_role_id_unique")
+  @@map("user_roles")
+}
+
+// ============================================================
+// 3. TERMINALS
+// ============================================================
+
+model Terminal {
+  id          String   @id @default(uuid()) @db.Uuid
+  terminalName String  @unique @map("terminal_name") @db.VarChar(255)
+  address     String?  @db.Text
+  latitude    Decimal? @db.Decimal(9, 6)
+  longitude   Decimal? @db.Decimal(9, 6)
+  capacity    Int?
+  facilities  String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  users       User[]
+  buses       Bus[]
+  stops       Stop[]
+  keyHandovers KeyHandover[]
+  gpsLogs     TripGpsLog[]
+
+  @@map("terminals")
+}
+
+// ============================================================
+// 4. FLEET (BUSES)
+// ============================================================
+
+model Bus {
+  id                String   @id @default(uuid()) @db.Uuid
+  terminalId        String?  @map("terminal_id") @db.Uuid
+  plateNumber       String   @unique @map("plate_number") @db.VarChar(255)
+  model             String   @db.VarChar(255)
+  capacity          Int
+  maintenanceStatus BusMaintenanceStatus @default(operational) @map("maintenance_status")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  terminal          Terminal? @relation(fields: [terminalId], references: [id], onDelete: SetNull)
+  busDriverAssignments BusDriverAssignment[]
+  busRouteAssignments BusRouteAssignment[]
+  trips             Trip[]
+  liveLocations     BusLiveLocation[]
+  incidents         Incident[]
+  keyHandovers      KeyHandover[]
+
+  @@index([terminalId], map: "buses_terminal_idx")
+  @@index([maintenanceStatus], map: "buses_maintenance_status_idx")
+  @@index([deletedAt], map: "buses_deleted_at_idx")
+  @@map("buses")
+}
+
+// ============================================================
+// 5. ROUTES & STOPS
+// ============================================================
+
+model Route {
+  id          String   @id @default(uuid()) @db.Uuid
+  routeName   String   @map("route_name") @db.VarChar(255)
+  description String?  @db.Text
+  startStopId String   @map("start_stop_id") @db.Uuid
+  endStopId   String   @map("end_stop_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  startStop   Stop     @relation("RouteStartStop", fields: [startStopId], references: [id])
+  endStop     Stop     @relation("RouteEndStop", fields: [endStopId], references: [id])
+  versions    RouteVersion[]
+  prices      Price[]
+  schedules   Schedule[]
+  busRouteAssignments BusRouteAssignment[]
+  trafficPredictions TrafficPrediction[]
+
+  @@index([deletedAt], map: "routes_deleted_at_idx")
+  @@map("routes")
+}
+
+model RouteVersion {
+  id             String   @id @default(uuid()) @db.Uuid
+  routeId        String   @map("route_id") @db.Uuid
+  versionNumber  Int      @map("version_number")
+  isActive       Boolean  @default(false) @map("is_active")
+  effectiveFrom  DateTime? @map("effective_from") @db.Timestamptz(6)
+  effectiveUntil DateTime? @map("effective_until") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  route          Route    @relation(fields: [routeId], references: [id])
+  routeStops     RouteStop[]
+  schedules      Schedule[]
+  trips          Trip[]
+  trafficPredictions TrafficPrediction[]
+
+  // NOTE: Partial unique index for (route_id, is_active) WHERE is_active = true
+  // must be added via raw migration: CREATE UNIQUE INDEX route_versions_active_unique ON route_versions(route_id) WHERE is_active = true;
+  @@index([routeId])
+  @@map("route_versions")
+}
+
+model Stop {
+  id        String   @id @default(uuid()) @db.Uuid
+  terminalId String? @map("terminal_id") @db.Uuid
+  stopName  String   @map("stop_name") @db.VarChar(255)
+  stopCode  String   @unique @map("stop_code") @db.VarChar(255)
+  latitude  Decimal? @db.Decimal(9, 6)
+  longitude Decimal? @db.Decimal(9, 6)
+  address   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  terminal  Terminal? @relation(fields: [terminalId], references: [id])
+  routesStart Route[] @relation("RouteStartStop")
+  routesEnd   Route[] @relation("RouteEndStop")
+  routeStops  RouteStop[]
+  pricesFrom  Price[] @relation("PriceFromStop")
+  pricesTo    Price[] @relation("PriceToStop")
+
+  @@map("stops")
+}
+
+model RouteStop {
+  id               String   @id @default(uuid()) @db.Uuid
+  versionId        String   @map("version_id") @db.Uuid
+  stopId           String   @map("stop_id") @db.Uuid
+  sequenceNumber   Int      @map("sequence_number")
+  estimatedMinutes Int?     @map("estimated_minutes")
+  distanceKm       Decimal? @map("distance_km") @db.Decimal(5, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  version          RouteVersion @relation(fields: [versionId], references: [id])
+  stop             Stop         @relation(fields: [stopId], references: [id])
+
+  @@index([versionId, sequenceNumber], map: "route_stops_version_id_sequence_number_idx")
+  @@map("route_stops")
+}
+
+// ============================================================
+// 6. PRICING
+// ============================================================
+
+model Price {
+  id             String    @id @default(uuid()) @db.Uuid
+  routeId        String    @map("route_id") @db.Uuid
+  fromStopId     String    @map("from_stop_id") @db.Uuid
+  toStopId       String    @map("to_stop_id") @db.Uuid
+  basePrice      Decimal   @map("base_price") @db.Decimal(10, 2)
+  peakPrice      Decimal?  @map("peak_price") @db.Decimal(10, 2)
+  offPeakPrice   Decimal?  @map("off_peak_price") @db.Decimal(10, 2)
+  effectiveFrom  DateTime? @map("effective_from") @db.Timestamptz(6)
+  effectiveUntil DateTime? @map("effective_until") @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  route          Route     @relation(fields: [routeId], references: [id])
+  fromStop       Stop      @relation("PriceFromStop", fields: [fromStopId], references: [id])
+  toStop         Stop      @relation("PriceToStop", fields: [toStopId], references: [id])
+
+  @@index([routeId, fromStopId, toStopId], map: "prices_route_from_to_idx")
+  @@map("prices")
+}
+
+// ============================================================
+// 7. SCHEDULES
+// ============================================================
+
+model Schedule {
+  id             String    @id @default(uuid()) @db.Uuid
+  routeId        String    @map("route_id") @db.Uuid
+  versionId      String    @map("version_id") @db.Uuid
+  scheduleName   String    @map("schedule_name") @db.VarChar(255)
+  dayOfWeek      DayOfWeek @map("day_of_week")
+  departureTime  DateTime  @map("departure_time") @db.Time()
+  frequencyMinutes Int?    @map("frequency_minutes")
+  isActive       Boolean   @default(true) @map("is_active")
+  effectiveFrom  DateTime? @map("effective_from") @db.Date
+  effectiveUntil DateTime? @map("effective_until") @db.Date
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  route          Route     @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  version        RouteVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  trips          Trip[]
+
+  @@index([routeId, isActive], map: "schedules_route_active_idx")
+  @@index([dayOfWeek], map: "schedules_day_idx")
+  @@index([deletedAt], map: "schedules_deleted_at_idx")
+  @@map("schedules")
+}
+
+// ============================================================
+// 8. SHIFTS
+// ============================================================
+
+model Shift {
+  id        String   @id @default(uuid()) @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  shiftName String   @map("shift_name") @db.VarChar(255)
+  shiftStart DateTime @map("shift_start") @db.Time()
+  shiftEnd  DateTime @map("shift_end") @db.Time()
+  shiftDate DateTime @map("shift_date") @db.Date
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  driver    User     @relation(fields: [driverId], references: [id])
+  busDriverAssignments BusDriverAssignment[]
+  keyHandoversFrom KeyHandover[] @relation("KeyHandoverFromShift")
+  keyHandoversTo   KeyHandover[] @relation("KeyHandoverToShift")
+
+  @@index([driverId, shiftDate], map: "shifts_driver_id_shift_date_idx")
+  @@map("shifts")
+}
+
+// ============================================================
+// 9. BUS-DRIVER ASSIGNMENTS
+// ============================================================
+
+model BusDriverAssignment {
+  id           String   @id @default(uuid()) @db.Uuid
+  busId        String   @map("bus_id") @db.Uuid
+  shiftId      String   @map("shift_id") @db.Uuid
+  assignedDate DateTime @map("assigned_date") @db.Date
+  status       AssignmentStatus @default(active)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  bus          Bus      @relation(fields: [busId], references: [id], onDelete: Restrict)
+  shift        Shift    @relation(fields: [shiftId], references: [id], onDelete: Restrict)
+
+  @@index([busId, assignedDate], map: "bus_driver_assignments_bus_date_idx")
+  @@index([shiftId, assignedDate], map: "bus_driver_assignments_shift_date_idx")
+  @@index([status], map: "bus_driver_assignments_status_idx")
+  @@map("bus_driver_assignments")
+}
+
+// ============================================================
+// 10. KEY HANDOVER
+// ============================================================
+
+model KeyHandover {
+  id              String    @id @default(uuid()) @db.Uuid
+  busId           String    @map("bus_id") @db.Uuid
+  terminalId      String    @map("terminal_id") @db.Uuid
+  fromShiftId     String?   @map("from_shift_id") @db.Uuid
+  toShiftId       String    @map("to_shift_id") @db.Uuid
+  handoverTime    DateTime  @map("handover_time") @db.Timestamptz(6)
+  status          KeyHandoverStatus @default(pending)
+  confirmedByFrom Boolean   @default(false) @map("confirmed_by_from")
+  confirmedByTo   Boolean   @default(false) @map("confirmed_by_to")
+  notes           String?   @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  bus             Bus       @relation(fields: [busId], references: [id], onDelete: Restrict)
+  terminal        Terminal  @relation(fields: [terminalId], references: [id], onDelete: Restrict)
+  fromShift       Shift?    @relation("KeyHandoverFromShift", fields: [fromShiftId], references: [id], onDelete: SetNull)
+  toShift         Shift     @relation("KeyHandoverToShift", fields: [toShiftId], references: [id], onDelete: Restrict)
+  trips           Trip[]
+
+  @@index([busId, handoverTime], map: "key_handovers_bus_handover_time_idx")
+  @@index([toShiftId, handoverTime], map: "key_handovers_to_shift_handover_time_idx")
+  @@index([status], map: "key_handovers_status_idx")
+  @@map("key_handovers")
+}
+
+// ============================================================
+// 11. BUS-ROUTE ASSIGNMENTS
+// ============================================================
+
+model BusRouteAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  busId        String    @map("bus_id") @db.Uuid
+  routeId      String    @map("route_id") @db.Uuid
+  assignedDate DateTime  @map("assigned_date") @db.Date
+  endDate      DateTime? @map("end_date") @db.Date
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  bus          Bus       @relation(fields: [busId], references: [id])
+  route        Route     @relation(fields: [routeId], references: [id])
+
+  @@index([busId, assignedDate], map: "bus_route_assignments_bus_date_idx")
+  @@map("bus_route_assignments")
+}
+
+// ============================================================
+// 12. TRIPS
+// ============================================================
+
+model Trip {
+  id              String    @id @default(uuid()) @db.Uuid
+  busId           String    @map("bus_id") @db.Uuid
+  driverId        String    @map("driver_id") @db.Uuid
+  versionId       String    @map("version_id") @db.Uuid
+  scheduleId      String    @map("schedule_id") @db.Uuid
+  keyHandoverId   String?   @map("key_handover_id") @db.Uuid
+  scheduledStart  DateTime  @map("scheduled_start") @db.Timestamptz(6)
+  scheduledEnd    DateTime  @map("scheduled_end") @db.Timestamptz(6)
+  actualStart     DateTime? @map("actual_start") @db.Timestamptz(6)
+  actualEnd       DateTime? @map("actual_end") @db.Timestamptz(6)
+  status          TripStatus @default(scheduled)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  bus             Bus       @relation(fields: [busId], references: [id], onDelete: Restrict)
+  driver          User      @relation(fields: [driverId], references: [id], onDelete: Restrict)
+  version         RouteVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  schedule        Schedule  @relation(fields: [scheduleId], references: [id], onDelete: Restrict)
+  keyHandover     KeyHandover? @relation(fields: [keyHandoverId], references: [id], onDelete: SetNull)
+  gpsLogs         TripGpsLog[]
+  liveLocations   BusLiveLocation[]
+  incidents       Incident[]
+
+  @@index([status], map: "trips_status_idx")
+  @@index([driverId, status], map: "trips_driver_status_idx")
+  @@index([busId, status], map: "trips_bus_status_idx")
+  @@index([deletedAt], map: "trips_deleted_at_idx")
+  @@index([scheduledStart], map: "trips_scheduled_start_idx")
+  @@map("trips")
+}
+
+// ============================================================
+// 13. REAL-TIME TRACKING
+// ============================================================
+
+model TripGpsLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  tripId    String   @map("trip_id") @db.Uuid
+  driverId  String   @map("driver_id") @db.Uuid
+  terminalId String? @map("terminal_id") @db.Uuid
+  latitude  Decimal  @db.Decimal(9, 6)
+  longitude Decimal  @db.Decimal(9, 6)
+  speed     Decimal? @db.Decimal(5, 2)
+  direction Decimal? @db.Decimal(5, 2)
+  altitude  Decimal? @db.Decimal(7, 2)
+  recordedAt DateTime @map("recorded_at") @db.Timestamptz(6)
+
+  trip      Trip     @relation(fields: [tripId], references: [id])
+  driver    User     @relation(fields: [driverId], references: [id])
+  terminal  Terminal? @relation(fields: [terminalId], references: [id])
+
+  @@index([tripId, recordedAt], map: "trip_gps_logs_trip_recorded_idx")
+  @@index([driverId, recordedAt], map: "trip_gps_logs_driver_recorded_idx")
+  @@map("trip_gps_logs")
+}
+
+model BusLiveLocation {
+  id        String   @id @default(uuid()) @db.Uuid
+  busId     String   @map("bus_id") @db.Uuid
+  tripId    String?  @map("trip_id") @db.Uuid
+  driverId  String?  @map("driver_id") @db.Uuid
+  latitude  Decimal  @db.Decimal(9, 6)
+  longitude Decimal  @db.Decimal(9, 6)
+  speed     Decimal? @db.Decimal(5, 2)
+  direction Decimal? @db.Decimal(5, 2)
+  altitude  Decimal? @db.Decimal(7, 2)
+  recordedAt DateTime @map("recorded_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  bus       Bus      @relation(fields: [busId], references: [id])
+  trip      Trip?    @relation(fields: [tripId], references: [id])
+  driver    User?    @relation(fields: [driverId], references: [id])
+
+  @@index([busId, recordedAt], map: "bus_live_locations_bus_recorded_idx")
+  @@index([tripId, recordedAt], map: "bus_live_locations_trip_recorded_idx")
+  @@map("bus_live_locations")
+}
+
+// ============================================================
+// 14. INCIDENTS
+// ============================================================
+
+model Incident {
+  id              String    @id @default(uuid()) @db.Uuid
+  tripId          String    @map("trip_id") @db.Uuid
+  busId           String    @map("bus_id") @db.Uuid
+  driverId        String    @map("driver_id") @db.Uuid
+  incidentType    String    @map("incident_type") @db.VarChar(255)
+  severity        IncidentSeverity
+  description     String?   @db.Text
+  latitude        Decimal?  @db.Decimal(9, 6)
+  longitude       Decimal?  @db.Decimal(9, 6)
+  photoUrl        String?   @map("photo_url") @db.VarChar(500)
+  status          IncidentStatus @default(reported)
+  resolutionNotes String?   @map("resolution_notes") @db.Text
+  resolvedById    String?   @map("resolved_by") @db.Uuid
+  resolvedAt      DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  trip            Trip      @relation(fields: [tripId], references: [id], onDelete: Restrict)
+  bus             Bus       @relation(fields: [busId], references: [id], onDelete: Restrict)
+  driver          User      @relation("IncidentDriver", fields: [driverId], references: [id], onDelete: Restrict)
+  resolvedBy      User?     @relation("IncidentResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+
+  @@index([status], map: "incidents_status_idx")
+  @@index([severity], map: "incidents_severity_idx")
+  @@index([deletedAt], map: "incidents_deleted_at_idx")
+  @@index([tripId], map: "incidents_trip_idx")
+  @@map("incidents")
+}
+
+// ============================================================
+// 15. NOTIFICATIONS
+// ============================================================
+
+model Notification {
+  id               String   @id @default(uuid()) @db.Uuid
+  notificationType String   @map("notification_type") @db.VarChar(100)
+  title            String   @db.VarChar(255)
+  message          String   @db.Text
+  priority         NotificationPriority @default(normal)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  recipients       NotificationUser[]
+
+  @@index([priority], map: "notifications_priority_idx")
+  @@index([deletedAt], map: "notifications_deleted_at_idx")
+  @@map("notifications")
+}
+
+model NotificationUser {
+  id             String    @id @default(uuid()) @db.Uuid
+  notificationId String    @map("notification_id") @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  isRead         Boolean   @default(false) @map("is_read")
+  readAt         DateTime? @map("read_at") @db.Timestamptz(6)
+  
+  // Delivery tracking fields
+  deliveryStatus NotificationDeliveryStatus @default(pending) @map("delivery_status")
+  sentAt         DateTime? @map("sent_at") @db.Timestamptz(6)
+  deliveredAt    DateTime? @map("delivered_at") @db.Timestamptz(6)
+  failedAt       DateTime? @map("failed_at") @db.Timestamptz(6)
+  failureReason  String?   @map("failure_reason") @db.Text
+  deliveryAttempts Int     @default(0) @map("delivery_attempts")
+  lastAttemptAt  DateTime? @map("last_attempt_at") @db.Timestamptz(6)
+  
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  notification   Notification @relation(fields: [notificationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([notificationId, userId], map: "notification_users_notification_user_unique")
+  @@index([userId, isRead], map: "notification_users_user_read_idx")
+  @@index([deliveryStatus], map: "notification_users_delivery_status_idx")
+  @@index([deliveryStatus, lastAttemptAt], map: "notification_users_failed_idx")
+  @@map("notification_users")
+}
+
+// ============================================================
+// 16. REPORTS & ANALYTICS
+// ============================================================
+
+model Report {
+  id                String       @id @default(uuid()) @db.Uuid
+  reportType        ReportType   @map("report_type")
+  reportName        String       @map("report_name") @db.VarChar(255)
+  description       String?      @db.Text
+  
+  // Filters/parameters used to generate the report (stored as JSON)
+  filters           Json?        @db.JsonB
+  
+  // Report metadata
+  status            ReportStatus @default(generating)
+  format            ReportFormat @default(pdf)
+  
+  // File storage
+  fileUrl           String?      @map("file_url") @db.VarChar(500)
+  fileSizeBytes     BigInt?      @map("file_size_bytes")
+  
+  // Report data (for JSON format or small reports)
+  reportData        Json?        @map("report_data") @db.JsonB
+  
+  // Scheduling
+  isScheduled       Boolean      @default(false) @map("is_scheduled")
+  scheduleCron      String?      @map("schedule_cron") @db.VarChar(100)
+  nextRunAt         DateTime?    @map("next_run_at") @db.Timestamptz(6)
+  
+  // Access control
+  isPublic          Boolean      @default(false) @map("is_public")
+  allowedRoles      String[]     @map("allowed_roles")
+  
+  // Lifecycle
+  generatedAt       DateTime?    @map("generated_at") @db.Timestamptz(6)
+  expiresAt         DateTime?    @map("expires_at") @db.Timestamptz(6)
+  
+  // Audit fields
+  createdBy         String?      @map("created_by") @db.Uuid
+  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime     @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt         DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  
+  // Error tracking
+  errorMessage      String?      @map("error_message") @db.Text
+  generationTimeMs  Int?         @map("generation_time_ms")
+
+  // Relations
+  creator           User?        @relation("ReportCreatedBy", fields: [createdBy], references: [id], onDelete: SetNull)
+  downloads         ReportDownload[]
+
+  @@index([reportType], map: "reports_type_idx")
+  @@index([status], map: "reports_status_idx")
+  @@index([createdBy], map: "reports_created_by_idx")
+  @@index([createdAt(sort: Desc)], map: "reports_created_at_idx")
+  @@index([deletedAt], map: "reports_deleted_at_idx")
+  @@index([expiresAt], map: "reports_expires_at_idx")
+  @@index([isScheduled, nextRunAt], map: "reports_scheduled_idx")
+  @@index([createdBy, createdAt(sort: Desc)], map: "reports_user_recent_idx")
+  @@map("reports")
+}
+
+model ReportDownload {
+  id           String   @id @default(uuid()) @db.Uuid
+  reportId     String   @map("report_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  downloadedAt DateTime @default(now()) @map("downloaded_at") @db.Timestamptz(6)
+  ipAddress    String?  @map("ip_address") @db.VarChar(45)
+  userAgent    String?  @map("user_agent") @db.Text
+
+  // Relations
+  report       Report   @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([reportId], map: "report_downloads_report_idx")
+  @@index([userId], map: "report_downloads_user_idx")
+  @@index([downloadedAt(sort: Desc)], map: "report_downloads_downloaded_at_idx")
+  @@map("report_downloads")
+}
+
+// ============================================================
+// 17. AI TRAFFIC PREDICTION
+// ============================================================
+
+model AiModel {
+  id              String   @id @default(uuid()) @db.Uuid
+  version         String   @db.VarChar(255)
+  accuracy        Decimal? @db.Decimal(5, 2)
+  trainedAt       DateTime? @map("trained_at") @db.Timestamptz(6)
+  datasetSize     Int?     @map("dataset_size")
+  modelParameters String?  @map("model_parameters") @db.Text
+  isActive        Boolean  @default(false) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  predictions     TrafficPrediction[]
+
+  @@map("ai_models")
+}
+
+model TrafficPrediction {
+  id                  String   @id @default(uuid()) @db.Uuid
+  modelId             String   @map("model_id") @db.Uuid
+  routeId             String   @map("route_id") @db.Uuid
+  versionId           String   @map("version_id") @db.Uuid
+  predictionTime      DateTime @map("prediction_time") @db.Timestamptz(6)
+  trafficLevel        TrafficLevel @map("traffic_level")
+  predictedDelayMinutes Int?   @map("predicted_delay_minutes")
+  confidence          Decimal? @db.Decimal(5, 2)
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  model               AiModel  @relation(fields: [modelId], references: [id], onDelete: Restrict)
+  route               Route    @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  version             RouteVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+
+  @@index([routeId, predictionTime], map: "traffic_predictions_route_time_idx")
+  @@index([versionId, predictionTime], map: "traffic_predictions_version_time_idx")
+  @@map("traffic_predictions")
+}
+
+// ============================================================
+// 17. LOGIN HISTORY
+// ============================================================
+
+model LoginHistory {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String?  @map("user_id") @db.Uuid
+  action     String   @db.VarChar(50)
+  ipAddress  String?  @map("ip_address") @db.VarChar(255)
+  userAgent  String?  @map("user_agent") @db.Text
+  deviceInfo String?  @map("device_info") @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt], map: "login_history_user_created_idx")
+  @@map("login_history")
+}
+
+// ============================================================
+// 18. AUDIT LOGS
+// ============================================================
+
+model AuditLog {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String?  @map("user_id") @db.Uuid
+  action      String   @db.VarChar(255)
+  entityName  String   @map("entity_name") @db.VarChar(255)
+  entityId    String?  @map("entity_id") @db.Uuid
+  oldValues   String?  @map("old_values") @db.Text
+  newValues   String?  @map("new_values") @db.Text
+  description String?  @db.Text
+  ipAddress   String?  @map("ip_address") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([entityName, entityId], map: "audit_logs_entity_idx")
+  @@index([userId, createdAt], map: "audit_logs_user_created_idx")
+  @@map("audit_logs")
+}
