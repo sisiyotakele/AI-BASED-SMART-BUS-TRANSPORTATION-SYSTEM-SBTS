@@ -52,7 +52,7 @@ export async function createBus(data: Partial<{ plateNumber: string; model: stri
       plateNumber: data.plateNumber || `plate_${Date.now()}`,
       model: data.model || 'Toyota Coaster',
       capacity: data.capacity ?? 50,
-      maintenanceStatus: data.maintenanceStatus || 'operational',
+      maintenanceStatus: (data.maintenanceStatus as any) || 'operational',
       terminalId: data.terminalId || null,
     },
   });
@@ -109,7 +109,7 @@ export async function createSchedule(data: Partial<{ routeId: string; versionId:
       routeId: data.routeId!,
       versionId: data.versionId!,
       scheduleName: data.scheduleName || 'Test Schedule',
-      dayOfWeek: data.dayOfWeek || 'monday',
+      dayOfWeek: (data.dayOfWeek as any) || 'monday',
       departureTime: data.departureTime || new Date(2024, 0, 1, 8, 0, 0),
     },
   });
@@ -124,7 +124,7 @@ export async function createTrip(data: Partial<{ busId: string; driverId: string
       scheduleId: data.scheduleId!,
       scheduledStart: data.scheduledStart || new Date(Date.now() + 3600000),
       scheduledEnd: data.scheduledEnd || new Date(Date.now() + 7200000),
-      status: data.status || 'scheduled',
+      status: (data.status as any) || 'scheduled',
     },
   });
 }

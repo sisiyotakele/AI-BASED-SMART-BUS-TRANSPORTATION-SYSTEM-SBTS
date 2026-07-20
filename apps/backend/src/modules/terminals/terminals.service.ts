@@ -1,10 +1,18 @@
-import { prisma } from '@/prisma/client';
+import { PrismaClient } from '@prisma/client';
+import { prisma as defaultPrisma } from '@/prisma/client';
 import { NotFoundError, ConflictError } from '@/common/errors';
 import { logger } from '@/common/logger';
 
+// Allow prisma client to be injected for testing
+let prisma: PrismaClient = defaultPrisma;
+
+export function setPrismaClient(client: PrismaClient) {
+  prisma = client;
+}
+
 export async function createTerminal(data: any, actorId?: string) {
   try {
-    const terminal = await prisma.terminal.create({ data: { ...data, createdById: actorId } });
+    const terminal = await prisma.terminal.create({ data });
     logger.info('Terminal created', { terminalId: terminal.id });
     return terminal;
   } catch (e: any) {

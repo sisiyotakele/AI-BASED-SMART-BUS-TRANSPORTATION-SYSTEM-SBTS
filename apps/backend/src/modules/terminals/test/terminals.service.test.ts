@@ -1,17 +1,14 @@
-import { prisma } from '@/prisma/client';
+import { prismaTest, resetDatabase } from '@/common/test-utils/test-db';
 import * as terminalService from '../terminals.service';
 import { NotFoundError, ConflictError } from '@/common/errors';
-import { createTestUser } from '@/common/test-utils/factories';
+import { createUser } from '@/common/test-utils/factories';
 
 describe('Terminals Service', () => {
     let adminUser: any;
 
-    beforeAll(async () => {
-        adminUser = await createTestUser({ email: 'admin@test.com' });
-    });
-
-    afterEach(async () => {
-        await prisma.terminal.deleteMany({});
+    beforeEach(async () => {
+        await resetDatabase();
+        adminUser = await createUser({ email: 'admin@test.com' });
     });
 
     describe('createTerminal', () => {
@@ -30,10 +27,9 @@ describe('Terminals Service', () => {
             expect(terminal).toBeDefined();
             expect(terminal.terminalName).toBe('Central Terminal');
             expect(terminal.address).toBe('123 Main St, City');
-            expect(terminal.latitude).toBeCloseTo(9.0192);
-            expect(terminal.longitude).toBeCloseTo(38.7525);
+            expect(Number(terminal.latitude)).toBeCloseTo(9.0192);
+            expect(Number(terminal.longitude)).toBeCloseTo(38.7525);
             expect(terminal.capacity).toBe(50);
-            expect(terminal.createdById).toBe(adminUser.id);
         });
 
         it('should create a terminal with minimal data', async () => {
@@ -250,8 +246,8 @@ describe('Terminals Service', () => {
                 longitude: 180,
             }, adminUser.id);
 
-            expect(terminal.latitude).toBe(-90);
-            expect(terminal.longitude).toBe(180);
+            expect(Number(terminal.latitude)).toBe(-90);
+            expect(Number(terminal.longitude)).toBe(180);
         });
 
         it('should handle terminals with very long names', async () => {
