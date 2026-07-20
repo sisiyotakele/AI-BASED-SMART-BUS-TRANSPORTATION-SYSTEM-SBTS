@@ -19,6 +19,12 @@ beforeAll(() => {
   if (terminalsService.setPrismaClient) {
     terminalsService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into buses service
+  const busesService = require('@/modules/buses/buses.service');
+  if (busesService.setPrismaClient) {
+    busesService.setPrismaClient(prismaTest);
+  }
 });
 
 afterAll(async () => {
