@@ -2,8 +2,8 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+
 import { config } from '@/config';
-import { logger } from '@/common/logger';
 import { errorResponse } from '@/common/response';
 import { errorHandler } from '@/common/middleware/error.middleware';
 import { requestIdMiddleware } from '@/common/middleware/request-id.middleware';
@@ -15,6 +15,7 @@ import { authRoutes } from '@/modules/auth';
 import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
+import { driverRoutes } from '@/modules/drivers';
 
 const app = express();
 
@@ -41,6 +42,7 @@ app.get('/', (_req: Request, res: Response) => {
       rbac: `${config.apiPrefix}/rbac`,
       terminals: `${config.apiPrefix}/terminals`,
       buses: `${config.apiPrefix}/buses`,
+      drivers: `${config.apiPrefix}/drivers`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -65,6 +67,9 @@ app.use(`${apiPrefix}/terminals`, terminalRoutes);
 
 // Buses
 app.use(`${apiPrefix}/buses`, busRoutes);
+
+// Drivers
+app.use(`${apiPrefix}/drivers`, driverRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

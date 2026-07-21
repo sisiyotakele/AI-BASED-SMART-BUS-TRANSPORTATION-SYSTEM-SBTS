@@ -25,6 +25,12 @@ beforeAll(() => {
   if (busesService.setPrismaClient) {
     busesService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into drivers service
+  const driversService = require('@/modules/drivers/drivers.service');
+  if (driversService.setPrismaClient) {
+    driversService.setPrismaClient(prismaTest);
+  }
 });
 
 afterAll(async () => {
