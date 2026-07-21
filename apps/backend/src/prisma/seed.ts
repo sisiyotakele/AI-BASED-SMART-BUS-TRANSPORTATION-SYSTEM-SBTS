@@ -15,7 +15,7 @@ async function main() {
   await prisma.user.deleteMany({});
 
   console.log('📝 Creating permissions...');
-  
+
   // Define all permissions with correct field names
   const permissions = [
     // User management
@@ -23,19 +23,21 @@ async function main() {
     { permissionName: 'users:create', description: 'Create users', resource: 'User', action: 'create' },
     { permissionName: 'users:update', description: 'Update users', resource: 'User', action: 'update' },
     { permissionName: 'users:delete', description: 'Delete users', resource: 'User', action: 'delete' },
-    
+
     // Role management
     { permissionName: 'roles:read', description: 'View roles', resource: 'Role', action: 'read' },
     { permissionName: 'roles:create', description: 'Create roles', resource: 'Role', action: 'create' },
     { permissionName: 'roles:update', description: 'Update roles', resource: 'Role', action: 'update' },
     { permissionName: 'roles:delete', description: 'Delete roles', resource: 'Role', action: 'delete' },
-    
+
     // Terminal management
     { permissionName: 'terminals:read', description: 'View terminals', resource: 'Terminal', action: 'read' },
     { permissionName: 'terminals:create', description: 'Create terminals', resource: 'Terminal', action: 'create' },
     { permissionName: 'terminals:update', description: 'Update terminals', resource: 'Terminal', action: 'update' },
     { permissionName: 'terminals:delete', description: 'Delete terminals', resource: 'Terminal', action: 'delete' },
-    
+    { permissionName: 'view_terminals', description: 'View terminals', resource: 'Terminal', action: 'read' },
+    { permissionName: 'manage_terminals', description: 'Manage terminals', resource: 'Terminal', action: 'manage' },
+
     // Bus management
     { permissionName: 'buses:read', description: 'View buses', resource: 'Bus', action: 'read' },
     { permissionName: 'buses:create', description: 'Create buses', resource: 'Bus', action: 'create' },
@@ -43,20 +45,20 @@ async function main() {
     { permissionName: 'buses:delete', description: 'Delete buses', resource: 'Bus', action: 'delete' },
     { permissionName: 'view_fleet', description: 'View bus fleet', resource: 'Bus', action: 'read' },
     { permissionName: 'manage_fleet', description: 'Manage bus fleet', resource: 'Bus', action: 'manage' },
-    
+
     // Driver management
     { permissionName: 'drivers:read', description: 'View drivers', resource: 'Driver', action: 'read' },
     { permissionName: 'drivers:create', description: 'Create drivers', resource: 'Driver', action: 'create' },
     { permissionName: 'drivers:update', description: 'Update drivers', resource: 'Driver', action: 'update' },
     { permissionName: 'drivers:delete', description: 'Delete drivers', resource: 'Driver', action: 'delete' },
-    
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
-    
+
     // Reports
     { permissionName: 'reports:read', description: 'View reports', resource: 'Report', action: 'read' },
     { permissionName: 'reports:create', description: 'Generate reports', resource: 'Report', action: 'create' },
-    
+
     // Bookings
     { permissionName: 'bookings:read', description: 'View bookings', resource: 'Booking', action: 'read' },
     { permissionName: 'bookings:create', description: 'Create bookings', resource: 'Booking', action: 'create' },
