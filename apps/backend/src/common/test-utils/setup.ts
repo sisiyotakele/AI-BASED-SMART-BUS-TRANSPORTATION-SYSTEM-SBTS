@@ -37,6 +37,12 @@ beforeAll(() => {
   if (routesStopsService.setPrismaClient) {
     routesStopsService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into schedules service
+  const schedulesService = require('@/modules/schedules/schedules.service');
+  if (schedulesService.setPrismaClient) {
+    schedulesService.setPrismaClient(prismaTest);
+  }
 });
 
 afterAll(async () => {

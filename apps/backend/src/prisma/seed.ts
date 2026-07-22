@@ -68,6 +68,10 @@ async function main() {
     { permissionName: 'view_stops', description: 'View stops', resource: 'Stop', action: 'read' },
     { permissionName: 'manage_stops', description: 'Manage stops', resource: 'Stop', action: 'manage' },
 
+    // Schedule management
+    { permissionName: 'view_schedules', description: 'View schedules', resource: 'Schedule', action: 'read' },
+    { permissionName: 'manage_schedules', description: 'Manage schedules', resource: 'Schedule', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -99,7 +103,7 @@ async function main() {
       roleName: 'SUPER_ADMIN',
       description: 'Full system access',
       rolePermissions: {
-        create: createdPermissions.map(p => ({
+        create: createdPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -107,9 +111,10 @@ async function main() {
   });
 
   // ADMIN - Most permissions except critical system operations
-  const adminPermissions = createdPermissions.filter(p =>
-    !p.permissionName.includes('roles:delete') &&
-    !p.permissionName.includes('users:delete')
+  const adminPermissions = createdPermissions.filter(
+    (p) =>
+      !p.permissionName.includes('roles:delete') &&
+      !p.permissionName.includes('users:delete')
   );
 
   const adminRole = await prisma.role.create({
@@ -117,20 +122,24 @@ async function main() {
       roleName: 'ADMIN',
       description: 'Administrative access',
       rolePermissions: {
-        create: adminPermissions.map(p => ({
+        create: adminPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
     },
   });
 
-  // MANAGER - Read all, manage terminals, buses, drivers
-  const managerPermissions = createdPermissions.filter(p =>
-    p.action === 'read' ||
-    p.resource === 'Terminal' ||
-    p.resource === 'Bus' ||
-    p.resource === 'Driver' ||
-    p.resource === 'Booking'
+  // MANAGER - Read all, manage terminals, buses, drivers, routes, stops, and schedules
+  const managerPermissions = createdPermissions.filter(
+    (p) =>
+      p.action === 'read' ||
+      p.resource === 'Terminal' ||
+      p.resource === 'Bus' ||
+      p.resource === 'Driver' ||
+      p.resource === 'Booking' ||
+      p.resource === 'Route' ||
+      p.resource === 'Stop' ||
+      p.resource === 'Schedule'
   );
 
   const managerRole = await prisma.role.create({
@@ -138,7 +147,7 @@ async function main() {
       roleName: 'MANAGER',
       description: 'Operations manager',
       rolePermissions: {
-        create: managerPermissions.map(p => ({
+        create: managerPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -146,10 +155,11 @@ async function main() {
   });
 
   // DRIVER - Read buses, terminals, own profile
-  const driverPermissions = createdPermissions.filter(p =>
-    (p.resource === 'Bus' && p.action === 'read') ||
-    (p.resource === 'Terminal' && p.action === 'read') ||
-    (p.resource === 'Driver' && p.action === 'read')
+  const driverPermissions = createdPermissions.filter(
+    (p) =>
+      (p.resource === 'Bus' && p.action === 'read') ||
+      (p.resource === 'Terminal' && p.action === 'read') ||
+      (p.resource === 'Driver' && p.action === 'read')
   );
 
   const driverRole = await prisma.role.create({
@@ -157,7 +167,7 @@ async function main() {
       roleName: 'DRIVER',
       description: 'Bus driver',
       rolePermissions: {
-        create: driverPermissions.map(p => ({
+        create: driverPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -165,10 +175,11 @@ async function main() {
   });
 
   // PASSENGER - Read public info, manage own bookings
-  const passengerPermissions = createdPermissions.filter(p =>
-    (p.resource === 'Booking') ||
-    (p.resource === 'Terminal' && p.action === 'read') ||
-    (p.resource === 'Bus' && p.action === 'read')
+  const passengerPermissions = createdPermissions.filter(
+    (p) =>
+      p.resource === 'Booking' ||
+      (p.resource === 'Terminal' && p.action === 'read') ||
+      (p.resource === 'Bus' && p.action === 'read')
   );
 
   const passengerRole = await prisma.role.create({
@@ -176,7 +187,7 @@ async function main() {
       roleName: 'PASSENGER',
       description: 'Regular passenger',
       rolePermissions: {
-        create: passengerPermissions.map(p => ({
+        create: passengerPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
