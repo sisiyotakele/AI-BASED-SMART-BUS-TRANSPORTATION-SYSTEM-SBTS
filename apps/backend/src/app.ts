@@ -17,6 +17,7 @@ import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
 import { routesStopsRoutes } from '@/modules/routes-stops';
+import { scheduleRoutes } from '@/modules/schedules';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.get('/', (_req: Request, res: Response) => {
       buses: `${config.apiPrefix}/buses`,
       drivers: `${config.apiPrefix}/drivers`,
       routesStops: `${config.apiPrefix}/routes-stops`,
+      schedules: `${config.apiPrefix}/schedules`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -75,6 +77,9 @@ app.use(`${apiPrefix}/drivers`, driverRoutes);
 
 // Routes & Stops
 app.use(`${apiPrefix}/routes-stops`, routesStopsRoutes);
+
+// Schedules
+app.use(`${apiPrefix}/schedules`, scheduleRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
