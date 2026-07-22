@@ -52,6 +52,22 @@ async function main() {
     { permissionName: 'drivers:update', description: 'Update drivers', resource: 'Driver', action: 'update' },
     { permissionName: 'drivers:delete', description: 'Delete drivers', resource: 'Driver', action: 'delete' },
 
+    // Route management
+    { permissionName: 'routes:read', description: 'View routes', resource: 'Route', action: 'read' },
+    { permissionName: 'routes:create', description: 'Create routes', resource: 'Route', action: 'create' },
+    { permissionName: 'routes:update', description: 'Update routes', resource: 'Route', action: 'update' },
+    { permissionName: 'routes:delete', description: 'Delete routes', resource: 'Route', action: 'delete' },
+    { permissionName: 'view_routes', description: 'View routes', resource: 'Route', action: 'read' },
+    { permissionName: 'manage_routes', description: 'Manage routes', resource: 'Route', action: 'manage' },
+
+    // Stop management
+    { permissionName: 'stops:read', description: 'View stops', resource: 'Stop', action: 'read' },
+    { permissionName: 'stops:create', description: 'Create stops', resource: 'Stop', action: 'create' },
+    { permissionName: 'stops:update', description: 'Update stops', resource: 'Stop', action: 'update' },
+    { permissionName: 'stops:delete', description: 'Delete stops', resource: 'Stop', action: 'delete' },
+    { permissionName: 'view_stops', description: 'View stops', resource: 'Stop', action: 'read' },
+    { permissionName: 'manage_stops', description: 'Manage stops', resource: 'Stop', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
