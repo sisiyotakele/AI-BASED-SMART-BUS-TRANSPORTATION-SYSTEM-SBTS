@@ -72,6 +72,10 @@ async function main() {
     { permissionName: 'view_schedules', description: 'View schedules', resource: 'Schedule', action: 'read' },
     { permissionName: 'manage_schedules', description: 'Manage schedules', resource: 'Schedule', action: 'manage' },
 
+    // Shift management
+    { permissionName: 'view_shifts', description: 'View shifts', resource: 'Shift', action: 'read' },
+    { permissionName: 'manage_shifts', description: 'Manage shifts', resource: 'Shift', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -129,7 +133,7 @@ async function main() {
     },
   });
 
-  // MANAGER - Read all, manage terminals, buses, drivers, routes, stops, and schedules
+  // MANAGER - Read all, manage operational resources including shifts
   const managerPermissions = createdPermissions.filter(
     (p) =>
       p.action === 'read' ||
@@ -139,7 +143,8 @@ async function main() {
       p.resource === 'Booking' ||
       p.resource === 'Route' ||
       p.resource === 'Stop' ||
-      p.resource === 'Schedule'
+      p.resource === 'Schedule' ||
+      p.resource === 'Shift'
   );
 
   const managerRole = await prisma.role.create({
@@ -154,12 +159,13 @@ async function main() {
     },
   });
 
-  // DRIVER - Read buses, terminals, own profile
+  // DRIVER - Read buses, terminals, shifts, own profile
   const driverPermissions = createdPermissions.filter(
     (p) =>
       (p.resource === 'Bus' && p.action === 'read') ||
       (p.resource === 'Terminal' && p.action === 'read') ||
-      (p.resource === 'Driver' && p.action === 'read')
+      (p.resource === 'Driver' && p.action === 'read') ||
+      (p.resource === 'Shift' && p.action === 'read')
   );
 
   const driverRole = await prisma.role.create({
@@ -202,7 +208,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash('Password123!', 10);
 
   // Super Admin user
-  const superAdmin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'superadmin@sbts.com',
       fullName: 'Super Admin',
@@ -217,7 +223,7 @@ async function main() {
   });
 
   // Admin user
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'admin@sbts.com',
       fullName: 'Admin User',
@@ -232,7 +238,7 @@ async function main() {
   });
 
   // Manager user
-  const manager = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'manager@sbts.com',
       fullName: 'Manager User',
@@ -247,7 +253,7 @@ async function main() {
   });
 
   // Driver user
-  const driver = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'driver@sbts.com',
       fullName: 'Driver User',
@@ -262,7 +268,7 @@ async function main() {
   });
 
   // Passenger user
-  const passenger = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'passenger@sbts.com',
       fullName: 'Passenger User',
