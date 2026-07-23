@@ -18,6 +18,7 @@ import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
 import { routesStopsRoutes } from '@/modules/routes-stops';
 import { scheduleRoutes } from '@/modules/schedules';
+import { shiftRoutes } from '@/modules/shifts';
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.get('/', (_req: Request, res: Response) => {
       drivers: `${config.apiPrefix}/drivers`,
       routesStops: `${config.apiPrefix}/routes-stops`,
       schedules: `${config.apiPrefix}/schedules`,
+      shifts: `${config.apiPrefix}/shifts`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -80,6 +82,9 @@ app.use(`${apiPrefix}/routes-stops`, routesStopsRoutes);
 
 // Schedules
 app.use(`${apiPrefix}/schedules`, scheduleRoutes);
+
+// Shifts
+app.use(`${apiPrefix}/shifts`, shiftRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

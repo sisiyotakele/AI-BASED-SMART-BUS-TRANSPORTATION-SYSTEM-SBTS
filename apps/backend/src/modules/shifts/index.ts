@@ -1,0 +1,1 @@
+export { default as shiftRoutes } from './shifts.routes';

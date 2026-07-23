@@ -43,6 +43,26 @@ beforeAll(() => {
   if (schedulesService.setPrismaClient) {
     schedulesService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into bus-driver-assignments service (if exists)
+  try {
+    const busDriverAssignmentsService = require('@/modules/bus-driver-assignments/bus-driver-assignments.service');
+    if (busDriverAssignmentsService.setPrismaClient) {
+      busDriverAssignmentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into shifts service (if exists)
+  try {
+    const shiftsService = require('@/modules/shifts/shifts.service');
+    if (shiftsService.setPrismaClient) {
+      shiftsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
 });
 
 afterAll(async () => {
