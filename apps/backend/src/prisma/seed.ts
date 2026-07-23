@@ -10,6 +10,8 @@ async function main() {
   console.log('🧹 Cleaning existing seed data...');
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.busDriverAssignment.deleteMany({});
+  await prisma.shift.deleteMany({});
   await prisma.permission.deleteMany({});
   await prisma.role.deleteMany({});
   await prisma.user.deleteMany({});
@@ -76,6 +78,10 @@ async function main() {
     { permissionName: 'view_shifts', description: 'View shifts', resource: 'Shift', action: 'read' },
     { permissionName: 'manage_shifts', description: 'Manage shifts', resource: 'Shift', action: 'manage' },
 
+    // Bus-Driver Assignment management
+    { permissionName: 'view_assignments', description: 'View bus-driver assignments', resource: 'BusDriverAssignment', action: 'read' },
+    { permissionName: 'manage_assignments', description: 'Manage bus-driver assignments', resource: 'BusDriverAssignment', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -133,7 +139,7 @@ async function main() {
     },
   });
 
-  // MANAGER - Read all, manage operational resources including shifts
+  // MANAGER - Read all, manage operational resources including shifts and assignments
   const managerPermissions = createdPermissions.filter(
     (p) =>
       p.action === 'read' ||
@@ -144,7 +150,8 @@ async function main() {
       p.resource === 'Route' ||
       p.resource === 'Stop' ||
       p.resource === 'Schedule' ||
-      p.resource === 'Shift'
+      p.resource === 'Shift' ||
+      p.resource === 'BusDriverAssignment'
   );
 
   const managerRole = await prisma.role.create({
@@ -159,13 +166,14 @@ async function main() {
     },
   });
 
-  // DRIVER - Read buses, terminals, shifts, own profile
+  // DRIVER - Read buses, terminals, shifts, assignments, own profile
   const driverPermissions = createdPermissions.filter(
     (p) =>
       (p.resource === 'Bus' && p.action === 'read') ||
       (p.resource === 'Terminal' && p.action === 'read') ||
       (p.resource === 'Driver' && p.action === 'read') ||
-      (p.resource === 'Shift' && p.action === 'read')
+      (p.resource === 'Shift' && p.action === 'read') ||
+      (p.resource === 'BusDriverAssignment' && p.action === 'read')
   );
 
   const driverRole = await prisma.role.create({
