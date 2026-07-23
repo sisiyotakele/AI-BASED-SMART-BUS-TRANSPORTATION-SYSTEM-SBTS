@@ -20,6 +20,7 @@ import { routesStopsRoutes } from '@/modules/routes-stops';
 import { scheduleRoutes } from '@/modules/schedules';
 import { shiftRoutes } from '@/modules/shifts';
 import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
+import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
 
 const app = express();
 
@@ -51,6 +52,7 @@ app.get('/', (_req: Request, res: Response) => {
       schedules: `${config.apiPrefix}/schedules`,
       shifts: `${config.apiPrefix}/shifts`,
       busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
+      busRouteAssignments: `${config.apiPrefix}/bus-route-assignments`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -89,7 +91,16 @@ app.use(`${apiPrefix}/schedules`, scheduleRoutes);
 app.use(`${apiPrefix}/shifts`, shiftRoutes);
 
 // Bus Driver Assignments
-app.use(`${apiPrefix}/bus-driver-assignments`, busDriverAssignmentRoutes);
+app.use(
+  `${apiPrefix}/bus-driver-assignments`,
+  busDriverAssignmentRoutes
+);
+
+// Bus Route Assignments
+app.use(
+  `${apiPrefix}/bus-route-assignments`,
+  busRouteAssignmentRoutes
+);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

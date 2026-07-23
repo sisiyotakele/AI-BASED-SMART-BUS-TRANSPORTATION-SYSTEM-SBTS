@@ -7,63 +7,63 @@ import * as service from './routes-stops.service';
 // Routes
 export const createRoute = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.createRoute(req.body, req.user?.userId);
-  res.status(201).json(successResponse(res, result, 'Route created'));
+  successResponse(res, result, 'Route created', 201);
 });
 
 export const listRoutes = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.listRoutes(req.query.search as string);
-  res.status(200).json(successResponse(res, result, 'Routes retrieved'));
+  successResponse(res, result, 'Routes retrieved');
 });
 
 export const getRoute = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.getRouteById(req.params.id);
-  res.status(200).json(successResponse(res, result, 'Route retrieved'));
+  successResponse(res, result, 'Route retrieved');
 });
 
 export const getRouteVersions = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.getRouteVersions(req.params.id);
-  res.status(200).json(successResponse(res, result, 'Route versions retrieved'));
+  successResponse(res, result, 'Route versions retrieved');
 });
 
 export const updateRoute = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.updateRoute(req.params.id, req.body);
-  res.status(200).json(successResponse(res, result, 'Route updated'));
+  successResponse(res, result, 'Route updated');
 });
 
 export const createNewVersion = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.createNewRouteVersion(req.params.id, req.body, req.user?.userId);
-  res.status(201).json(successResponse(res, result, 'New route version created'));
+  successResponse(res, result, 'New route version created', 201);
 });
 
 export const deleteRoute = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   await service.deleteRoute(req.params.id, req.user?.userId);
-  res.status(200).json(successResponse(res, null, 'Route deleted'));
+  successResponse(res, null, 'Route deleted');
 });
 
 // Stops
 export const createStop = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.createStop(req.body, req.user?.userId);
-  res.status(201).json(successResponse(res, result, 'Stop created'));
+  successResponse(res, result, 'Stop created', 201);
 });
 
 export const listStops = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.listStops(req.query.search as string);
-  res.status(200).json(successResponse(res, result, 'Stops retrieved'));
+  successResponse(res, result, 'Stops retrieved');
 });
 
 export const getStop = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.getStopById(req.params.id);
-  res.status(200).json(successResponse(res, result, 'Stop retrieved'));
+  successResponse(res, result, 'Stop retrieved');
 });
 
 export const updateStop = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.updateStop(req.params.id, req.body);
-  res.status(200).json(successResponse(res, result, 'Stop updated'));
+  successResponse(res, result, 'Stop updated');
 });
 
 export const deleteStop = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   await service.deleteStop(req.params.id, req.user?.userId);
-  res.status(200).json(successResponse(res, null, 'Stop deleted'));
+  successResponse(res, null, 'Stop deleted');
 });
 
 export const nearbyStops = asyncHandler(async (req: Request, res: Response) => {
@@ -72,11 +72,11 @@ export const nearbyStops = asyncHandler(async (req: Request, res: Response) => {
     Number(req.query.lng),
     Number(req.query.radius)
   );
-  res.status(200).json(successResponse(res, result, 'Nearby stops retrieved'));
+  successResponse(res, result, 'Nearby stops retrieved');
 });
 
 // Route Stops
 export const addRouteStop = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.addRouteStop(req.params.versionId, req.body);
-  res.status(201).json(successResponse(res, result, 'Route stop added'));
+  successResponse(res, result, 'Route stop added', 201);
 });
