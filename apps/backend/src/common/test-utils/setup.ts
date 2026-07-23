@@ -63,6 +63,16 @@ beforeAll(() => {
   } catch (e) {
     // Module might not exist yet
   }
+
+  // Import and inject into bus-route-assignments service (if exists)
+  try {
+    const busRouteAssignmentsService = require('@/modules/bus-route-assignments/bus-route-assignments.service');
+    if (busRouteAssignmentsService.setPrismaClient) {
+      busRouteAssignmentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
 });
 
 afterAll(async () => {
