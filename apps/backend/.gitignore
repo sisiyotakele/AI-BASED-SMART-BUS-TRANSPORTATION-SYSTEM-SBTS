@@ -47,3 +47,5 @@ Thumbs.db
 
 # Development helpers (local only)
 src/modules/dev/
+src/modules/tracking/README.md
+test-socket.html
