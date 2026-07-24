@@ -22,6 +22,16 @@ import { shiftRoutes } from '@/modules/shifts';
 import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
 import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
 import { keyHandoverRoutes } from '@/modules/key-handovers';
+import { tripRoutes } from '@/modules/trips';
+
+// Optional dev routes (only if folder exists locally)
+let devRoutes: any = null;
+try {
+  const devModule = require('@/modules/dev');
+  devRoutes = devModule.devRoutes;
+} catch (e) {
+  // Dev module not found - skip it
+}
 
 const app = express();
 
@@ -55,6 +65,7 @@ app.get('/', (_req: Request, res: Response) => {
       busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
       busRouteAssignments: `${config.apiPrefix}/bus-route-assignments`,
       keyHandovers: `${config.apiPrefix}/key-handovers`,
+      trips: `${config.apiPrefix}/trips`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -109,6 +120,20 @@ app.use(
   `${apiPrefix}/key-handovers`,
   keyHandoverRoutes
 );
+
+// Trips
+app.use(
+  `${apiPrefix}/trips`,
+  tripRoutes
+);
+
+// Development helpers (only loaded if dev folder exists locally)
+if (devRoutes) {
+  app.use(
+    `${apiPrefix}/dev`,
+    devRoutes
+  );
+}
 
 // 404 handler
 app.use((_req: Request, res: Response) => {

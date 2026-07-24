@@ -11,6 +11,7 @@ async function main() {
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
   await prisma.busDriverAssignment.deleteMany({});
+  await prisma.keyHandover.deleteMany({});
   await prisma.shift.deleteMany({});
   await prisma.permission.deleteMany({});
   await prisma.role.deleteMany({});
@@ -86,6 +87,13 @@ async function main() {
     { permissionName: 'view_key_handovers', description: 'View key handovers', resource: 'KeyHandover', action: 'read' },
     { permissionName: 'manage_key_handovers', description: 'Manage key handovers', resource: 'KeyHandover', action: 'manage' },
 
+    // Trip management
+    { permissionName: 'view_trips', description: 'View trips', resource: 'Trip', action: 'read' },
+    { permissionName: 'create_trip', description: 'Create trips', resource: 'Trip', action: 'create' },
+    { permissionName: 'start_trip', description: 'Start trips', resource: 'Trip', action: 'manage' },
+    { permissionName: 'end_trip', description: 'End trips', resource: 'Trip', action: 'manage' },
+    { permissionName: 'cancel_trip', description: 'Cancel trips', resource: 'Trip', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -156,7 +164,8 @@ async function main() {
       p.resource === 'Schedule' ||
       p.resource === 'Shift' ||
       p.resource === 'BusDriverAssignment' ||
-      p.resource === 'KeyHandover'
+      p.resource === 'KeyHandover' ||
+      p.resource === 'Trip'
   );
 
   const managerRole = await prisma.role.create({
@@ -171,7 +180,7 @@ async function main() {
     },
   });
 
-  // DRIVER - Read buses, terminals, shifts, assignments, key handovers, own profile
+  // DRIVER - Read buses, terminals, shifts, assignments, key handovers, trips, own profile
   const driverPermissions = createdPermissions.filter(
     (p) =>
       (p.resource === 'Bus' && p.action === 'read') ||
@@ -179,7 +188,8 @@ async function main() {
       (p.resource === 'Driver' && p.action === 'read') ||
       (p.resource === 'Shift' && p.action === 'read') ||
       (p.resource === 'BusDriverAssignment' && p.action === 'read') ||
-      (p.resource === 'KeyHandover')
+      (p.resource === 'KeyHandover') ||
+      (p.resource === 'Trip')
   );
 
   const driverRole = await prisma.role.create({
