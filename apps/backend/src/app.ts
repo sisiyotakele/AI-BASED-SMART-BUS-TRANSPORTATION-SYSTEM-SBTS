@@ -16,8 +16,6 @@ import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
-import { auditRoutes } from '@/modules/audit';
-import { pricingRoutes } from '@/modules/pricing';
 
 const app = express();
 
@@ -45,8 +43,6 @@ app.get('/', (_req: Request, res: Response) => {
       terminals: `${config.apiPrefix}/terminals`,
       buses: `${config.apiPrefix}/buses`,
       drivers: `${config.apiPrefix}/drivers`,
-      audit: `${config.apiPrefix}/audit`,
-      pricing: `${config.apiPrefix}/pricing`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -57,7 +53,7 @@ app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json(getSimpleHealth());
 });
 
-// API routes
+// API prefix
 const apiPrefix = config.apiPrefix;
 
 // Authentication
@@ -75,18 +71,12 @@ app.use(`${apiPrefix}/buses`, busRoutes);
 // Drivers
 app.use(`${apiPrefix}/drivers`, driverRoutes);
 
-// Audit
-app.use(`${apiPrefix}/audit`, auditRoutes);
-
-// Pricing
-app.use(`${apiPrefix}/pricing`, pricingRoutes);
-
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json(errorResponse('Endpoint not found', 'NOT_FOUND'));
 });
 
-// Error handler
+// Global error handler
 app.use(errorHandler);
 
 export default app;
