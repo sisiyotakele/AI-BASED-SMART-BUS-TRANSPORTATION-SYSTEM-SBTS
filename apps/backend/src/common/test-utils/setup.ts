@@ -73,6 +73,16 @@ beforeAll(() => {
   } catch (e) {
     // Module might not exist yet
   }
+
+  // Import and inject into key-handovers service (if exists)
+  try {
+    const keyHandoversService = require('@/modules/key-handovers/key-handovers.service');
+    if (keyHandoversService.setPrismaClient) {
+      keyHandoversService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
 });
 
 afterAll(async () => {
