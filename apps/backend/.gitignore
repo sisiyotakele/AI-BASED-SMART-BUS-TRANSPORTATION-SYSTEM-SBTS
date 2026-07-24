@@ -44,3 +44,6 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Development helpers (local only)
+src/modules/dev/
