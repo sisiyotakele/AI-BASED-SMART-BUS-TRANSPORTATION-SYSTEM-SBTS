@@ -21,6 +21,7 @@ import { scheduleRoutes } from '@/modules/schedules';
 import { shiftRoutes } from '@/modules/shifts';
 import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
 import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
+import { keyHandoverRoutes } from '@/modules/key-handovers';
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.get('/', (_req: Request, res: Response) => {
       shifts: `${config.apiPrefix}/shifts`,
       busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
       busRouteAssignments: `${config.apiPrefix}/bus-route-assignments`,
+      keyHandovers: `${config.apiPrefix}/key-handovers`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -100,6 +102,12 @@ app.use(
 app.use(
   `${apiPrefix}/bus-route-assignments`,
   busRouteAssignmentRoutes
+);
+
+// Key Handovers
+app.use(
+  `${apiPrefix}/key-handovers`,
+  keyHandoverRoutes
 );
 
 // 404 handler
