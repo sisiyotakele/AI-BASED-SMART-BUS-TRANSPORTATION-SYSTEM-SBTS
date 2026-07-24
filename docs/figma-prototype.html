@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SBTS - Interactive Figma Design System & Prototype Viewer</title>
+  <style>
+    :root {
+      /* Design Tokens */
+      --primary-main: #1E3A8A;
+      --primary-light: #3B82F6;
+      --primary-dark: #172554;
+      --secondary-main: #10B981;
+      --secondary-light: #D1FAE5;
+      --neutral-900: #0F172A;
+      --neutral-800: #1E293B;
+      --neutral-600: #475569;
+      --neutral-300: #CBD5E1;
+      --neutral-100: #F1F5F9;
+      --neutral-white: #FFFFFF;
+      --status-error: #EF4444;
+      --status-warning: #F59E0B;
+      --status-info: #06B6D4;
+
+      --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: #0b0f19;
+      color: var(--neutral-100);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Top Navigation bar resembling Figma's interface */
+    header {
+      background-color: #1e1e1e;
+      border-bottom: 1px solid #2c2c2c;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .figma-logo {
+      width: 24px;
+      height: 24px;
+      display: flex;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      background: #333333;
+      padding: 2px 8px;
+      border-radius: 4px;
+      color: #aaaaaa;
+      font-weight: 500;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: #141414;
+      padding: 4px;
+      border-radius: 8px;
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: #888888;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover {
+      color: #ffffff;
+      background: #222222;
+    }
+
+    .tab-btn.active {
+      color: #ffffff;
+      background: #2c2c2c;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-primary-action {
+      background-color: var(--primary-light);
+      color: white;
+      border: none;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    /* Main Workspace Split Layout */
+    .workspace {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* Left Sidebar: Pages/Layers (Figma Style) */
+    .sidebar {
+      width: 260px;
+      background-color: #1e1e1e;
+      border-right: 1px solid #2c2c2c;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 16px;
+      border-bottom: 1px solid #2c2c2c;
+    }
+
+    .sidebar-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #888888;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+
+    .sidebar-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #cccccc;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .sidebar-item:hover {
+      background: #2a2a2a;
+      color: #ffffff;
+    }
+
+    .sidebar-item.active {
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--primary-light);
+      font-weight: 600;
+    }
+
+    .sidebar-item-icon {
+      font-size: 14px;
+      width: 16px;
+      text-align: center;
+    }
+
+    /* Canvas: Figma grey infinite checkerboard style */
+    .canvas-container {
+      flex: 1;
+      background-color: #121212;
+      background-image: radial-gradient(#222222 1px, transparent 0);
+      background-size: 24px 24px;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      position: relative;
+    }
+
+    /* Right Sidebar: Design Inspector (Figma style) */
+    .inspector {
+      width: 280px;
+      background-color: #1e1e1e;
+      border-left: 1px solid #2c2c2c;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .inspector-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid #2c2c2c;
+      font-weight: 600;
+      font-size: 13px;
+      color: #ffffff;
+    }
+
+    .inspector-prop-group {
+      padding: 16px;
+      border-bottom: 1px solid #2c2c2c;
+    }
+
+    .inspector-prop-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      font-size: 12px;
+    }
+
+    .inspector-prop-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .inspector-label {
+      color: #888888;
+    }
+
+    .inspector-val {
+      color: #ffffff;
+      font-family: monospace;
+      font-weight: 500;
+    }
+
+    .code-box {
+      background: #141414;
+      padding: 10px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #a78bfa;
+      overflow-x: auto;
+      white-space: pre;
+      margin-top: 8px;
+      border: 1px solid #2c2c2c;
+    }
+
+    /* Target Views inside the Canvas */
+    .figma-frame {
+      background: #0f172a;
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      border: 4px solid #2c2c2c;
+      overflow: hidden;
+      display: none;
+      transition: all 0.3s ease;
+    }
+
+    .figma-frame.active {
+      display: block;
+    }
+
+    /* Screen Frame Sizes */
+    .frame-desktop {
+      width: 1024px;
+      height: 640px;
+    }
+
+    .frame-mobile {
+      width: 375px;
+      height: 720px;
+    }
+
+    /* Design System View */
+    .design-system-frame {
+      background: #18181b;
+      width: 960px;
+      padding: 32px;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      display: none;
+      color: #f4f4f5;
+    }
+
+    .design-system-frame.active {
+      display: block;
+    }
+
+    /* UI components within mockups */
+    .mock-header {
+      background: var(--primary-main);
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .mock-header-title {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .mock-card {
+      background: var(--neutral-800);
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .mock-button {
+      background-color: var(--primary-light);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.2s;
+      width: 100%;
+    }
+
+    .mock-button:hover {
+      background-color: #2563eb;
+    }
+
+    .mock-button.secondary {
+      background-color: #475569;
+    }
+
+    .mock-button.secondary:hover {
+      background-color: #334155;
+    }
+
+    .mock-button.danger {
+      background-color: var(--status-error);
+    }
+
+    .mock-button.danger:hover {
+      background-color: #dc2626;
+    }
+
+    .mock-input-group {
+      margin-bottom: 12px;
+    }
+
+    .mock-label {
+      display: block;
+      font-size: 12px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .mock-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #334155;
+      padding: 10px;
+      border-radius: 6px;
+      color: white;
+      font-size: 13px;
+    }
+
+    /* Live GPS map mockup */
+    .mock-map {
+      background-color: #1e293b;
+      height: 240px;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+      border: 1px solid #334155;
+      margin-bottom: 16px;
+    }
+
+    .mock-map-road {
+      position: absolute;
+      background: #475569;
+      height: 12px;
+      width: 100%;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .mock-map-road-vert {
+      position: absolute;
+      background: #475569;
+      width: 12px;
+      height: 100%;
+      left: 30%;
+    }
+
+    .mock-map-stop {
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #cbd5e1;
+      border: 2px solid #0f172a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      font-weight: bold;
+      color: #0f172a;
+    }
+
+    .mock-map-bus {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--secondary-main);
+      border: 2px solid white;
+      left: 30%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 10px var(--secondary-main);
+      animation: pulse 1.5s infinite;
+      z-index: 2;
+    }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* DataTable styles */
+    .mock-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .mock-table th {
+      background: #334155;
+      padding: 10px;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .mock-table td {
+      padding: 10px;
+      border-bottom: 1px solid #334155;
+      color: #94a3b8;
+    }
+
+    .mock-table tr:hover td {
+      color: white;
+      background: rgba(255,255,255,0.02);
+    }
+
+    /* Toast style notifications */
+    .mock-toast {
+      background: #334155;
+      padding: 12px;
+      border-radius: 6px;
+      border-left: 4px solid var(--primary-light);
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    /* Color blocks for design system */
+    .ds-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 16px;
+      margin-bottom: 32px;
+    }
+
+    .ds-color-card {
+      background: #27272a;
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid #3f3f46;
+    }
+
+    .ds-color-swatch {
+      height: 80px;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .ds-typography-row {
+      display: flex;
+      align-items: baseline;
+      padding: 12px 0;
+      border-bottom: 1px solid #27272a;
+    }
+
+    .ds-typo-spec {
+      width: 180px;
+      font-family: monospace;
+      font-size: 12px;
+      color: #a1a1aa;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Figma-Style Bar -->
+  <header>
+    <div class="brand">
+      <div style="background: #F24E1E; border-radius: 4px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: white;">F</div>
+      <div>
+        <div class="brand-title">Smart Bus Transportation System</div>
+        <div style="font-size: 11px; color: #888888;">Design & Prototype System Spec v1.0</div>
+      </div>
+    </div>
+
+    <!-- Active App Switcher Tabs -->
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchAppTab('design-system')">Design System</button>
+      <button class="tab-btn" onclick="switchAppTab('passenger-app')">Passenger App</button>
+      <button class="tab-btn" onclick="switchAppTab('staff-app')">Staff App</button>
+    </div>
+
+    <div class="header-actions">
+      <span class="brand-subtitle">Interactive Dev Preview</span>
+      <button class="btn-primary-action" onclick="alert('Exporting tokens directly mapped with Code Connect!')">Dev Mode Connect</button>
+    </div>
+  </header>
+
+  <!-- Workspace Shell -->
+  <div class="workspace">
+
+    <!-- Sidebar - Figma Layers Navigation -->
+    <aside class="sidebar">
+      <!-- Design System Sub-pages -->
+      <div class="sidebar-section active-nav-group" id="nav-group-design-system">
+        <h4 class="sidebar-title">Design Tokens & Library</h4>
+        <ul class="sidebar-list">
+          <li class="sidebar-item active" onclick="showDSSection('ds-colors')">🎨 Color Palette</li>
+          <li class="sidebar-item" onclick="showDSSection('ds-typography')">✍️ Typography Styles</li>
+          <li class="sidebar-item" onclick="showDSSection('ds-components')">🧱 Core UI Components</li>
+        </ul>
+      </div>
+
+      <!-- Passenger App Sub-pages -->
+      <div class="sidebar-section" id="nav-group-passenger-app" style="display:none;">
+        <h4 class="sidebar-title">Passenger App Screens</h4>
+        <ul class="sidebar-list">
+          <li class="sidebar-item active" onclick="showScreen('pass-auth')">📱 Auth: Login / Register</li>
+          <li class="sidebar-item" onclick="showScreen('pass-search')">🔍 Route Search Page</li>
+          <li class="sidebar-item" onclick="showScreen('pass-tracking')">📍 Live Map & GPS Trip ETA</li>
+          <li class="sidebar-item" onclick="showScreen('pass-notif')">🔔 Passenger Alerts & Notifs</li>
+        </ul>
+      </div>
+
+      <!-- Staff App Sub-pages -->
+      <div class="sidebar-section" id="nav-group-staff-app" style="display:none;">
+        <h4 class="sidebar-title">Staff Portal Screens</h4>
+        <ul class="sidebar-list">
+          <li class="sidebar-item active" onclick="showScreen('staff-dashboard')">📊 Admin: Dashboard Hub</li>
+          <li class="sidebar-item" onclick="showScreen('staff-fleet')">🚌 Admin: Fleet Management</li>
+          <li class="sidebar-item" onclick="showScreen('staff-driver')">🎛️ Driver: Trip Control Panel</li>
+          <li class="sidebar-item" onclick="showScreen('staff-incidents')">🚨 Incident Reporter & triage</li>
+        </ul>
+      </div>
+
+      <!-- Help info -->
+      <div class="sidebar-section" style="margin-top: auto; border-top: 1px solid #2c2c2c; border-bottom: none;">
+        <div style="font-size: 11px; color: #888888; line-height: 1.5;">
+          <strong>Quick Tip:</strong> Switch between tabs in the top header to explore different application suites and verify responsive layouts.
+        </div>
+      </div>
+    </aside>
+
+    <!-- Canvas - Frame Viewer -->
+    <main class="canvas-container">
+
+      <!-- ================= DESIGN SYSTEM FRAME ================= -->
+      <div id="frame-design-system" class="design-system-frame active">
+        <!-- Colors Section -->
+        <div id="ds-colors" class="ds-tab-content">
+          <h2 style="font-size: 24px; margin-bottom: 8px;">🎨 Brand Color Palette</h2>
+          <p style="color: #a1a1aa; margin-bottom: 24px; font-size: 14px;">Our color system establishes brand hierarchy, notifies status events, and accommodates light and dark themes.</p>
+
+          <h3 style="font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #27272a; padding-bottom: 6px;">Brand Primary & Accent</h3>
+          <div class="ds-grid">
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #1E3A8A;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--primary-main</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#1E3A8A</div>
+            </div>
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #3B82F6;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--primary-light</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#3B82F6</div>
+            </div>
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #172554;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--primary-dark</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#172554</div>
+            </div>
+          </div>
+
+          <h3 style="font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #27272a; padding-bottom: 6px;">Status Colors</h3>
+          <div class="ds-grid">
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #10B981;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--secondary-main (Success)</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#10B981</div>
+            </div>
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #EF4444;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--status-error</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#EF4444</div>
+            </div>
+            <div class="ds-color-card">
+              <div class="ds-color-swatch" style="background-color: #F59E0B;"></div>
+              <div style="font-weight: bold; font-size: 13px;">--status-warning</div>
+              <div style="font-size: 11px; color: #a1a1aa; font-family: monospace;">#F59E0B</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Typography Section -->
+        <div id="ds-typography" class="ds-tab-content" style="display:none;">
+          <h2 style="font-size: 24px; margin-bottom: 8px;">✍️ Typography Hierarchy</h2>
+          <p style="color: #a1a1aa; margin-bottom: 24px; font-size: 14px;">The font family is <strong>Inter</strong>. It delivers optimal legibility for transit information on small mobile screens.</p>
+
+          <div class="ds-typography-row">
+            <div class="ds-typo-spec">Heading 1 (30px)</div>
+            <div style="font-size: 30px; font-weight: 700;">Find Your Next Bus Quick</div>
+          </div>
+          <div class="ds-typography-row">
+            <div class="ds-typo-spec">Heading 2 (24px)</div>
+            <div style="font-size: 24px; font-weight: 600;">Downtown Express (R-101)</div>
+          </div>
+          <div class="ds-typography-row">
+            <div class="ds-typo-spec">Subheading (18px)</div>
+            <div style="font-size: 18px; font-weight: 500;">Recent Trip Reports & Alerts</div>
+          </div>
+          <div class="ds-typography-row">
+            <div class="ds-typo-spec">Body Regular (14px)</div>
+            <div style="font-size: 14px; font-weight: 400; line-height: 1.4;">The bus is running on schedule and expected to arrive in 4 minutes.</div>
+          </div>
+          <div class="ds-typography-row">
+            <div class="ds-typo-spec">Caption Small (12px)</div>
+            <div style="font-size: 12px; font-weight: 400; color: #a1a1aa;">NY-8932-XP | Updated 1m ago</div>
+          </div>
+        </div>
+
+        <!-- Components Library Section -->
+        <div id="ds-components" class="ds-tab-content" style="display:none;">
+          <h2 style="font-size: 24px; margin-bottom: 8px;">🧱 Core UI Components (`@sbts/ui-kit`)</h2>
+          <p style="color: #a1a1aa; margin-bottom: 24px; font-size: 14px;">Standardized visual components mapped 1:1 with developer modules inside packages/ui-kit.</p>
+
+          <h3 style="font-size: 16px; margin-bottom: 12px; margin-top: 24px; border-bottom: 1px solid #27272a; padding-bottom: 6px;">1. Button Component</h3>
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <button class="mock-button" style="width: auto;">Primary Action</button>
+            <button class="mock-button secondary" style="width: auto;">Secondary Action</button>
+            <button class="mock-button danger" style="width: auto;">Report Alert (Danger)</button>
+          </div>
+
+          <h3 style="font-size: 16px; margin-bottom: 12px; border-bottom: 1px solid #27272a; padding-bottom: 6px;">2. Table View Component</h3>
+          <div class="mock-card" style="padding: 0; overflow: hidden; background: #27272a;">
+            <table class="mock-table">
+              <thead>
+                <tr>
+                  <th>Bus ID</th>
+                  <th>Driver Name</th>
+                  <th>Active Route</th>
+                  <th>ETA Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>BUS-045</td>
+                  <td>Albert S.</td>
+                  <td>Route R-101</td>
+                  <td>🟢 On Time</td>
+                </tr>
+                <tr>
+                  <td>BUS-112</td>
+                  <td>Sarah J.</td>
+                  <td>Route R-204</td>
+                  <td>🟡 Delayed (4m)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ================= PASSENGER APP FRAMES ================= -->
+
+      <!-- Frame A: Passenger Auth (Login/Register) -->
+      <div id="frame-pass-auth" class="figma-frame frame-mobile">
+        <div class="mock-header">
+          <span class="mock-header-title">SBTS Passenger</span>
+          <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">Auth Flow</span>
+        </div>
+        <div style="padding: 24px;">
+          <h2 style="margin-bottom: 6px; font-size: 24px;">Welcome Back!</h2>
+          <p style="color: #94a3b8; font-size: 13px; margin-bottom: 24px;">Sign in to track real-time routes, schedules, and active ETAs.</p>
+
+          <div class="mock-input-group">
+            <label class="mock-label">EMAIL ADDRESS</label>
+            <input type="email" class="mock-input" value="passenger@sbts.com" placeholder="name@domain.com">
+          </div>
+
+          <div class="mock-input-group" style="margin-bottom: 24px;">
+            <label class="mock-label">PASSWORD</label>
+            <input type="password" class="mock-input" value="••••••••••••" placeholder="Enter your password">
+          </div>
+
+          <button class="mock-button" style="margin-bottom: 16px;" onclick="switchScreen('pass-search')">Sign In</button>
+
+          <div style="text-align: center; font-size: 12px; color: #94a3b8;">
+            Don't have an account? <span style="color: var(--primary-light); cursor: pointer; font-weight: 600;">Register Here</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame B: Route Search -->
+      <div id="frame-pass-search" class="figma-frame frame-mobile">
+        <div class="mock-header">
+          <span class="mock-header-title">📍 Route Search</span>
+          <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">R-101</span>
+        </div>
+        <div style="padding: 16px; overflow-y: auto; height: calc(100% - 50px);">
+          <div class="mock-card" style="margin-bottom: 16px;">
+            <h4 style="font-size: 14px; margin-bottom: 12px;">Plan Your Commute</h4>
+            <div class="mock-input-group">
+              <label class="mock-label">START TERMINAL</label>
+              <input type="text" class="mock-input" value="Terminal East (Downtown)">
+            </div>
+            <div class="mock-input-group" style="margin-bottom: 16px;">
+              <label class="mock-label">DESTINATION STOP</label>
+              <input type="text" class="mock-input" value="Westside Plaza Stop B">
+            </div>
+            <button class="mock-button" onclick="alert('Searching live schedules...')">Search Live Schedules</button>
+          </div>
+
+          <h3 style="font-size: 14px; margin-bottom: 12px; color: #94a3b8;">RECOMMENDED ROUTE</h3>
+          <div class="mock-card" style="cursor: pointer; border-left: 4px solid var(--secondary-main);" onclick="switchScreen('pass-tracking')">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <div>
+                <span style="background: var(--primary-light); font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: bold;">R-101</span>
+                <span style="font-weight: bold; font-size: 14px; margin-left: 6px;">Downtown Express</span>
+              </div>
+              <span style="color: var(--secondary-main); font-weight: bold; font-size: 12px;">ETA 5m</span>
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 12px;">Stops: Terminal East → Hub B → Plaza Stop B</p>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-weight: bold; font-size: 13px;">Fare: $2.50</span>
+              <span style="color: var(--primary-light); font-size: 12px; font-weight: 600;">Track live &rarr;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame C: Live Trip Tracking -->
+      <div id="frame-pass-tracking" class="figma-frame frame-mobile">
+        <div class="mock-header">
+          <span class="mock-header-title">🗺️ Tracking: R-101</span>
+          <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">Live</span>
+        </div>
+        <div style="padding: 16px;">
+          <!-- Moving Bus Map Simulation -->
+          <div class="mock-map">
+            <div class="mock-map-road"></div>
+            <div class="mock-map-road-vert"></div>
+            <div class="mock-map-stop" style="left: 10%; top: 50%; transform: translate(-50%,-50%);" title="Terminal East">TE</div>
+            <div class="mock-map-stop" style="left: 50%; top: 50%; transform: translate(-50%,-50%);" title="Hub B">HB</div>
+            <div class="mock-map-stop" style="left: 90%; top: 50%; transform: translate(-50%,-50%);" title="Plaza Stop B">PB</div>
+            <!-- Active Moving Bus Marker -->
+            <div class="mock-map-bus" id="live-moving-bus"></div>
+          </div>
+
+          <div class="mock-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <div>
+                <div style="font-size: 11px; color: #94a3b8; text-transform: uppercase;">Next Stop Arrival</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--secondary-main);" id="live-eta-timer">3 mins remaining</div>
+              </div>
+              <span style="background: rgba(16, 185, 129, 0.1); color: var(--secondary-main); font-weight: bold; font-size: 11px; padding: 4px 8px; border-radius: 12px;">On Schedule</span>
+            </div>
+
+            <div style="font-size: 12px; border-top: 1px solid #334155; padding-top: 12px; line-height: 1.6;">
+              <div><strong>Active Vehicle:</strong> BUS-045 (NY-8932-XP)</div>
+              <div><strong>Driver Profile:</strong> Albert Sikkema (Licensed)</div>
+              <div><strong>Telemetry Update:</strong> <span style="color: #10b981;">Active GPS Transmit</span></div>
+            </div>
+          </div>
+
+          <button class="mock-button" onclick="switchScreen('pass-notif')">Configure Notification Alerts</button>
+        </div>
+      </div>
+
+      <!-- Frame D: Passenger Notifications -->
+      <div id="frame-pass-notif" class="figma-frame frame-mobile">
+        <div class="mock-header">
+          <span class="mock-header-title">🔔 Smart Alerts</span>
+          <span style="font-size: 11px; background: rgba(255,255,255,0.2); padding: 2px 6px; border-radius: 4px;">Updates</span>
+        </div>
+        <div style="padding: 16px;">
+          <h3 style="font-size: 15px; margin-bottom: 12px;">Active Subscribed Alerts</h3>
+
+          <div class="mock-toast">
+            <strong>Route R-101: Approaching</strong>
+            <p style="color: #cbd5e1; margin-top: 4px;">Bus BUS-045 is 2 minutes away from your favorite stop: Hub B.</p>
+            <span style="font-size: 10px; color: #94a3b8;">Just now</span>
+          </div>
+
+          <div class="mock-toast" style="border-left-color: var(--status-warning);">
+            <strong>Route R-204: Delay Alert</strong>
+            <p style="color: #cbd5e1; margin-top: 4px;">Shift schedule delayed by 8 minutes due to route-search congestion.</p>
+            <span style="font-size: 10px; color: #94a3b8;">15m ago</span>
+          </div>
+
+          <div class="mock-card" style="margin-top: 24px;">
+            <h4 style="font-size: 13px; margin-bottom: 8px;">Add New Route Alert</h4>
+            <div class="mock-input-group">
+              <label class="mock-label">SELECT FREQUENCY</label>
+              <select class="mock-input">
+                <option>Notify when bus is 5m away</option>
+                <option>Notify when bus is 2m away</option>
+                <option>Notify immediately on service changes</option>
+              </select>
+            </div>
+            <button class="mock-button secondary" onclick="alert('Notification triggers successfully saved!')">Save Preferences</button>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ================= STAFF PORTAL FRAMES ================= -->
+
+      <!-- Frame E: Admin Dashboard Hub -->
+      <div id="frame-staff-dashboard" class="figma-frame frame-desktop">
+        <div class="mock-header" style="background: var(--neutral-900); border-bottom: 1px solid #334155;">
+          <div style="display:flex; align-items:center; gap:16px;">
+            <span class="mock-header-title" style="color: var(--primary-light);">SBTS Admin Portal</span>
+            <span style="color: #475569;">|</span>
+            <span style="font-size: 12px; color: white;">Terminal Central Core</span>
+          </div>
+          <div style="display:flex; gap:12px;">
+            <span style="font-size:12px; color:#10b981; font-weight:600;">🟢 DB CONNECTED</span>
+          </div>
+        </div>
+
+        <div style="display: flex; height: calc(100% - 50px);">
+          <!-- Dashboard Side Nav -->
+          <div style="width: 180px; background: #111827; border-right: 1px solid #334155; padding: 16px; display:flex; flex-direction:column; gap:8px;">
+            <span style="font-size: 11px; color:#475569; font-weight:bold; letter-spacing:1px;">MANAGEMENT</span>
+            <div style="color:var(--primary-light); font-weight:bold; font-size:13px; cursor:pointer;">📊 Dashboard</div>
+            <div style="color:#94a3b8; font-size:13px; cursor:pointer;" onclick="switchScreen('staff-fleet')">🚌 Fleet Manager</div>
+            <div style="color:#94a3b8; font-size:13px; cursor:pointer;" onclick="switchScreen('staff-incidents')">🚨 Incident Center</div>
+          </div>
+
+          <!-- Main Dashboard Panel -->
+          <div style="flex:1; padding: 24px; overflow-y:auto;">
+            <h2 style="font-size: 20px; margin-bottom: 16px;">System Live Overview</h2>
+
+            <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:16px; margin-bottom:24px;">
+              <div class="mock-card" style="margin-bottom:0;">
+                <div style="font-size:12px; color:#94a3b8;">TOTAL BUSES REGISTERED</div>
+                <div style="font-size:28px; font-weight:bold; color:white; margin-top:4px;">124</div>
+              </div>
+              <div class="mock-card" style="margin-bottom:0;">
+                <div style="font-size:12px; color:#94a3b8;">ONLINE ON-DUTY SHIFTS</div>
+                <div style="font-size:28px; font-weight:bold; color:#10b981; margin-top:4px;">32</div>
+              </div>
+              <div class="mock-card" style="margin-bottom:0;">
+                <div style="font-size:12px; color:#94a3b8;">PENDING DELAY REPORT INCIDENTS</div>
+                <div style="font-size:28px; font-weight:bold; color:var(--status-error); margin-top:4px;">3</div>
+              </div>
+            </div>
+
+            <div class="mock-card">
+              <h3 style="font-size:14px; margin-bottom:12px;">Recent Active System Logs</h3>
+              <div style="font-size:12px; font-family:monospace; line-height:1.8; color:#cbd5e1;">
+                <div>[08:14:22] - Gps telemetry synced for trip BUS-045 (40.7128, -74.0060)</div>
+                <div>[08:12:05] - Admin authenticated successfully via secure token</div>
+                <div>[08:10:00] - Schedule policy ruleset verified against Postgres schema</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame F: Admin Fleet Management -->
+      <div id="frame-staff-fleet" class="figma-frame frame-desktop">
+        <div class="mock-header" style="background: var(--neutral-900); border-bottom: 1px solid #334155;">
+          <span class="mock-header-title" style="color: var(--primary-light);">🚌 Fleet & Vehicle Records</span>
+        </div>
+        <div style="padding:24px; overflow-y:auto; height:calc(100% - 50px);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h2 style="font-size: 18px;">Registered Bus Assets</h2>
+            <button class="mock-button" style="width:auto; font-size:12px; padding:6px 12px;" onclick="alert('Creating new database entry for Bus...')">+ Add New Bus</button>
+          </div>
+
+          <div class="mock-card" style="padding:0; overflow:hidden;">
+            <table class="mock-table">
+              <thead>
+                <tr>
+                  <th>Vehicle ID</th>
+                  <th>License Plate No.</th>
+                  <th>Assigned Depot Terminal</th>
+                  <th>Maintenance Record Log</th>
+                  <th>Operating Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>BUS-045</td>
+                  <td>NY-8932-XP</td>
+                  <td>Terminal East</td>
+                  <td>Oil change synced 2d ago</td>
+                  <td><span style="color:#10b981; font-weight:bold;">🟢 Active</span></td>
+                </tr>
+                <tr>
+                  <td>BUS-089</td>
+                  <td>NY-1022-MN</td>
+                  <td>Terminal West</td>
+                  <td>Brake inspection pending</td>
+                  <td><span style="color:#10b981; font-weight:bold;">🟢 Active</span></td>
+                </tr>
+                <tr>
+                  <td>BUS-112</td>
+                  <td>NY-5912-LQ</td>
+                  <td>Terminal Central</td>
+                  <td>AC motor overhaul completed</td>
+                  <td><span style="color:var(--status-warning); font-weight:bold;">🔧 Under Maintenance</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frame G: Driver Trip Control Panel -->
+      <div id="frame-staff-driver" class="figma-frame frame-mobile">
+        <div class="mock-header" style="background: var(--neutral-900);">
+          <span class="mock-header-title">🎛️ Driver Portal</span>
+          <span style="font-size: 11px; background: #10b981; padding: 2px 6px; border-radius: 4px; font-weight:bold;">On Duty</span>
+        </div>
+        <div style="padding:16px; overflow-y:auto; height:calc(100% - 50px);">
+          <div class="mock-card" style="border-left: 4px solid var(--primary-light);">
+            <div style="font-size:11px; color:#cbd5e1;">CURRENT TRIP ASSIGNMENT</div>
+            <div style="font-size:16px; font-weight:bold; margin-top:4px;">Route R-101: Downtown Express</div>
+            <div style="font-size:12px; color:#cbd5e1; margin-top:2px;">Depot: Terminal Central | Bus: BUS-045</div>
+          </div>
+
+          <h3 style="font-size:13px; color:#94a3b8; margin-bottom:8px; text-transform:uppercase;">Trip Lifecycle Actions</h3>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;">
+            <button class="mock-button" onclick="alert('Trip status set to ACTIVE. Live telemetry streaming started.')">Start Run</button>
+            <button class="mock-button secondary" onclick="alert('Stop arrival broadcasted to passengers.')">Arrived at Stop</button>
+          </div>
+
+          <div class="mock-card" style="background:#0f172a;">
+            <h4 style="font-size:12px; color:#94a3b8; margin-bottom:6px;">GPS Telemetry Transmitter</h4>
+            <div style="display:flex; justify-content:space-between; font-family:monospace; font-size:11px;">
+              <span>Lat: 40.7128° N</span>
+              <span>Long: -74.0060° W</span>
+            </div>
+            <div style="font-size:10px; color:#10b981; font-weight:bold; text-align:right; margin-top:8px;">🟢 Active ping (1s intervals)</div>
+          </div>
+
+          <button class="mock-button danger" onclick="switchScreen('staff-incidents')">⚠️ Report Emergency Incident / Traffic Delay</button>
+        </div>
+      </div>
+
+      <!-- Frame H: Incident Reporting & Triage -->
+      <div id="frame-staff-incidents" class="figma-frame frame-desktop">
+        <div class="mock-header" style="background: var(--neutral-900); border-bottom:1px solid #334155;">
+          <span class="mock-header-title" style="color: var(--status-error);">🚨 Incident Triage & Safety Dispatch</span>
+        </div>
+        <div style="padding:24px; overflow-y:auto; height:calc(100% - 50px);">
+          <h2 style="font-size: 18px; margin-bottom:16px;">Active Dispatch Incidents</h2>
+
+          <div style="display:grid; grid-template-columns: 2fr 1fr; gap:20px;">
+            <!-- Incidents DataTable -->
+            <div class="mock-card" style="padding:0; overflow:hidden;">
+              <table class="mock-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Bus ID</th>
+                    <th>Type</th>
+                    <th>Reported By</th>
+                    <th>Severity Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="background: rgba(239, 68, 68, 0.1);">
+                    <td>INC-912</td>
+                    <td>BUS-045</td>
+                    <td>Engine overheating warning</td>
+                    <td>Albert S. (Driver)</td>
+                    <td><span style="color:var(--status-error); font-weight:bold;">🔴 CRITICAL DISPATCH</span></td>
+                  </tr>
+                  <tr>
+                    <td>INC-889</td>
+                    <td>BUS-089</td>
+                    <td>Minor route detour detour delay</td>
+                    <td>John D. (Driver)</td>
+                    <td><span style="color:var(--status-warning); font-weight:bold;">🟡 PENDING REVIEW</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Fast Resolution panel -->
+            <div class="mock-card">
+              <h3 style="font-size:14px; margin-bottom:12px;">Incident Quick Action</h3>
+              <div class="mock-input-group">
+                <label class="mock-label">SELECT RESOLUTION PATH</label>
+                <select class="mock-input">
+                  <option>Dispatch replacement shuttle bus</option>
+                  <option>Reroute other buses around delay</option>
+                  <option>Resolve incident entry manually</option>
+                </select>
+              </div>
+              <button class="mock-button danger" onclick="alert('Dispatch team and replacement shuttle dispatched!')">Deploy Dispatch Solution</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- Figma Style Inspector Panel (Details / Token info) -->
+    <aside class="inspector">
+      <div class="inspector-header">📏 Figma Design Spec Properties</div>
+
+      <div class="inspector-prop-group">
+        <div class="sidebar-title">Active Component Node</div>
+        <div style="font-weight: bold; font-size: 14px; color: white;" id="inspector-node-name">Design Palette Spec</div>
+        <div style="font-size: 11px; color:#888888; margin-top:2px;" id="inspector-node-type">FRAME</div>
+      </div>
+
+      <div class="inspector-prop-group">
+        <div class="sidebar-title">Dimensions & Auto Layout</div>
+        <div class="inspector-prop-row">
+          <span class="inspector-label">Width</span>
+          <span class="inspector-val" id="inspect-w">960px</span>
+        </div>
+        <div class="inspector-prop-row">
+          <span class="inspector-label">Height</span>
+          <span class="inspector-val" id="inspect-h">600px</span>
+        </div>
+        <div class="inspector-prop-row">
+          <span class="inspector-label">Constraints</span>
+          <span class="inspector-val">Center, Center</span>
+        </div>
+      </div>
+
+      <div class="inspector-prop-group">
+        <div class="sidebar-title">Code Connect Definition</div>
+        <div style="font-size: 12px; color: #cbd5e1; margin-bottom: 8px;">Figma to React Component Linkage:</div>
+        <div class="code-box" id="inspector-code-box">import { Button } from '@sbts/ui-kit';</div>
+      </div>
+
+      <div class="inspector-prop-group" style="margin-top: auto; border-top: 1px solid #2c2c2c; padding-bottom: 24px;">
+        <span class="inspector-label" style="font-size:11px;">Created using verified design system specs in `FIGMA_DESIGN.md`. All elements mapped 1:1.</span>
+      </div>
+    </aside>
+
+  </div>
+
+  <script>
+    // Variables for Simulated Bus Animation
+    let busOffset = 10;
+    let liveBusTimer = 3;
+    const movingBusEl = document.getElementById('live-moving-bus');
+    const timerEl = document.getElementById('live-eta-timer');
+
+    setInterval(() => {
+      if (movingBusEl && timerEl) {
+        // Move the bus along the road mockup
+        busOffset += 2;
+        if (busOffset > 90) {
+          busOffset = 10;
+          liveBusTimer = 6;
+        } else {
+          liveBusTimer = Math.max(1, Math.round((90 - busOffset) / 15));
+        }
+        movingBusEl.style.left = busOffset + '%';
+        timerEl.innerText = liveBusTimer + ' mins remaining';
+      }
+    }, 1000);
+
+    // Switch between Design System / Passenger / Staff tabs
+    function switchAppTab(tabName) {
+      // Toggle tab buttons state
+      const tabBtns = document.querySelectorAll('.tab-btn');
+      tabBtns.forEach(btn => btn.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Hide all active sidebar lists
+      document.getElementById('nav-group-design-system').style.display = 'none';
+      document.getElementById('nav-group-passenger-app').style.display = 'none';
+      document.getElementById('nav-group-staff-app').style.display = 'none';
+
+      // Show requested sidebar list
+      const sidebarSection = document.getElementById('nav-group-' + tabName);
+      sidebarSection.style.display = 'block';
+
+      // Active first child page in sidebar list
+      const firstItem = sidebarSection.querySelector('.sidebar-item');
+      if (firstItem) {
+        firstItem.click();
+      }
+    }
+
+    // Design System navigation
+    function showDSSection(sectionId) {
+      // Toggle active design tokens tab
+      const items = document.querySelectorAll('.sidebar-item');
+      items.forEach(el => el.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Hide all frames
+      const allFrames = document.querySelectorAll('.figma-frame');
+      allFrames.forEach(f => f.classList.remove('active'));
+
+      // Show design system container
+      const dsFrame = document.getElementById('frame-design-system');
+      dsFrame.classList.add('active');
+
+      // Hide all DS content tabs, then show specific content
+      document.getElementById('ds-colors').style.display = 'none';
+      document.getElementById('ds-typography').style.display = 'none';
+      document.getElementById('ds-components').style.display = 'none';
+
+      document.getElementById(sectionId).style.display = 'block';
+
+      // Update Inspector properties
+      document.getElementById('inspector-node-name').innerText = event.target.innerText.trim();
+      document.getElementById('inspector-node-type').innerText = 'DESIGN SYSTEM LIBRARY';
+      document.getElementById('inspect-w').innerText = '960px';
+      document.getElementById('inspect-h').innerText = 'Auto-fit';
+      document.getElementById('inspector-code-box').innerText = "import { MapView, Button, DataTable } from '@sbts/ui-kit';";
+    }
+
+    // Mock Screens navigation
+    function showScreen(screenId) {
+      // Toggle active sidebar item
+      const items = document.querySelectorAll('.sidebar-item');
+      items.forEach(el => el.classList.remove('active'));
+      event.target.classList.add('active');
+
+      // Hide all frames
+      const allFrames = document.querySelectorAll('.figma-frame');
+      allFrames.forEach(f => f.classList.remove('active'));
+
+      // Hide design system frame
+      document.getElementById('frame-design-system').classList.remove('active');
+
+      // Show current targeted screen frame
+      const currentFrame = document.getElementById('frame-' + screenId);
+      currentFrame.classList.add('active');
+
+      // Update Inspector properties based on screen parameters
+      const isMobile = currentFrame.classList.contains('frame-mobile');
+      document.getElementById('inspector-node-name').innerText = 'View Frame: ' + screenId;
+      document.getElementById('inspector-node-type').innerText = isMobile ? 'MOBILE SCREEN' : 'DESKTOP CANVAS';
+      document.getElementById('inspect-w').innerText = isMobile ? '375px' : '1024px';
+      document.getElementById('inspect-h').innerText = isMobile ? '720px' : '640px';
+
+      // Code Mapping definitions for developers
+      let codeMap = '';
+      if (screenId.includes('auth')) {
+        codeMap = "import { LoginPage, RegisterPage } from '@sbts/passenger-app';";
+      } else if (screenId.includes('search')) {
+        codeMap = "import { RouteSearchPage } from '@sbts/passenger-app';\nimport { Button } from '@sbts/ui-kit';";
+      } else if (screenId.includes('tracking')) {
+        codeMap = "import { LiveMapView } from '@sbts/passenger-app';\nimport { MapView, EtaBadge } from '@sbts/ui-kit';";
+      } else if (screenId.includes('notif')) {
+        codeMap = "import { NotificationList } from '@sbts/passenger-app';";
+      } else if (screenId.includes('dashboard')) {
+        codeMap = "import { AppLayout, RoleGuard } from '@sbts/staff-app';";
+      } else if (screenId.includes('fleet')) {
+        codeMap = "import { DataTable } from '@sbts/ui-kit';\nimport { FleetManagement } from '@sbts/staff-app';";
+      } else if (screenId.includes('driver')) {
+        codeMap = "import { TripLifecycle, GpsTransmit } from '@sbts/staff-app';";
+      } else if (screenId.includes('incidents')) {
+        codeMap = "import { IncidentReport, IncidentTriage } from '@sbts/staff-app';";
+      }
+      document.getElementById('inspector-code-box').innerText = codeMap;
+    }
+
+    // Quick switch trigger helper for nested buttons inside mockups
+    function switchScreen(screenId) {
+      const targetItem = Array.from(document.querySelectorAll('.sidebar-item')).find(item => item.getAttribute('onclick').includes(screenId));
+      if (targetItem) {
+        targetItem.click();
+      }
+    }
+  </script>
+</body>
+</html>
