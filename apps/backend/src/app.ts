@@ -16,6 +16,7 @@ import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
+import { auditRoutes } from '@/modules/audit';
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.get('/', (_req: Request, res: Response) => {
       terminals: `${config.apiPrefix}/terminals`,
       buses: `${config.apiPrefix}/buses`,
       drivers: `${config.apiPrefix}/drivers`,
+      audit: `${config.apiPrefix}/audit`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -70,6 +72,9 @@ app.use(`${apiPrefix}/buses`, busRoutes);
 
 // Drivers
 app.use(`${apiPrefix}/drivers`, driverRoutes);
+
+// Audit
+app.use(`${apiPrefix}/audit`, auditRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
