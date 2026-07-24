@@ -10,6 +10,7 @@ async function main() {
   console.log('🧹 Cleaning existing seed data...');
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.trip.deleteMany({});
   await prisma.busDriverAssignment.deleteMany({});
   await prisma.keyHandover.deleteMany({});
   await prisma.shift.deleteMany({});
@@ -94,6 +95,10 @@ async function main() {
     { permissionName: 'end_trip', description: 'End trips', resource: 'Trip', action: 'manage' },
     { permissionName: 'cancel_trip', description: 'Cancel trips', resource: 'Trip', action: 'manage' },
 
+    // GPS Tracking
+    { permissionName: 'view_tracking', description: 'View GPS tracking', resource: 'Tracking', action: 'read' },
+    { permissionName: 'manage_tracking', description: 'Manage GPS tracking', resource: 'Tracking', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -165,7 +170,8 @@ async function main() {
       p.resource === 'Shift' ||
       p.resource === 'BusDriverAssignment' ||
       p.resource === 'KeyHandover' ||
-      p.resource === 'Trip'
+      p.resource === 'Trip' ||
+      p.resource === 'Tracking'
   );
 
   const managerRole = await prisma.role.create({
@@ -180,7 +186,7 @@ async function main() {
     },
   });
 
-  // DRIVER - Read buses, terminals, shifts, assignments, key handovers, trips, own profile
+  // DRIVER - Read buses, terminals, shifts, assignments, key handovers, trips, tracking, own profile
   const driverPermissions = createdPermissions.filter(
     (p) =>
       (p.resource === 'Bus' && p.action === 'read') ||
@@ -189,7 +195,8 @@ async function main() {
       (p.resource === 'Shift' && p.action === 'read') ||
       (p.resource === 'BusDriverAssignment' && p.action === 'read') ||
       (p.resource === 'KeyHandover') ||
-      (p.resource === 'Trip')
+      (p.resource === 'Trip') ||
+      (p.resource === 'Tracking')
   );
 
   const driverRole = await prisma.role.create({

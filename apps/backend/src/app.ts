@@ -23,6 +23,7 @@ import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
 import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
 import { keyHandoverRoutes } from '@/modules/key-handovers';
 import { tripRoutes } from '@/modules/trips';
+import { trackingRoutes } from '@/modules/tracking';
 
 // Optional dev routes (only if folder exists locally)
 let devRoutes: any = null;
@@ -125,6 +126,12 @@ app.use(
 app.use(
   `${apiPrefix}/trips`,
   tripRoutes
+);
+
+// Tracking (GPS)
+app.use(
+  `${apiPrefix}/tracking`,
+  trackingRoutes
 );
 
 // Development helpers (only loaded if dev folder exists locally)
