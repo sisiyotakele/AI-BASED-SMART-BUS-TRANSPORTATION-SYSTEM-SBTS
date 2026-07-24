@@ -17,6 +17,7 @@ import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
 import { auditRoutes } from '@/modules/audit';
+import { pricingRoutes } from '@/modules/pricing';
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.get('/', (_req: Request, res: Response) => {
       buses: `${config.apiPrefix}/buses`,
       drivers: `${config.apiPrefix}/drivers`,
       audit: `${config.apiPrefix}/audit`,
+      pricing: `${config.apiPrefix}/pricing`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -75,6 +77,9 @@ app.use(`${apiPrefix}/drivers`, driverRoutes);
 
 // Audit
 app.use(`${apiPrefix}/audit`, auditRoutes);
+
+// Pricing
+app.use(`${apiPrefix}/pricing`, pricingRoutes);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
