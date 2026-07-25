@@ -10,6 +10,8 @@ async function main() {
   console.log('🧹 Cleaning existing seed data...');
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.notificationUser.deleteMany({});
+  await prisma.notification.deleteMany({});
   await prisma.incident.deleteMany({});
   await prisma.trip.deleteMany({});
   await prisma.busDriverAssignment.deleteMany({});
@@ -100,6 +102,10 @@ async function main() {
     { permissionName: 'view_tracking', description: 'View GPS tracking', resource: 'Tracking', action: 'read' },
     { permissionName: 'manage_tracking', description: 'Manage GPS tracking', resource: 'Tracking', action: 'manage' },
 
+    // Notifications
+    { permissionName: 'view_notifications', description: 'View notifications', resource: 'Notification', action: 'read' },
+    { permissionName: 'manage_notifications', description: 'Manage notifications', resource: 'Notification', action: 'manage' },
+
     // Incidents
     { permissionName: 'view_incidents', description: 'View incidents', resource: 'Incident', action: 'read' },
     { permissionName: 'report_incident', description: 'Report incidents', resource: 'Incident', action: 'create' },
@@ -180,6 +186,7 @@ async function main() {
       p.resource === 'KeyHandover' ||
       p.resource === 'Trip' ||
       p.resource === 'Tracking' ||
+      p.resource === 'Notification' ||
       p.resource === 'Incident'
   );
 

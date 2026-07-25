@@ -15,6 +15,7 @@
     "declaration": true,
     "declarationMap": true,
     "baseUrl": ".",
+    "types": ["jest", "node"],
     "paths": {
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],
@@ -22,6 +23,6 @@
       "@modules/*": ["src/modules/*"]
     }
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "tests/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

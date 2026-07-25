@@ -90,14 +90,24 @@ export async function resolveIncident(id: string, data: { resolutionNotes: strin
   if (!VALID_INCIDENT_TRANSITIONS[incident.status]?.includes('resolved')) {
     throw new BadRequestError(`Cannot resolve incident in status ${incident.status}`, 'INVALID_TRANSITION');
   }
+
+  // Only set resolvedById if actorId is provided and user exists
+  const updateData: any = {
+    status: 'resolved',
+    resolutionNotes: data.resolutionNotes,
+    resolvedAt: new Date(),
+  };
+
+  if (actorId) {
+    const userExists = await db.user.findUnique({ where: { id: actorId } });
+    if (userExists) {
+      updateData.resolvedById = actorId;
+    }
+  }
+
   const updated = await db.incident.update({
     where: { id },
-    data: {
-      status: 'resolved',
-      resolutionNotes: data.resolutionNotes,
-      resolvedById: actorId,
-      resolvedAt: new Date(),
-    },
+    data: updateData,
   });
   logger.info('Incident resolved', { incidentId: id });
   return updated;
