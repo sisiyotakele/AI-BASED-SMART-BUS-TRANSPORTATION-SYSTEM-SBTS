@@ -43,7 +43,7 @@ describe('Trip Management Flow Integration', () => {
       .patch(`/api/v1/trips/${tripId}/start`)
       .set('Authorization', `Bearer ${testAdminToken}`);
     expect(startRes.status).toBe(200);
-    expect(startRes.body.data.status).toBe('active');
+    expect(startRes.body.data.status).toBe('in_progress');
     expect(startRes.body.data.actualStart).not.toBeNull();
 
     const invalidStart = await request(app)
@@ -62,7 +62,7 @@ describe('Trip Management Flow Integration', () => {
       .patch(`/api/v1/trips/${tripId}/resume`)
       .set('Authorization', `Bearer ${testAdminToken}`);
     expect(resumeRes.status).toBe(200);
-    expect(resumeRes.body.data.status).toBe('active');
+    expect(resumeRes.body.data.status).toBe('in_progress');
 
     const endRes = await request(app)
       .patch(`/api/v1/trips/${tripId}/end`)

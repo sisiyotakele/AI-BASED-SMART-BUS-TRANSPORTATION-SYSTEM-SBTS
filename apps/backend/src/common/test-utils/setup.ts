@@ -83,6 +83,26 @@ beforeAll(() => {
   } catch (e) {
     // Module might not exist yet
   }
+
+  // Import and inject into trips service (if exists)
+  try {
+    const tripsService = require('@/modules/trips/trips.service');
+    if (tripsService.setPrismaClient) {
+      tripsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into incidents service (if exists)
+  try {
+    const incidentsService = require('@/modules/incidents/incidents.service');
+    if (incidentsService.setPrismaClient) {
+      incidentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
 });
 
 afterAll(async () => {
