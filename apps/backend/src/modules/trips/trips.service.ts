@@ -2,10 +2,16 @@ import { prisma } from '@/prisma/client';
 import { NotFoundError, ConflictError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
 
+// Allow test injection
+let db = prisma;
+export function setPrismaClient(client: typeof prisma) {
+  db = client;
+}
+
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  scheduled: ['active', 'cancelled'],
-  active: ['paused', 'completed', 'cancelled'],
-  paused: ['active'],
+  scheduled: ['in_progress', 'cancelled'],
+  in_progress: ['paused', 'completed', 'cancelled'],
+  paused: ['in_progress'],
 };
 
 function isValidTransition(from: string, to: string): boolean {
@@ -23,7 +29,7 @@ function isValidTransition(from: string, to: string): boolean {
  * @throws ConflictError if bus or driver has overlapping trip
  */
 export async function createTrip(data: any, actorId?: string) {
-  return prisma.$transaction(
+  return db.$transaction(
     async (tx) => {
       // LAYER 1: Explicit checks for clear error messages
       // These run first to provide user-friendly error messages
@@ -140,7 +146,7 @@ export async function listTrips(filters: { driverId?: string; status?: string; b
     end.setHours(23, 59, 59, 999);
     where.scheduledStart = { gte: start, lte: end };
   }
-  return prisma.trip.findMany({
+  return db.trip.findMany({
     where,
     include: {
       bus: { select: { id: true, plateNumber: true } },
@@ -153,7 +159,7 @@ export async function listTrips(filters: { driverId?: string; status?: string; b
 }
 
 export async function getTripById(id: string) {
-  const trip = await prisma.trip.findFirst({
+  const trip = await db.trip.findFirst({
     where: { id, deletedAt: null },
     include: {
       bus: { select: { id: true, plateNumber: true } },
@@ -176,13 +182,13 @@ async function transitionTrip(id: string, newStatus: string, extraData?: any) {
   }
 
   const data: any = { status: newStatus, ...extraData };
-  const updated = await prisma.trip.update({ where: { id }, data });
+  const updated = await db.trip.update({ where: { id }, data });
   logger.info(`Trip ${newStatus}`, { tripId: id });
   return updated;
 }
 
 export async function startTrip(id: string) {
-  return transitionTrip(id, 'active', { actualStart: new Date() });
+  return transitionTrip(id, 'in_progress', { actualStart: new Date() });
 }
 
 export async function pauseTrip(id: string) {
@@ -190,7 +196,7 @@ export async function pauseTrip(id: string) {
 }
 
 export async function resumeTrip(id: string) {
-  return transitionTrip(id, 'active');
+  return transitionTrip(id, 'in_progress');
 }
 
 export async function endTrip(id: string) {
@@ -203,7 +209,7 @@ export async function cancelTrip(id: string) {
 
 export async function deleteTrip(id: string, _actorId?: string) {
   await getTripById(id);
-  const trip = await prisma.trip.update({
+  const trip = await db.trip.update({
     where: { id },
     data: { deletedAt: new Date() },
   });

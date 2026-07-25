@@ -85,7 +85,7 @@ describe('Trip Management Service', () => {
         scheduledStart: new Date(Date.now() + 3600000), scheduledEnd: new Date(Date.now() + 7200000),
       });
       const updated = await tripService.startTrip(trip.id);
-      expect(updated.status).toBe('active');
+      expect(updated.status).toBe('in_progress');
       expect(updated.actualStart).not.toBeNull();
     });
 
@@ -99,7 +99,7 @@ describe('Trip Management Service', () => {
       const paused = await tripService.pauseTrip(trip.id);
       expect(paused.status).toBe('paused');
       const resumed = await tripService.resumeTrip(trip.id);
-      expect(resumed.status).toBe('active');
+      expect(resumed.status).toBe('in_progress');
       const completed = await tripService.endTrip(trip.id);
       expect(completed.status).toBe('completed');
       expect(completed.actualEnd).not.toBeNull();

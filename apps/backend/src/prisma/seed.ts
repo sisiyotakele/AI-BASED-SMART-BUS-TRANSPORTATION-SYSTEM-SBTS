@@ -10,6 +10,7 @@ async function main() {
   console.log('🧹 Cleaning existing seed data...');
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.incident.deleteMany({});
   await prisma.trip.deleteMany({});
   await prisma.busDriverAssignment.deleteMany({});
   await prisma.keyHandover.deleteMany({});
@@ -99,6 +100,13 @@ async function main() {
     { permissionName: 'view_tracking', description: 'View GPS tracking', resource: 'Tracking', action: 'read' },
     { permissionName: 'manage_tracking', description: 'Manage GPS tracking', resource: 'Tracking', action: 'manage' },
 
+    // Incidents
+    { permissionName: 'view_incidents', description: 'View incidents', resource: 'Incident', action: 'read' },
+    { permissionName: 'report_incident', description: 'Report incidents', resource: 'Incident', action: 'create' },
+    { permissionName: 'review_incident', description: 'Review incidents', resource: 'Incident', action: 'manage' },
+    { permissionName: 'resolve_incident', description: 'Resolve incidents', resource: 'Incident', action: 'manage' },
+    { permissionName: 'delete_incident', description: 'Delete incidents', resource: 'Incident', action: 'delete' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -171,7 +179,8 @@ async function main() {
       p.resource === 'BusDriverAssignment' ||
       p.resource === 'KeyHandover' ||
       p.resource === 'Trip' ||
-      p.resource === 'Tracking'
+      p.resource === 'Tracking' ||
+      p.resource === 'Incident'
   );
 
   const managerRole = await prisma.role.create({
@@ -196,7 +205,8 @@ async function main() {
       (p.resource === 'BusDriverAssignment' && p.action === 'read') ||
       (p.resource === 'KeyHandover') ||
       (p.resource === 'Trip') ||
-      (p.resource === 'Tracking')
+      (p.resource === 'Tracking') ||
+      (p.resource === 'Incident' && (p.action === 'read' || p.action === 'create'))
   );
 
   const driverRole = await prisma.role.create({
