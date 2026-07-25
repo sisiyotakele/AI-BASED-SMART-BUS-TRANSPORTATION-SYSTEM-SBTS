@@ -25,6 +25,7 @@ import { keyHandoverRoutes } from '@/modules/key-handovers';
 import { tripRoutes } from '@/modules/trips';
 import { trackingRoutes } from '@/modules/tracking';
 import { incidentRoutes } from '@/modules/incidents';
+import { notificationRoutes } from '@/modules/notifications';
 
 // Optional dev routes (only if folder exists locally)
 let devRoutes: any = null;
@@ -70,6 +71,7 @@ app.get('/', (_req: Request, res: Response) => {
       trips: `${config.apiPrefix}/trips`,
       tracking: `${config.apiPrefix}/tracking`,
       incidents: `${config.apiPrefix}/incidents`,
+      notifications: `${config.apiPrefix}/notifications`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -141,6 +143,12 @@ app.use(
 app.use(
   `${apiPrefix}/incidents`,
   incidentRoutes
+);
+
+// Notifications
+app.use(
+  `${apiPrefix}/notifications`,
+  notificationRoutes
 );
 
 // Development helpers (only loaded if dev folder exists locally)
