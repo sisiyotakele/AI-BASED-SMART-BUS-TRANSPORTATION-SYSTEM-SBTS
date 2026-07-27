@@ -12,16 +12,26 @@ export async function createNotification(data: any, actorId?: string) {
     },
   });
 
-  await prisma.notificationUser.createMany({
-    data: data.userIds.map((userId: string) => ({
-      notificationId: notification.id,
-      userId,
-    })),
-    skipDuplicates: true,
+  // Filter to only include users that exist in the database
+  const existingUsers = await prisma.user.findMany({
+    where: { id: { in: data.userIds } },
+    select: { id: true },
   });
 
-  logger.info('Notification created', { notificationId: notification.id, recipients: data.userIds.length });
-  return { ...notification, recipientCount: data.userIds.length };
+  const existingUserIds = existingUsers.map(u => u.id);
+
+  if (existingUserIds.length > 0) {
+    await prisma.notificationUser.createMany({
+      data: existingUserIds.map((userId: string) => ({
+        notificationId: notification.id,
+        userId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  logger.info('Notification created', { notificationId: notification.id, recipients: existingUserIds.length });
+  return { ...notification, recipientCount: existingUserIds.length };
 }
 
 export async function listNotifications(userId: string, isRead?: boolean) {

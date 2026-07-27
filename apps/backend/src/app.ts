@@ -2,8 +2,11 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 import { config } from '@/config';
+import { swaggerOptions } from '@/common/swagger';
 import { errorResponse } from '@/common/response';
 import { errorHandler } from '@/common/middleware/error.middleware';
 import { requestIdMiddleware } from '@/common/middleware/request-id.middleware';
@@ -18,8 +21,28 @@ import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
 import { routesStopsRoutes } from '@/modules/routes-stops';
 import { pricingRoutes } from '@/modules/pricing';
+import { scheduleRoutes } from '@/modules/schedules';
+import { shiftRoutes } from '@/modules/shifts';
+import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
+import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
+import { keyHandoverRoutes } from '@/modules/key-handovers';
+import { tripRoutes } from '@/modules/trips';
+import { trackingRoutes } from '@/modules/tracking';
+import { incidentRoutes } from '@/modules/incidents';
+import { notificationRoutes } from '@/modules/notifications';
+import { aiPredictionRoutes } from '@/modules/ai-prediction';
+
+// Optional dev routes (only if folder exists locally)
+let devRoutes: any = null;
+try {
+  const devModule = require('@/modules/dev');
+  devRoutes = devModule.devRoutes;
+} catch (e) {
+  // Dev module not found - skip it
+}
 
 const app = express();
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.set('trust proxy', 1);
@@ -47,6 +70,16 @@ app.get('/', (_req: Request, res: Response) => {
       drivers: `${config.apiPrefix}/drivers`,
       routesStops: `${config.apiPrefix}/routes-stops`,
       pricing: `${config.apiPrefix}/pricing`,
+      schedules: `${config.apiPrefix}/schedules`,
+      shifts: `${config.apiPrefix}/shifts`,
+      busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
+      busRouteAssignments: `${config.apiPrefix}/bus-route-assignments`,
+      keyHandovers: `${config.apiPrefix}/key-handovers`,
+      trips: `${config.apiPrefix}/trips`,
+      tracking: `${config.apiPrefix}/tracking`,
+      incidents: `${config.apiPrefix}/incidents`,
+      notifications: `${config.apiPrefix}/notifications`,
+      aiPrediction: `${config.apiPrefix}/ai-prediction`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -80,6 +113,75 @@ app.use(`${apiPrefix}/routes-stops`, routesStopsRoutes);
 
 // Pricing
 app.use(`${apiPrefix}/pricing`, pricingRoutes);
+
+// Schedules
+app.use(`${apiPrefix}/schedules`, scheduleRoutes);
+
+// Shifts
+app.use(`${apiPrefix}/shifts`, shiftRoutes);
+
+// Bus Driver Assignments
+app.use(
+  `${apiPrefix}/bus-driver-assignments`,
+  busDriverAssignmentRoutes
+);
+
+// Bus Route Assignments
+app.use(
+  `${apiPrefix}/bus-route-assignments`,
+  busRouteAssignmentRoutes
+);
+
+// Key Handovers
+app.use(
+  `${apiPrefix}/key-handovers`,
+  keyHandoverRoutes
+);
+
+// Trips
+app.use(
+  `${apiPrefix}/trips`,
+  tripRoutes
+);
+
+// Tracking (GPS)
+app.use(
+  `${apiPrefix}/tracking`,
+  trackingRoutes
+);
+
+// Incidents
+app.use(
+  `${apiPrefix}/incidents`,
+  incidentRoutes
+);
+
+// Notifications
+app.use(
+  `${apiPrefix}/notifications`,
+  notificationRoutes
+);
+
+// AI Prediction
+app.use(
+  `${apiPrefix}/ai-prediction`,
+  aiPredictionRoutes
+);
+
+// Development helpers (only loaded if dev folder exists locally)
+if (devRoutes) {
+  app.use(
+    `${apiPrefix}/dev`,
+    devRoutes
+  );
+}
+
+// Swagger API Documentation
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
