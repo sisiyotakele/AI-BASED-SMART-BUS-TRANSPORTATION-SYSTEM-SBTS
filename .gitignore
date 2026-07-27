@@ -9,6 +9,10 @@ __pycache__/
 .venv/
 *.log
 
+# IDE settings
+.vscode/
+.idea/
+
 # Postman collections (local only)
 .postman/
 postman/
