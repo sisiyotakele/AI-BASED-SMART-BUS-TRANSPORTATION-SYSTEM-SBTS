@@ -15,7 +15,8 @@
     "declaration": true,
     "declarationMap": true,
     "baseUrl": ".",
-    "types": ["jest", "node"],
+
+    "types": ["node", "jest"],
     "paths": {
       "@/*": ["src/*"],
       "@common/*": ["src/common/*"],

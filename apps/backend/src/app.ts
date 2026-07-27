@@ -21,6 +21,7 @@ import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
 import { driverRoutes } from '@/modules/drivers';
 import { routesStopsRoutes } from '@/modules/routes-stops';
+import { pricingRoutes } from '@/modules/pricing';
 import { scheduleRoutes } from '@/modules/schedules';
 import { shiftRoutes } from '@/modules/shifts';
 import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
@@ -76,6 +77,7 @@ app.get('/', (_req: Request, res: Response) => {
       buses: `${config.apiPrefix}/buses`,
       drivers: `${config.apiPrefix}/drivers`,
       routesStops: `${config.apiPrefix}/routes-stops`,
+      pricing: `${config.apiPrefix}/pricing`,
       schedules: `${config.apiPrefix}/schedules`,
       shifts: `${config.apiPrefix}/shifts`,
       busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
@@ -116,6 +118,9 @@ app.use(`${apiPrefix}/drivers`, driverRoutes);
 
 // Routes & Stops
 app.use(`${apiPrefix}/routes-stops`, routesStopsRoutes);
+
+// Pricing
+app.use(`${apiPrefix}/pricing`, pricingRoutes);
 
 // Schedules
 app.use(`${apiPrefix}/schedules`, scheduleRoutes);
