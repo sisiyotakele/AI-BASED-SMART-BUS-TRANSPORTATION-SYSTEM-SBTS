@@ -120,7 +120,7 @@ export const envSchema = z.object({
     SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().min(100).default(1000),
 
     // Sentry Error Monitoring
-    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_DSN: z.string().url().optional().or(z.literal('')),
     SENTRY_ENABLED: BooleanSchema.default('false'),
 
     // Pagination
