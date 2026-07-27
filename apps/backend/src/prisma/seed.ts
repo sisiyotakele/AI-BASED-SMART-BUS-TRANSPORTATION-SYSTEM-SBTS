@@ -10,6 +10,13 @@ async function main() {
   console.log('🧹 Cleaning existing seed data...');
   await prisma.rolePermission.deleteMany({});
   await prisma.userRole.deleteMany({});
+  await prisma.notificationUser.deleteMany({});
+  await prisma.notification.deleteMany({});
+  await prisma.incident.deleteMany({});
+  await prisma.trip.deleteMany({});
+  await prisma.busDriverAssignment.deleteMany({});
+  await prisma.keyHandover.deleteMany({});
+  await prisma.shift.deleteMany({});
   await prisma.permission.deleteMany({});
   await prisma.role.deleteMany({});
   await prisma.user.deleteMany({});
@@ -68,6 +75,44 @@ async function main() {
     { permissionName: 'view_stops', description: 'View stops', resource: 'Stop', action: 'read' },
     { permissionName: 'manage_stops', description: 'Manage stops', resource: 'Stop', action: 'manage' },
 
+    // Schedule management
+    { permissionName: 'view_schedules', description: 'View schedules', resource: 'Schedule', action: 'read' },
+    { permissionName: 'manage_schedules', description: 'Manage schedules', resource: 'Schedule', action: 'manage' },
+
+    // Shift management
+    { permissionName: 'view_shifts', description: 'View shifts', resource: 'Shift', action: 'read' },
+    { permissionName: 'manage_shifts', description: 'Manage shifts', resource: 'Shift', action: 'manage' },
+
+    // Bus-Driver Assignment management
+    { permissionName: 'view_assignments', description: 'View bus-driver assignments', resource: 'BusDriverAssignment', action: 'read' },
+    { permissionName: 'manage_assignments', description: 'Manage bus-driver assignments', resource: 'BusDriverAssignment', action: 'manage' },
+
+    // Key Handover management
+    { permissionName: 'view_key_handovers', description: 'View key handovers', resource: 'KeyHandover', action: 'read' },
+    { permissionName: 'manage_key_handovers', description: 'Manage key handovers', resource: 'KeyHandover', action: 'manage' },
+
+    // Trip management
+    { permissionName: 'view_trips', description: 'View trips', resource: 'Trip', action: 'read' },
+    { permissionName: 'create_trip', description: 'Create trips', resource: 'Trip', action: 'create' },
+    { permissionName: 'start_trip', description: 'Start trips', resource: 'Trip', action: 'manage' },
+    { permissionName: 'end_trip', description: 'End trips', resource: 'Trip', action: 'manage' },
+    { permissionName: 'cancel_trip', description: 'Cancel trips', resource: 'Trip', action: 'manage' },
+
+    // GPS Tracking
+    { permissionName: 'view_tracking', description: 'View GPS tracking', resource: 'Tracking', action: 'read' },
+    { permissionName: 'manage_tracking', description: 'Manage GPS tracking', resource: 'Tracking', action: 'manage' },
+
+    // Notifications
+    { permissionName: 'view_notifications', description: 'View notifications', resource: 'Notification', action: 'read' },
+    { permissionName: 'manage_notifications', description: 'Manage notifications', resource: 'Notification', action: 'manage' },
+
+    // Incidents
+    { permissionName: 'view_incidents', description: 'View incidents', resource: 'Incident', action: 'read' },
+    { permissionName: 'report_incident', description: 'Report incidents', resource: 'Incident', action: 'create' },
+    { permissionName: 'review_incident', description: 'Review incidents', resource: 'Incident', action: 'manage' },
+    { permissionName: 'resolve_incident', description: 'Resolve incidents', resource: 'Incident', action: 'manage' },
+    { permissionName: 'delete_incident', description: 'Delete incidents', resource: 'Incident', action: 'delete' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -99,7 +144,7 @@ async function main() {
       roleName: 'SUPER_ADMIN',
       description: 'Full system access',
       rolePermissions: {
-        create: createdPermissions.map(p => ({
+        create: createdPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -107,9 +152,10 @@ async function main() {
   });
 
   // ADMIN - Most permissions except critical system operations
-  const adminPermissions = createdPermissions.filter(p =>
-    !p.permissionName.includes('roles:delete') &&
-    !p.permissionName.includes('users:delete')
+  const adminPermissions = createdPermissions.filter(
+    (p) =>
+      !p.permissionName.includes('roles:delete') &&
+      !p.permissionName.includes('users:delete')
   );
 
   const adminRole = await prisma.role.create({
@@ -117,20 +163,31 @@ async function main() {
       roleName: 'ADMIN',
       description: 'Administrative access',
       rolePermissions: {
-        create: adminPermissions.map(p => ({
+        create: adminPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
     },
   });
 
-  // MANAGER - Read all, manage terminals, buses, drivers
-  const managerPermissions = createdPermissions.filter(p =>
-    p.action === 'read' ||
-    p.resource === 'Terminal' ||
-    p.resource === 'Bus' ||
-    p.resource === 'Driver' ||
-    p.resource === 'Booking'
+  // MANAGER - Read all, manage operational resources including shifts and assignments
+  const managerPermissions = createdPermissions.filter(
+    (p) =>
+      p.action === 'read' ||
+      p.resource === 'Terminal' ||
+      p.resource === 'Bus' ||
+      p.resource === 'Driver' ||
+      p.resource === 'Booking' ||
+      p.resource === 'Route' ||
+      p.resource === 'Stop' ||
+      p.resource === 'Schedule' ||
+      p.resource === 'Shift' ||
+      p.resource === 'BusDriverAssignment' ||
+      p.resource === 'KeyHandover' ||
+      p.resource === 'Trip' ||
+      p.resource === 'Tracking' ||
+      p.resource === 'Notification' ||
+      p.resource === 'Incident'
   );
 
   const managerRole = await prisma.role.create({
@@ -138,18 +195,25 @@ async function main() {
       roleName: 'MANAGER',
       description: 'Operations manager',
       rolePermissions: {
-        create: managerPermissions.map(p => ({
+        create: managerPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
     },
   });
 
-  // DRIVER - Read buses, terminals, own profile
-  const driverPermissions = createdPermissions.filter(p =>
-    (p.resource === 'Bus' && p.action === 'read') ||
-    (p.resource === 'Terminal' && p.action === 'read') ||
-    (p.resource === 'Driver' && p.action === 'read')
+  // DRIVER - Read buses, terminals, shifts, assignments, key handovers, trips, tracking, own profile
+  const driverPermissions = createdPermissions.filter(
+    (p) =>
+      (p.resource === 'Bus' && p.action === 'read') ||
+      (p.resource === 'Terminal' && p.action === 'read') ||
+      (p.resource === 'Driver' && p.action === 'read') ||
+      (p.resource === 'Shift' && p.action === 'read') ||
+      (p.resource === 'BusDriverAssignment' && p.action === 'read') ||
+      (p.resource === 'KeyHandover') ||
+      (p.resource === 'Trip') ||
+      (p.resource === 'Tracking') ||
+      (p.resource === 'Incident' && (p.action === 'read' || p.action === 'create'))
   );
 
   const driverRole = await prisma.role.create({
@@ -157,7 +221,7 @@ async function main() {
       roleName: 'DRIVER',
       description: 'Bus driver',
       rolePermissions: {
-        create: driverPermissions.map(p => ({
+        create: driverPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -165,10 +229,11 @@ async function main() {
   });
 
   // PASSENGER - Read public info, manage own bookings
-  const passengerPermissions = createdPermissions.filter(p =>
-    (p.resource === 'Booking') ||
-    (p.resource === 'Terminal' && p.action === 'read') ||
-    (p.resource === 'Bus' && p.action === 'read')
+  const passengerPermissions = createdPermissions.filter(
+    (p) =>
+      p.resource === 'Booking' ||
+      (p.resource === 'Terminal' && p.action === 'read') ||
+      (p.resource === 'Bus' && p.action === 'read')
   );
 
   const passengerRole = await prisma.role.create({
@@ -176,7 +241,7 @@ async function main() {
       roleName: 'PASSENGER',
       description: 'Regular passenger',
       rolePermissions: {
-        create: passengerPermissions.map(p => ({
+        create: passengerPermissions.map((p) => ({
           permissionId: p.id,
         })),
       },
@@ -191,7 +256,7 @@ async function main() {
   const hashedPassword = await bcrypt.hash('Password123!', 10);
 
   // Super Admin user
-  const superAdmin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'superadmin@sbts.com',
       fullName: 'Super Admin',
@@ -206,7 +271,7 @@ async function main() {
   });
 
   // Admin user
-  const admin = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'admin@sbts.com',
       fullName: 'Admin User',
@@ -221,7 +286,7 @@ async function main() {
   });
 
   // Manager user
-  const manager = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'manager@sbts.com',
       fullName: 'Manager User',
@@ -236,7 +301,7 @@ async function main() {
   });
 
   // Driver user
-  const driver = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'driver@sbts.com',
       fullName: 'Driver User',
@@ -251,7 +316,7 @@ async function main() {
   });
 
   // Passenger user
-  const passenger = await prisma.user.create({
+  await prisma.user.create({
     data: {
       email: 'passenger@sbts.com',
       fullName: 'Passenger User',

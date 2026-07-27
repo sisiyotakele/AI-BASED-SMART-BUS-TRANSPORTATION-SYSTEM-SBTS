@@ -92,13 +92,17 @@ export async function createRouteVersion(data: Partial<{ routeId: string; versio
 
 export async function createShift(data: Partial<{ driverId: string; shiftName: string; shiftDate: Date; shiftStart: Date; shiftEnd: Date }> = {}) {
   const baseDate = data.shiftDate || new Date();
+  // For Time fields, we need times without date - use epoch date
+  const shiftStart = data.shiftStart || new Date(1970, 0, 1, 6, 0, 0, 0);
+  const shiftEnd = data.shiftEnd || new Date(1970, 0, 1, 14, 0, 0, 0);
+
   return prismaTest.shift.create({
     data: {
       driverId: data.driverId!,
       shiftName: data.shiftName || 'Morning Shift',
       shiftDate: baseDate,
-      shiftStart: data.shiftStart || new Date(baseDate.setHours(6, 0, 0, 0)),
-      shiftEnd: data.shiftEnd || new Date(baseDate.setHours(14, 0, 0, 0)),
+      shiftStart,
+      shiftEnd,
     },
   });
 }

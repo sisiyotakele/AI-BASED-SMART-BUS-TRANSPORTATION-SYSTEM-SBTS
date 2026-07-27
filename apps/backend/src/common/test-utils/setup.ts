@@ -37,6 +37,72 @@ beforeAll(() => {
   if (routesStopsService.setPrismaClient) {
     routesStopsService.setPrismaClient(prismaTest);
   }
+
+  // Import and inject into schedules service
+  const schedulesService = require('@/modules/schedules/schedules.service');
+  if (schedulesService.setPrismaClient) {
+    schedulesService.setPrismaClient(prismaTest);
+  }
+
+  // Import and inject into bus-driver-assignments service (if exists)
+  try {
+    const busDriverAssignmentsService = require('@/modules/bus-driver-assignments/bus-driver-assignments.service');
+    if (busDriverAssignmentsService.setPrismaClient) {
+      busDriverAssignmentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into shifts service (if exists)
+  try {
+    const shiftsService = require('@/modules/shifts/shifts.service');
+    if (shiftsService.setPrismaClient) {
+      shiftsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into bus-route-assignments service (if exists)
+  try {
+    const busRouteAssignmentsService = require('@/modules/bus-route-assignments/bus-route-assignments.service');
+    if (busRouteAssignmentsService.setPrismaClient) {
+      busRouteAssignmentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into key-handovers service (if exists)
+  try {
+    const keyHandoversService = require('@/modules/key-handovers/key-handovers.service');
+    if (keyHandoversService.setPrismaClient) {
+      keyHandoversService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into trips service (if exists)
+  try {
+    const tripsService = require('@/modules/trips/trips.service');
+    if (tripsService.setPrismaClient) {
+      tripsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
+
+  // Import and inject into incidents service (if exists)
+  try {
+    const incidentsService = require('@/modules/incidents/incidents.service');
+    if (incidentsService.setPrismaClient) {
+      incidentsService.setPrismaClient(prismaTest);
+    }
+  } catch (e) {
+    // Module might not exist yet
+  }
 });
 
 afterAll(async () => {

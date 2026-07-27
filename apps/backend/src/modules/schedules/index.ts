@@ -1,0 +1,1 @@
+export { default as scheduleRoutes } from './schedules.routes';
