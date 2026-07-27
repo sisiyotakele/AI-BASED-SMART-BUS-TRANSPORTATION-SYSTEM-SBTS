@@ -113,6 +113,10 @@ async function main() {
     { permissionName: 'resolve_incident', description: 'Resolve incidents', resource: 'Incident', action: 'manage' },
     { permissionName: 'delete_incident', description: 'Delete incidents', resource: 'Incident', action: 'delete' },
 
+    // AI Predictions
+    { permissionName: 'view_predictions', description: 'View AI predictions', resource: 'AIPrediction', action: 'read' },
+    { permissionName: 'manage_ai_models', description: 'Manage AI models', resource: 'AIPrediction', action: 'manage' },
+
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
 
@@ -187,7 +191,8 @@ async function main() {
       p.resource === 'Trip' ||
       p.resource === 'Tracking' ||
       p.resource === 'Notification' ||
-      p.resource === 'Incident'
+      p.resource === 'Incident' ||
+      p.resource === 'AIPrediction'
   );
 
   const managerRole = await prisma.role.create({
