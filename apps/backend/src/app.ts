@@ -6,6 +6,7 @@ import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
 import { config } from '@/config';
+import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from '@/config/sentry';
 import { swaggerOptions } from '@/common/swagger';
 import { errorResponse } from '@/common/response';
 import { errorHandler } from '@/common/middleware/error.middleware';
@@ -45,6 +46,13 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.set('trust proxy', 1);
+
+// Sentry request handler must be the first middleware
+app.use(sentryRequestHandler);
+
+// Sentry tracing for performance monitoring
+app.use(sentryTracingHandler);
+
 app.use(requestIdMiddleware);
 app.use(responseTimeMiddleware);
 app.use(helmet());
@@ -178,12 +186,20 @@ app.use(
   swaggerUi.setup(swaggerSpec)
 );
 
+// Test route to trigger Sentry error (for verification)
+app.get('/debug-sentry', (_req: Request, _res: Response) => {
+  throw new Error('Test Sentry error - this is intentional for testing');
+});
+
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json(errorResponse('Endpoint not found', 'NOT_FOUND'));
 });
 
-// Global error handler
+// Sentry error handler must be before custom error handler
+app.use(sentryErrorHandler);
+
+// Global error handler (custom)
 app.use(errorHandler);
 
 export default app;

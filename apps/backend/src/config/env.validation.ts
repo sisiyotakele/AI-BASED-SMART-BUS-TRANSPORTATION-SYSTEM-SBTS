@@ -119,6 +119,10 @@ export const envSchema = z.object({
     ENABLE_PERFORMANCE_MONITORING: BooleanSchema.default('true'),
     SLOW_REQUEST_THRESHOLD_MS: z.coerce.number().int().min(100).default(1000),
 
+    // Sentry Error Monitoring
+    SENTRY_DSN: z.string().url().optional(),
+    SENTRY_ENABLED: BooleanSchema.default('false'),
+
     // Pagination
     DEFAULT_PAGE_SIZE: z.coerce.number().int().min(1).max(100).default(20),
     MAX_PAGE_SIZE: z.coerce.number().int().min(1).max(1000).default(100),

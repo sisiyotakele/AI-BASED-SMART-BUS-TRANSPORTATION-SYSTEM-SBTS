@@ -1,3 +1,4 @@
+import { initializeSentry, closeSentry } from './config/sentry';
 import app from './app';
 import { config } from './config';
 import { logger } from './common/logger';
@@ -7,6 +8,9 @@ import { initializeTrackingSocket } from './modules/tracking/tracking.socket';
 import { createServer } from 'http';
 
 const PORT = config.port;
+
+// Initialize Sentry before anything else
+initializeSentry();
 
 async function bootstrap() {
   try {
@@ -47,12 +51,14 @@ bootstrap();
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  await closeSentry();
   await prisma.$disconnect();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   logger.info('SIGINT received, shutting down gracefully');
+  await closeSentry();
   await prisma.$disconnect();
   process.exit(0);
 });
