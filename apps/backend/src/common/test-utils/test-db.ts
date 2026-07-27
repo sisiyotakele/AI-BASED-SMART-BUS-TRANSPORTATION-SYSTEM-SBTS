@@ -36,10 +36,10 @@ export async function resetDatabase() {
     'bus_driver_assignments',
     'schedules',
     'prices',
-    'route_stops',
-    'route_versions',
-    'stops',
-    'routes',
+    'route_stops',        // Delete route_stops first (references both routes and stops)
+    'route_versions',     // Delete route_versions second (references routes)
+    'routes',             // Delete routes third (references stops via foreign keys)
+    'stops',              // Delete stops last (after routes are gone)
     'shifts',
     'buses',
     'terminals',
