@@ -1,8 +1,14 @@
 ﻿// src/modules/pricing/pricing.service.ts
 
-import { prisma } from '@/prisma/client';
-import { Prisma } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { logger } from '@/common/logger';
+import { NotFoundError, ConflictError, ValidationError } from '@/common/errors';
+import * as repository from './pricing.repository';
+
+// Allow prisma client to be injected for testing
+export function setPrismaClient(client: PrismaClient) {
+  repository.setPrismaClient(client);
+}
 
 // ================================================================
 // TYPES
@@ -58,268 +64,206 @@ export interface PaginatedResult<T> {
 }
 
 // ================================================================
-// PRICING SERVICE
+// HELPER FUNCTIONS
 // ================================================================
 
-export class PricingService {
-  private getPriceInclude() {
-    return { route: true, fromStop: true, toStop: true };
-  }
+function getPaginationParams(page?: number, limit?: number) {
+  const safePage = Math.max(page ?? 1, 1);
+  const safeLimit = Math.min(Math.max(limit ?? 50, 1), 100);
+  return { page: safePage, limit: safeLimit, skip: (safePage - 1) * safeLimit };
+}
 
-  private getPaginationParams(page?: number, limit?: number) {
-    const safePage = Math.max(page ?? 1, 1);
-    const safeLimit = Math.min(Math.max(limit ?? 50, 1), 100);
-    return { page: safePage, limit: safeLimit, skip: (safePage - 1) * safeLimit };
-  }
+// ================================================================
+// PRICING SERVICE (FUNCTIONAL)
+// ================================================================
 
-  // ─── READ ──────────────────────────────────────────────────────
+// ─── READ ──────────────────────────────────────────────────────
 
-  async getAllPrices(filters?: PriceFilters): Promise<PaginatedResult<PriceWithRelations>> {
-    try {
-      const { page, limit, skip } = this.getPaginationParams(filters?.page, filters?.limit);
-      const where: Prisma.PriceWhereInput = { deletedAt: null };
+export async function getAllPrices(filters?: PriceFilters): Promise<PaginatedResult<PriceWithRelations>> {
+  try {
+    const { page, limit, skip } = getPaginationParams(filters?.page, filters?.limit);
+    const where: Prisma.PriceWhereInput = { deletedAt: null };
 
-      if (filters?.routeId) where.routeId = filters.routeId;
-      if (filters?.fromStopId) where.fromStopId = filters.fromStopId;
-      if (filters?.toStopId) where.toStopId = filters.toStopId;
+    if (filters?.routeId) where.routeId = filters.routeId;
+    if (filters?.fromStopId) where.fromStopId = filters.fromStopId;
+    if (filters?.toStopId) where.toStopId = filters.toStopId;
 
-      if (filters?.effectiveFrom || filters?.effectiveTo) {
-        where.effectiveFrom = {};
-        if (filters.effectiveFrom) where.effectiveFrom.gte = filters.effectiveFrom;
-        if (filters.effectiveTo) where.effectiveFrom.lte = filters.effectiveTo;
-      }
-
-      if (filters?.isActive) {
-        const now = new Date();
-        where.effectiveFrom = { lte: now };
-        where.OR = [{ effectiveUntil: null }, { effectiveUntil: { gte: now } }];
-      }
-
-      const [data, total] = await Promise.all([
-        prisma.price.findMany({ where, include: this.getPriceInclude(), orderBy: { createdAt: 'desc' }, skip, take: limit }),
-        prisma.price.count({ where }),
-      ]);
-
-      return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
-    } catch (error) {
-      logger.error('Failed to fetch prices:', { error });
-      throw new Error('Could not fetch prices');
+    if (filters?.effectiveFrom || filters?.effectiveTo) {
+      where.effectiveFrom = {};
+      if (filters.effectiveFrom) where.effectiveFrom.gte = filters.effectiveFrom;
+      if (filters.effectiveTo) where.effectiveFrom.lte = filters.effectiveTo;
     }
-  }
 
-  async getPriceById(id: string): Promise<PriceWithRelations | null> {
-    try {
-      return await prisma.price.findFirst({
-        where: { id, deletedAt: null },
-        include: this.getPriceInclude(),
-      });
-    } catch (error) {
-      logger.error(`Failed to fetch price ${id}:`, { error });
-      throw new Error('Could not fetch price');
-    }
-  }
-
-  async getActivePrice(
-    routeId: string,
-    fromStopId: string,
-    toStopId: string
-  ): Promise<PriceWithRelations | null> {
-    try {
+    if (filters?.isActive) {
       const now = new Date();
-      return await prisma.price.findFirst({
-        where: {
-          routeId,
-          fromStopId,
-          toStopId,
-          deletedAt: null,
-          effectiveFrom: { lte: now },
-          OR: [{ effectiveUntil: null }, { effectiveUntil: { gte: now } }],
-        },
-        include: this.getPriceInclude(),
-      });
-    } catch (error) {
-      logger.error('Failed to fetch active price:', { error, routeId, fromStopId, toStopId });
-      throw new Error('Could not fetch active price');
+      where.effectiveFrom = { lte: now };
+      where.OR = [{ effectiveUntil: null }, { effectiveUntil: { gte: now } }];
     }
-  }
 
-  async calculatePrice(
-    routeId: string,
-    fromStopId: string,
-    toStopId: string,
-    isPeak: boolean = false
-  ): Promise<{ price: number; type: string }> {
-    try {
-      const price = await this.getActivePrice(routeId, fromStopId, toStopId);
-      if (!price) throw new Error('No active price found for this route segment');
+    const [data, total] = await Promise.all([
+      repository.findPrices(where, skip, limit),
+      repository.countPrices(where)
+    ]);
 
-      let finalPrice = price.basePrice;
-      let priceType = 'base';
-
-      if (isPeak && price.peakPrice) {
-        finalPrice = price.peakPrice;
-        priceType = 'peak';
-      } else if (!isPeak && price.offPeakPrice) {
-        finalPrice = price.offPeakPrice;
-        priceType = 'off-peak';
-      }
-
-      return { price: Number(finalPrice), type: priceType };
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      logger.error('Failed to calculate price:', { error });
-      throw new Error('Could not calculate price');
-    }
-  }
-
-  async getPricesByRoute(routeId: string): Promise<PriceWithRelations[]> {
-    try {
-      return await prisma.price.findMany({
-        where: { routeId, deletedAt: null },
-        include: this.getPriceInclude(),
-        orderBy: { effectiveFrom: 'asc' },
-      });
-    } catch (error) {
-      logger.error(`Failed to fetch prices for route ${routeId}:`, { error });
-      throw new Error('Could not fetch route prices');
-    }
-  }
-
-  async getPriceStats() {
-    try {
-      const now = new Date();
-      const [total, active] = await Promise.all([
-        prisma.price.count({ where: { deletedAt: null } }),
-        prisma.price.count({
-          where: {
-            deletedAt: null,
-            effectiveFrom: { lte: now },
-            OR: [{ effectiveUntil: null }, { effectiveUntil: { gte: now } }],
-          },
-        }),
-      ]);
-      return { total, active, inactive: total - active };
-    } catch (error) {
-      logger.error('Failed to fetch price stats:', { error });
-      throw new Error('Could not fetch price statistics');
-    }
-  }
-
-  // ─── WRITE ─────────────────────────────────────────────────────
-
-  async createPrice(data: CreatePriceDto): Promise<PriceWithRelations> {
-    try {
-      if (!data.routeId || !data.fromStopId || !data.toStopId) {
-        throw new Error('Missing required fields: routeId, fromStopId, toStopId');
-      }
-      if (!data.basePrice || data.basePrice <= 0) {
-        throw new Error('Base price must be greater than 0');
-      }
-      if (data.peakPrice !== undefined && data.peakPrice < data.basePrice) {
-        throw new Error('Peak price must be >= base price');
-      }
-      if (data.offPeakPrice !== undefined && data.offPeakPrice > data.basePrice) {
-        throw new Error('Off-peak price must be <= base price');
-      }
-
-      const effectiveFrom = data.effectiveFrom || new Date();
-      const effectiveUntil = data.effectiveUntil || null;
-
-      if (effectiveFrom && effectiveUntil && effectiveFrom > effectiveUntil) {
-        throw new Error('Effective from date must be before effective until date');
-      }
-
-      const existing = await prisma.price.findFirst({
-        where: {
-          routeId: data.routeId,
-          fromStopId: data.fromStopId,
-          toStopId: data.toStopId,
-          deletedAt: null,
-        },
-      });
-      if (existing) throw new Error('A price already exists for this route segment');
-
-      return await prisma.price.create({
-        data: {
-          routeId: data.routeId,
-          fromStopId: data.fromStopId,
-          toStopId: data.toStopId,
-          basePrice: data.basePrice,
-          peakPrice: data.peakPrice,
-          offPeakPrice: data.offPeakPrice,
-          effectiveFrom,
-          effectiveUntil,
-        },
-        include: this.getPriceInclude(),
-      });
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      logger.error('Failed to create price:', { error });
-      throw new Error('Could not create price');
-    }
-  }
-
-  async updatePrice(id: string, data: UpdatePriceDto): Promise<PriceWithRelations> {
-    try {
-      const existing = await this.getPriceById(id);
-      if (!existing) throw new Error('Price not found');
-
-      if (data.basePrice !== undefined && data.basePrice <= 0) {
-        throw new Error('Base price must be greater than 0');
-      }
-
-      const basePrice = Number(data.basePrice ?? existing.basePrice);
-      if (data.peakPrice !== undefined && data.peakPrice < basePrice) {
-        throw new Error('Peak price must be >= base price');
-      }
-      if (data.offPeakPrice !== undefined && data.offPeakPrice > basePrice) {
-        throw new Error('Off-peak price must be <= base price');
-      }
-
-      const effectiveFrom = data.effectiveFrom ?? existing.effectiveFrom;
-      const effectiveUntil = data.effectiveUntil ?? existing.effectiveUntil;
-      if (effectiveFrom && effectiveUntil && effectiveFrom > effectiveUntil) {
-        throw new Error('Effective from date must be before effective until date');
-      }
-
-      return await prisma.price.update({
-        where: { id },
-        data: {
-          routeId: data.routeId,
-          fromStopId: data.fromStopId,
-          toStopId: data.toStopId,
-          basePrice: data.basePrice,
-          peakPrice: data.peakPrice,
-          offPeakPrice: data.offPeakPrice,
-          effectiveFrom: data.effectiveFrom,
-          effectiveUntil: data.effectiveUntil ?? null,
-        },
-        include: this.getPriceInclude(),
-      });
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      logger.error(`Failed to update price ${id}:`, { error });
-      throw new Error('Could not update price');
-    }
-  }
-
-  async deletePrice(id: string): Promise<PriceWithRelations> {
-    try {
-      const existing = await this.getPriceById(id);
-      if (!existing) throw new Error('Price not found');
-
-      return await prisma.price.update({
-        where: { id },
-        data: { deletedAt: new Date() },
-        include: this.getPriceInclude(),
-      });
-    } catch (error) {
-      if (error instanceof Error) throw error;
-      logger.error(`Failed to delete price ${id}:`, { error });
-      throw new Error('Could not delete price');
-    }
+    return { data, total, page, limit, totalPages: Math.ceil(total / limit) };
+  } catch (error) {
+    logger.error('Failed to fetch prices:', { error });
+    throw error;
   }
 }
 
-export const pricingService = new PricingService();
-export default pricingService;
+export async function getPriceById(id: string): Promise<PriceWithRelations> {
+  const price = await repository.findPriceById(id);
+  if (!price) {
+    throw new NotFoundError('Price not found', 'PRICE_NOT_FOUND');
+  }
+  return price;
+}
+
+export async function getActivePrice(
+  routeId: string,
+  fromStopId: string,
+  toStopId: string
+): Promise<PriceWithRelations | null> {
+  try {
+    const now = new Date();
+    return await repository.findActivePrice(routeId, fromStopId, toStopId, now);
+  } catch (error) {
+    logger.error('Failed to fetch active price:', { error, routeId, fromStopId, toStopId });
+    throw error;
+  }
+}
+
+export async function calculatePrice(
+  routeId: string,
+  fromStopId: string,
+  toStopId: string,
+  isPeak: boolean = false
+): Promise<{ price: number; type: string }> {
+  const price = await getActivePrice(routeId, fromStopId, toStopId);
+  if (!price) {
+    throw new NotFoundError('No active price found for this route segment', 'ACTIVE_PRICE_NOT_FOUND');
+  }
+
+  let finalPrice = price.basePrice;
+  let priceType = 'base';
+
+  if (isPeak && price.peakPrice) {
+    finalPrice = price.peakPrice;
+    priceType = 'peak';
+  } else if (!isPeak && price.offPeakPrice) {
+    finalPrice = price.offPeakPrice;
+    priceType = 'off-peak';
+  }
+
+  return { price: Number(finalPrice), type: priceType };
+}
+
+export async function getPricesByRoute(routeId: string): Promise<PriceWithRelations[]> {
+  try {
+    return await repository.findPricesByRoute(routeId);
+  } catch (error) {
+    logger.error(`Failed to fetch prices for route ${routeId}:`, { error });
+    throw error;
+  }
+}
+
+export async function getPriceStats() {
+  try {
+    const now = new Date();
+    const [total, active] = await Promise.all([
+      repository.countPrices({ deletedAt: null }),
+      repository.countActivePrices(now)
+    ]);
+    return { total, active, inactive: total - active };
+  } catch (error) {
+    logger.error('Failed to fetch price stats:', { error });
+    throw error;
+  }
+}
+
+// ─── WRITE ─────────────────────────────────────────────────────
+
+export async function createPrice(data: CreatePriceDto): Promise<PriceWithRelations> {
+  // Validation
+  if (!data.basePrice || data.basePrice <= 0) {
+    throw new ValidationError('Base price must be greater than 0', { code: 'INVALID_BASE_PRICE' });
+  }
+  if (data.peakPrice !== undefined && data.peakPrice < data.basePrice) {
+    throw new ValidationError('Peak price must be >= base price', { code: 'INVALID_PEAK_PRICE' });
+  }
+  if (data.offPeakPrice !== undefined && data.offPeakPrice > data.basePrice) {
+    throw new ValidationError('Off-peak price must be <= base price', { code: 'INVALID_OFF_PEAK_PRICE' });
+  }
+
+  const effectiveFrom = data.effectiveFrom || new Date();
+  const effectiveUntil = data.effectiveUntil || null;
+
+  if (effectiveFrom && effectiveUntil && effectiveFrom > effectiveUntil) {
+    throw new ValidationError('Effective from date must be before effective until date', { code: 'INVALID_DATE_RANGE' });
+  }
+
+  // Check for existing price
+  const existing = await repository.findExistingPrice(data.routeId, data.fromStopId, data.toStopId);
+  if (existing) {
+    throw new ConflictError('A price already exists for this route segment', 'PRICE_ALREADY_EXISTS');
+  }
+
+  const price = await repository.createPrice({
+    route: { connect: { id: data.routeId } },
+    fromStop: { connect: { id: data.fromStopId } },
+    toStop: { connect: { id: data.toStopId } },
+    basePrice: data.basePrice,
+    peakPrice: data.peakPrice,
+    offPeakPrice: data.offPeakPrice,
+    effectiveFrom,
+    effectiveUntil
+  });
+
+  logger.info('Price created', { priceId: price.id });
+  return price;
+}
+
+export async function updatePrice(id: string, data: UpdatePriceDto): Promise<PriceWithRelations> {
+  const existing = await getPriceById(id);
+
+  // Validation
+  if (data.basePrice !== undefined && data.basePrice <= 0) {
+    throw new ValidationError('Base price must be greater than 0', { code: 'INVALID_BASE_PRICE' });
+  }
+
+  const basePrice = Number(data.basePrice ?? existing.basePrice);
+  if (data.peakPrice !== undefined && data.peakPrice < basePrice) {
+    throw new ValidationError('Peak price must be >= base price', { code: 'INVALID_PEAK_PRICE' });
+  }
+  if (data.offPeakPrice !== undefined && data.offPeakPrice > basePrice) {
+    throw new ValidationError('Off-peak price must be <= base price', { code: 'INVALID_OFF_PEAK_PRICE' });
+  }
+
+  const effectiveFrom = data.effectiveFrom ?? existing.effectiveFrom;
+  const effectiveUntil = data.effectiveUntil ?? existing.effectiveUntil;
+  if (effectiveFrom && effectiveUntil && effectiveFrom > effectiveUntil) {
+    throw new ValidationError('Effective from date must be before effective until date', { code: 'INVALID_DATE_RANGE' });
+  }
+
+  const updateData: Prisma.PriceUpdateInput = {};
+  if (data.routeId) updateData.route = { connect: { id: data.routeId } };
+  if (data.fromStopId) updateData.fromStop = { connect: { id: data.fromStopId } };
+  if (data.toStopId) updateData.toStop = { connect: { id: data.toStopId } };
+  if (data.basePrice !== undefined) updateData.basePrice = data.basePrice;
+  if (data.peakPrice !== undefined) updateData.peakPrice = data.peakPrice;
+  if (data.offPeakPrice !== undefined) updateData.offPeakPrice = data.offPeakPrice;
+  if (data.effectiveFrom !== undefined) updateData.effectiveFrom = data.effectiveFrom;
+  if (data.effectiveUntil !== undefined) updateData.effectiveUntil = data.effectiveUntil;
+
+  const price = await repository.updatePrice(id, updateData);
+  logger.info('Price updated', { priceId: id });
+  return price;
+}
+
+export async function deletePrice(id: string): Promise<PriceWithRelations> {
+  await getPriceById(id); // Check existence
+  const price = await repository.softDeletePrice(id);
+  logger.info('Price soft-deleted', { priceId: id });
+  return price;
+}

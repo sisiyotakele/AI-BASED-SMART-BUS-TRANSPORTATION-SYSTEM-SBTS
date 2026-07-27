@@ -119,6 +119,11 @@ async function main() {
 
     // Audit logs
     { permissionName: 'audit:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
+    { permissionName: 'audit_logs:read', description: 'View audit logs', resource: 'AuditLog', action: 'read' },
+
+    // Pricing
+    { permissionName: 'view_pricing', description: 'View pricing information', resource: 'Pricing', action: 'read' },
+    { permissionName: 'manage_pricing', description: 'Manage pricing', resource: 'Pricing', action: 'manage' },
 
     // Reports
     { permissionName: 'reports:read', description: 'View reports', resource: 'Report', action: 'read' },

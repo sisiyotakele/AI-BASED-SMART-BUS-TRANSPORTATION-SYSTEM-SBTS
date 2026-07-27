@@ -1,120 +1,50 @@
 import { Request, Response } from 'express';
-import { auditService } from './audit.service';
+import { successResponse, errorResponse } from '@/common/response';
+import { asyncHandler } from '@/common/asyncHandler';
+import * as auditService from './audit.service';
 
-class AuditController {
-  async getAllAuditLogs(req: Request, res: Response): Promise<void> {
-    try {
-      const logs = await auditService.getAllAuditLogs();
+export const getAllAuditLogs = asyncHandler(async (req: Request, res: Response) => {
+  const logs = await auditService.getAllAuditLogs();
+  successResponse(res, logs, 'Audit logs retrieved successfully');
+});
 
-      res.status(200).json({
-        success: true,
-        count: logs.length,
-        data: logs,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch audit logs',
-        error,
-      });
-    }
+export const getAuditLogById = asyncHandler(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const log = await auditService.getAuditLogById(id);
+
+  if (!log) {
+    return res.status(404).json(errorResponse('Audit log not found', 'AUDIT_LOG_NOT_FOUND'));
   }
 
-  async getAuditLogById(req: Request, res: Response): Promise<void> {
-    try {
-      const { id } = req.params;
+  successResponse(res, log, 'Audit log retrieved successfully');
+});
 
-      const log = await auditService.getAuditLogById(id);
+export const getAuditLogsByUser = asyncHandler(async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const logs = await auditService.getAuditLogsByUser(userId);
+  successResponse(res, logs, 'User audit logs retrieved successfully');
+});
 
-      if (!log) {
-        res.status(404).json({
-          success: false,
-          message: 'Audit log not found',
-        });
-        return;
-      }
+export const getAuditLogsByEntity = asyncHandler(async (req: Request, res: Response) => {
+  const { entityName } = req.params;
+  const { entityId } = req.query;
 
-      res.status(200).json({
-        success: true,
-        data: log,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch audit log',
-        error,
-      });
-    }
-  }
+  const logs = await auditService.getAuditLogsByEntity(
+    entityName,
+    entityId as string | undefined
+  );
 
-  async getAuditLogsByUser(req: Request, res: Response): Promise<void> {
-    try {
-      const { userId } = req.params;
+  successResponse(res, logs, 'Entity audit logs retrieved successfully');
+});
 
-      const logs = await auditService.getAuditLogsByUser(userId);
+export const searchAuditLogs = asyncHandler(async (req: Request, res: Response) => {
+  const { userId, action, entityName } = req.query;
 
-      res.status(200).json({
-        success: true,
-        count: logs.length,
-        data: logs,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch user audit logs',
-        error,
-      });
-    }
-  }
+  const logs = await auditService.searchAuditLogs({
+    userId: userId as string,
+    action: action as string,
+    entityName: entityName as string,
+  });
 
-  async getAuditLogsByEntity(req: Request, res: Response): Promise<void> {
-    try {
-      const { entityName } = req.params;
-      const { entityId } = req.query;
-
-      const logs = await auditService.getAuditLogsByEntity(
-        entityName,
-        entityId as string | undefined,
-      );
-
-      res.status(200).json({
-        success: true,
-        count: logs.length,
-        data: logs,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Failed to fetch entity audit logs',
-        error,
-      });
-    }
-  }
-
-  async searchAuditLogs(req: Request, res: Response): Promise<void> {
-    try {
-      const { userId, action, entityName } = req.query;
-
-      const logs = await auditService.searchAuditLogs({
-        userId: userId as string,
-        action: action as string,
-        entityName: entityName as string,
-      });
-
-      res.status(200).json({
-        success: true,
-        count: logs.length,
-        data: logs,
-      });
-    } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: 'Search failed',
-        error,
-      });
-    }
-  }
-}
-
-export const auditController = new AuditController();
-export default auditController;
+  successResponse(res, logs, 'Audit logs search completed');
+});

@@ -1,4 +1,3 @@
-export { pricingRoutes } from './pricing.routes';
-export { pricingController } from './pricing.controller';
-export { pricingService } from './pricing.service';
-export { pricingMiddleware } from './pricing.middleware';
+export { default as pricingRoutes } from './pricing.routes';
+export * as pricingController from './pricing.controller';
+export * as pricingService from './pricing.service';

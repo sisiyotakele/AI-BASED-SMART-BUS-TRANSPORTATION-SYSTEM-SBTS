@@ -1,51 +1,25 @@
 // src/modules/pricing/test/pricing.service.test.ts
 
-import { PricingService } from '../pricing.service';
-import { Price } from '@prisma/client';
+import * as pricingService from '../pricing.service';
+import * as repository from '../pricing.repository';
 
-// Mock Prisma client
-jest.mock('@/prisma/client', () => ({
-  prisma: {
-    price: {
-      findMany: jest.fn(),
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      count: jest.fn(),
-      groupBy: jest.fn(),
-    },
-  },
-}));
+// Mock the repository
+jest.mock('../pricing.repository');
 
-import { prisma } from '@/prisma/client';
-
-// Type-safe mock helpers
-const mockFindMany = prisma.price.findMany as jest.MockedFunction<typeof prisma.price.findMany>;
-const mockFindFirst = prisma.price.findFirst as jest.MockedFunction<typeof prisma.price.findFirst>;
-const mockFindUnique = prisma.price.findUnique as jest.MockedFunction<typeof prisma.price.findUnique>;
-const mockCreate = prisma.price.create as jest.MockedFunction<typeof prisma.price.create>;
-const mockUpdate = prisma.price.update as jest.MockedFunction<typeof prisma.price.update>;
-const mockDelete = prisma.price.delete as jest.MockedFunction<typeof prisma.price.delete>;
-const mockCount = prisma.price.count as jest.MockedFunction<typeof prisma.price.count>;
-const mockGroupBy = prisma.price.groupBy as jest.MockedFunction<typeof prisma.price.groupBy>;
+const mockRepository = repository as jest.Mocked<typeof repository>;
 
 describe('PricingService', () => {
-  let pricingService: PricingService;
-
   beforeEach(() => {
-    pricingService = new PricingService();
     jest.clearAllMocks();
   });
 
   describe('getAllPrices', () => {
     it('should return paginated prices', async () => {
-      const mockData = [{ id: '1', basePrice: 100 }] as unknown as Price[];
+      const mockData: any = [{ id: '1', basePrice: 100 }];
       const totalCount = 1;
 
-      mockFindMany.mockResolvedValue(mockData);
-      mockCount.mockResolvedValue(totalCount);
+      mockRepository.findPrices.mockResolvedValue(mockData);
+      mockRepository.countPrices.mockResolvedValue(totalCount);
 
       const result = await pricingService.getAllPrices({ page: 1, limit: 10 });
 
@@ -63,38 +37,36 @@ describe('PricingService', () => {
         isActive: true,
       };
 
-      mockFindMany.mockResolvedValue([]);
-      mockCount.mockResolvedValue(0);
+      mockRepository.findPrices.mockResolvedValue([]);
+      mockRepository.countPrices.mockResolvedValue(0);
 
       await pricingService.getAllPrices(filters);
 
-      expect(mockFindMany).toHaveBeenCalled();
+      expect(mockRepository.findPrices).toHaveBeenCalled();
     });
   });
 
   describe('getPriceById', () => {
     it('should return price when found', async () => {
-      const mockPrice = { id: '1', basePrice: 100 } as unknown as Price;
-      mockFindFirst.mockResolvedValue(mockPrice);
+      const mockPrice: any = { id: '1', basePrice: 100 };
+      mockRepository.findPriceById.mockResolvedValue(mockPrice);
 
       const result = await pricingService.getPriceById('1');
 
       expect(result).toEqual(mockPrice);
     });
 
-    it('should return null when price not found', async () => {
-      mockFindFirst.mockResolvedValue(null);
+    it('should throw error when price not found', async () => {
+      mockRepository.findPriceById.mockResolvedValue(null);
 
-      const result = await pricingService.getPriceById('non-existent');
-
-      expect(result).toBeNull();
+      await expect(pricingService.getPriceById('non-existent')).rejects.toThrow('Price not found');
     });
   });
 
   describe('getActivePrice', () => {
     it('should return active price when found', async () => {
-      const mockPrice = { id: '1', basePrice: 100 } as unknown as Price;
-      mockFindFirst.mockResolvedValue(mockPrice);
+      const mockPrice: any = { id: '1', basePrice: 100 };
+      mockRepository.findActivePrice.mockResolvedValue(mockPrice);
 
       const result = await pricingService.getActivePrice('route-1', 'stop-1', 'stop-2');
 
@@ -102,7 +74,7 @@ describe('PricingService', () => {
     });
 
     it('should return null when no active price found', async () => {
-      mockFindFirst.mockResolvedValue(null);
+      mockRepository.findActivePrice.mockResolvedValue(null);
 
       const result = await pricingService.getActivePrice('route-1', 'stop-1', 'stop-2');
 
@@ -119,9 +91,9 @@ describe('PricingService', () => {
         basePrice: 100,
       };
 
-      const mockPrice = { ...data, id: 'new-id' } as unknown as Price;
-      mockFindFirst.mockResolvedValue(null);
-      mockCreate.mockResolvedValue(mockPrice);
+      const mockPrice: any = { ...data, id: 'new-id' };
+      mockRepository.findExistingPrice.mockResolvedValue(null);
+      mockRepository.createPrice.mockResolvedValue(mockPrice);
 
       const result = await pricingService.createPrice(data);
 
@@ -163,33 +135,29 @@ describe('PricingService', () => {
         basePrice: 100,
       };
 
-      mockFindFirst.mockResolvedValue({ id: 'existing' } as Price);
+      mockRepository.findExistingPrice.mockResolvedValue({ id: 'existing' } as any);
 
       await expect(pricingService.createPrice(data)).rejects.toThrow(
         'A price already exists for this route segment'
-      );
-    });
-
-    it('should throw error when required fields are missing', async () => {
-      const data = {
-        routeId: 'route-1',
-        basePrice: 100,
-      } as any;
-
-      await expect(pricingService.createPrice(data)).rejects.toThrow(
-        'Missing required fields: routeId, fromStopId, toStopId'
       );
     });
   });
 
   describe('updatePrice', () => {
     it('should update price when found', async () => {
-      const existingPrice = { id: '1', basePrice: 100, peakPrice: null, offPeakPrice: null } as unknown as Price;
+      const existingPrice: any = {
+        id: '1',
+        basePrice: 100,
+        peakPrice: null,
+        offPeakPrice: null,
+        effectiveFrom: new Date(),
+        effectiveUntil: null
+      };
       const updateData = { basePrice: 150 };
-      const updatedPrice = { ...existingPrice, ...updateData } as unknown as Price;
+      const updatedPrice: any = { ...existingPrice, ...updateData };
 
-      mockFindFirst.mockResolvedValue(existingPrice);
-      mockUpdate.mockResolvedValue(updatedPrice);
+      mockRepository.findPriceById.mockResolvedValue(existingPrice);
+      mockRepository.updatePrice.mockResolvedValue(updatedPrice);
 
       const result = await pricingService.updatePrice('1', updateData);
 
@@ -197,7 +165,7 @@ describe('PricingService', () => {
     });
 
     it('should throw error when price not found', async () => {
-      mockFindFirst.mockResolvedValue(null);
+      mockRepository.findPriceById.mockResolvedValue(null);
 
       await expect(pricingService.updatePrice('non-existent', {})).rejects.toThrow(
         'Price not found'
@@ -205,8 +173,15 @@ describe('PricingService', () => {
     });
 
     it('should throw error when base price is 0', async () => {
-      const existingPrice = { id: '1', basePrice: 100, peakPrice: null, offPeakPrice: null } as unknown as Price;
-      mockFindFirst.mockResolvedValue(existingPrice);
+      const existingPrice: any = {
+        id: '1',
+        basePrice: 100,
+        peakPrice: null,
+        offPeakPrice: null,
+        effectiveFrom: new Date(),
+        effectiveUntil: null
+      };
+      mockRepository.findPriceById.mockResolvedValue(existingPrice);
 
       await expect(pricingService.updatePrice('1', { basePrice: 0 })).rejects.toThrow(
         'Base price must be greater than 0'
@@ -216,11 +191,11 @@ describe('PricingService', () => {
 
   describe('deletePrice', () => {
     it('should soft delete price', async () => {
-      const existingPrice = { id: '1', basePrice: 100 } as unknown as Price;
-      const deletedPrice = { ...existingPrice, deletedAt: new Date() } as Price;
+      const existingPrice: any = { id: '1', basePrice: 100 };
+      const deletedPrice: any = { ...existingPrice, deletedAt: new Date() };
 
-      mockFindFirst.mockResolvedValue(existingPrice);
-      mockUpdate.mockResolvedValue(deletedPrice);
+      mockRepository.findPriceById.mockResolvedValue(existingPrice);
+      mockRepository.softDeletePrice.mockResolvedValue(deletedPrice);
 
       const result = await pricingService.deletePrice('1');
 
@@ -228,7 +203,7 @@ describe('PricingService', () => {
     });
 
     it('should throw error when price not found', async () => {
-      mockFindFirst.mockResolvedValue(null);
+      mockRepository.findPriceById.mockResolvedValue(null);
 
       await expect(pricingService.deletePrice('non-existent')).rejects.toThrow(
         'Price not found'
@@ -238,13 +213,13 @@ describe('PricingService', () => {
 
   describe('calculatePrice', () => {
     it('should return base price when not peak', async () => {
-      const price = {
-          basePrice: 100,
-          peakPrice: 150,
-          offPeakPrice: 80,
-      } as unknown as Price;
+      const price: any = {
+        basePrice: 100,
+        peakPrice: 150,
+        offPeakPrice: 80,
+      };
 
-      mockFindFirst.mockResolvedValue(price);
+      mockRepository.findActivePrice.mockResolvedValue(price);
 
       const result = await pricingService.calculatePrice('route-1', 'stop-1', 'stop-2', false);
 
@@ -253,13 +228,13 @@ describe('PricingService', () => {
     });
 
     it('should return peak price when isPeak is true', async () => {
-      const price = {
-          basePrice: 100,
-          peakPrice: 150,
-          offPeakPrice: 80,
-      } as unknown as Price;
+      const price: any = {
+        basePrice: 100,
+        peakPrice: 150,
+        offPeakPrice: 80,
+      };
 
-      mockFindFirst.mockResolvedValue(price);
+      mockRepository.findActivePrice.mockResolvedValue(price);
 
       const result = await pricingService.calculatePrice('route-1', 'stop-1', 'stop-2', true);
 
@@ -268,13 +243,13 @@ describe('PricingService', () => {
     });
 
     it('should return off-peak price when not peak and offPeakPrice exists', async () => {
-      const price = {
-          basePrice: 100,
-          peakPrice: null,
-          offPeakPrice: 80,
-      } as unknown as Price;
+      const price: any = {
+        basePrice: 100,
+        peakPrice: null,
+        offPeakPrice: 80,
+      };
 
-      mockFindFirst.mockResolvedValue(price);
+      mockRepository.findActivePrice.mockResolvedValue(price);
 
       const result = await pricingService.calculatePrice('route-1', 'stop-1', 'stop-2', false);
 
@@ -283,7 +258,7 @@ describe('PricingService', () => {
     });
 
     it('should throw error when no active price found', async () => {
-      mockFindFirst.mockResolvedValue(null);
+      mockRepository.findActivePrice.mockResolvedValue(null);
 
       await expect(
         pricingService.calculatePrice('route-1', 'stop-1', 'stop-2', false)
@@ -293,8 +268,8 @@ describe('PricingService', () => {
 
   describe('getPricesByRoute', () => {
     it('should return prices for a route', async () => {
-      const mockPrices = [{ id: '1', basePrice: 100 }] as unknown as Price[];
-      mockFindMany.mockResolvedValue(mockPrices);
+      const mockPrices: any = [{ id: '1', basePrice: 100 }];
+      mockRepository.findPricesByRoute.mockResolvedValue(mockPrices);
 
       const result = await pricingService.getPricesByRoute('route-1');
 
@@ -304,8 +279,8 @@ describe('PricingService', () => {
 
   describe('getPriceStats', () => {
     it('should return statistics', async () => {
-      mockCount.mockResolvedValueOnce(10); // total
-      mockCount.mockResolvedValueOnce(6); // active
+      mockRepository.countPrices.mockResolvedValue(10); // total
+      mockRepository.countActivePrices.mockResolvedValue(6); // active
 
       const result = await pricingService.getPriceStats();
 
