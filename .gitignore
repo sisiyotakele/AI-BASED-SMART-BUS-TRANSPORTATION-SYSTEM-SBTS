@@ -9,3 +9,6 @@ __pycache__/
 .venv/
 *.log
 
+# Postman collections (local only)
+.postman/
+postman/

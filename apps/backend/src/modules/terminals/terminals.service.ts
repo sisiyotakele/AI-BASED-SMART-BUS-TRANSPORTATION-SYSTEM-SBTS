@@ -1,18 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '@/prisma/client';
 import { NotFoundError, ConflictError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './terminals.repository';
 
 // Allow prisma client to be injected for testing
-let prisma: PrismaClient = defaultPrisma;
-
 export function setPrismaClient(client: PrismaClient) {
-  prisma = client;
+  repository.setPrismaClient(client);
 }
 
 export async function createTerminal(data: any, actorId?: string) {
   try {
-    const terminal = await prisma.terminal.create({ data });
+    const terminal = await repository.createTerminal(data);
     logger.info('Terminal created', { terminalId: terminal.id });
     return terminal;
   } catch (e: any) {
@@ -29,11 +27,11 @@ export async function listTerminals(search?: string) {
       { address: { contains: search, mode: 'insensitive' } },
     ];
   }
-  return prisma.terminal.findMany({ where, orderBy: { terminalName: 'asc' } });
+  return repository.findTerminals(where);
 }
 
 export async function getTerminalById(id: string) {
-  const terminal = await prisma.terminal.findFirst({ where: { id, deletedAt: null } });
+  const terminal = await repository.findTerminalById(id);
   if (!terminal) throw new NotFoundError('Terminal not found', 'TERMINAL_NOT_FOUND');
   return terminal;
 }
@@ -41,7 +39,7 @@ export async function getTerminalById(id: string) {
 export async function updateTerminal(id: string, data: any) {
   await getTerminalById(id);
   try {
-    const terminal = await prisma.terminal.update({ where: { id }, data });
+    const terminal = await repository.updateTerminal(id, data);
     logger.info('Terminal updated', { terminalId: id });
     return terminal;
   } catch (e: any) {
@@ -52,10 +50,7 @@ export async function updateTerminal(id: string, data: any) {
 
 export async function deleteTerminal(id: string, _actorId?: string) {
   await getTerminalById(id);
-  const terminal = await prisma.terminal.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const terminal = await repository.softDeleteTerminal(id);
   logger.info('Terminal soft-deleted', { terminalId: id });
   return terminal;
 }

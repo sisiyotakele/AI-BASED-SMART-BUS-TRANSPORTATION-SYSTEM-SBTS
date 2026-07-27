@@ -1,11 +1,9 @@
-import { prisma as defaultPrisma } from '@/prisma/client';
 import { NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './schedules.repository';
 
-let prisma = defaultPrisma;
-
-export function setPrismaClient(client: typeof defaultPrisma) {
-  prisma = client;
+export function setPrismaClient(client: any) {
+  repository.setPrismaClient(client);
 }
 
 function timeToDate(timeStr: string) {
@@ -16,18 +14,16 @@ function timeToDate(timeStr: string) {
 }
 
 export async function createSchedule(data: any, _actorId?: string) {
-  const schedule = await prisma.schedule.create({
-    data: {
-      routeId: data.routeId,
-      versionId: data.versionId,
-      scheduleName: data.scheduleName,
-      dayOfWeek: data.dayOfWeek,
-      departureTime: timeToDate(data.departureTime),
-      frequencyMinutes: data.frequencyMinutes,
-      isActive: data.isActive,
-      effectiveFrom: data.effectiveFrom,
-      effectiveUntil: data.effectiveUntil,
-    },
+  const schedule = await repository.createSchedule({
+    routeId: data.routeId,
+    versionId: data.versionId,
+    scheduleName: data.scheduleName,
+    dayOfWeek: data.dayOfWeek,
+    departureTime: timeToDate(data.departureTime),
+    frequencyMinutes: data.frequencyMinutes,
+    isActive: data.isActive,
+    effectiveFrom: data.effectiveFrom,
+    effectiveUntil: data.effectiveUntil,
   });
   logger.info('Schedule created', { scheduleId: schedule.id });
   return schedule;
@@ -36,25 +32,12 @@ export async function createSchedule(data: any, _actorId?: string) {
 export async function listSchedules(filters: { routeId?: string; dayOfWeek?: string } = {}) {
   const where: any = { deletedAt: null };
   if (filters.routeId) where.routeId = filters.routeId;
-  if (filters.dayOfWeek) where.dayOfWeek = filters.dayOfWeek; // dayOfWeek is an enum, no mode needed
-  return prisma.schedule.findMany({
-    where,
-    include: {
-      route: { select: { id: true, routeName: true } },
-      version: { select: { id: true, versionNumber: true } },
-    },
-    orderBy: { departureTime: 'asc' },
-  });
+  if (filters.dayOfWeek) where.dayOfWeek = filters.dayOfWeek;
+  return repository.findSchedules(where);
 }
 
 export async function getScheduleById(id: string) {
-  const schedule = await prisma.schedule.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      route: { select: { id: true, routeName: true } },
-      version: { select: { id: true, versionNumber: true } },
-    },
-  });
+  const schedule = await repository.findScheduleById(id);
   if (!schedule) throw new NotFoundError('Schedule not found', 'SCHEDULE_NOT_FOUND');
   return schedule;
 }
@@ -69,17 +52,14 @@ export async function updateSchedule(id: string, data: any) {
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.effectiveUntil) updateData.effectiveUntil = data.effectiveUntil;
 
-  const schedule = await prisma.schedule.update({ where: { id }, data: updateData });
+  const schedule = await repository.updateSchedule(id, updateData);
   logger.info('Schedule updated', { scheduleId: id });
   return schedule;
 }
 
 export async function deleteSchedule(id: string, _actorId?: string) {
   await getScheduleById(id);
-  const schedule = await prisma.schedule.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const schedule = await repository.softDeleteSchedule(id);
   logger.info('Schedule soft-deleted', { scheduleId: id });
   return schedule;
 }

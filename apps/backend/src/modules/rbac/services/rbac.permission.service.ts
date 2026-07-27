@@ -1,10 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import type { PermissionFilter } from '../rbac.types';
-
-let prisma: PrismaClient;
+import * as repository from './rbac.permission.repository';
 
 export function setPrismaClient(client: PrismaClient) {
-    prisma = client;
+    repository.setPrismaClient(client);
 }
 
 export async function listPermissions(filters: PermissionFilter = {}) {
@@ -23,16 +22,5 @@ export async function listPermissions(filters: PermissionFilter = {}) {
         ];
     }
 
-    return prisma.permission.findMany({
-        where,
-        orderBy: { resource: 'asc' },
-        select: {
-            id: true,
-            permissionName: true,
-            resource: true,
-            action: true,
-            description: true,
-            createdAt: true,
-        },
-    });
+    return repository.findPermissions(where);
 }

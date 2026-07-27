@@ -1,11 +1,10 @@
-import { prisma } from '@/prisma/client';
 import { NotFoundError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './incidents.repository';
 
 // Allow test injection
-let db = prisma;
-export function setPrismaClient(client: typeof prisma) {
-  db = client;
+export function setPrismaClient(client: any) {
+  repository.setPrismaClient(client);
 }
 
 const VALID_INCIDENT_TRANSITIONS: Record<string, string[]> = {
@@ -15,25 +14,20 @@ const VALID_INCIDENT_TRANSITIONS: Record<string, string[]> = {
 };
 
 export async function createIncident(data: any, actorId?: string) {
-  const trip = await db.trip.findFirst({
-    where: { id: data.tripId, deletedAt: null },
-    include: { bus: true, driver: true },
-  });
+  const trip = await repository.findTripById(data.tripId);
   if (!trip) throw new NotFoundError('Trip not found', 'TRIP_NOT_FOUND');
 
-  const incident = await db.incident.create({
-    data: {
-      tripId: data.tripId,
-      busId: trip.busId,
-      driverId: trip.driverId,
-      incidentType: data.incidentType,
-      severity: data.severity,
-      description: data.description,
-      latitude: data.latitude,
-      longitude: data.longitude,
-      photoUrl: data.photoUrl,
-      status: 'reported',
-    },
+  const incident = await repository.createIncident({
+    tripId: data.tripId,
+    busId: trip.busId,
+    driverId: trip.driverId,
+    incidentType: data.incidentType,
+    severity: data.severity,
+    description: data.description,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    photoUrl: data.photoUrl,
+    status: 'reported',
   });
 
   // TODO: publish event for notifications module
@@ -46,28 +40,11 @@ export async function listIncidents(filters: { status?: string; tripId?: string;
   if (filters.status) where.status = filters.status;
   if (filters.tripId) where.tripId = filters.tripId;
   if (filters.driverId) where.driverId = filters.driverId;
-  return db.incident.findMany({
-    where,
-    include: {
-      trip: { select: { id: true, scheduledStart: true } },
-      bus: { select: { id: true, plateNumber: true } },
-      driver: { select: { id: true, fullName: true } },
-      resolvedBy: { select: { id: true, fullName: true } },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  return repository.findIncidents(where);
 }
 
 export async function getIncidentById(id: string) {
-  const incident = await db.incident.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      trip: { select: { id: true, scheduledStart: true } },
-      bus: { select: { id: true, plateNumber: true } },
-      driver: { select: { id: true, fullName: true } },
-      resolvedBy: { select: { id: true, fullName: true } },
-    },
-  });
+  const incident = await repository.findIncidentById(id);
   if (!incident) throw new NotFoundError('Incident not found', 'INCIDENT_NOT_FOUND');
   return incident;
 }
@@ -77,10 +54,7 @@ export async function reviewIncident(id: string) {
   if (!VALID_INCIDENT_TRANSITIONS[incident.status]?.includes('investigating')) {
     throw new BadRequestError(`Cannot review incident in status ${incident.status}`, 'INVALID_TRANSITION');
   }
-  const updated = await db.incident.update({
-    where: { id },
-    data: { status: 'investigating' },
-  });
+  const updated = await repository.updateIncident(id, { status: 'investigating' });
   logger.info('Incident under investigation', { incidentId: id });
   return updated;
 }
@@ -99,26 +73,20 @@ export async function resolveIncident(id: string, data: { resolutionNotes: strin
   };
 
   if (actorId) {
-    const userExists = await db.user.findUnique({ where: { id: actorId } });
+    const userExists = await repository.findUserById(actorId);
     if (userExists) {
       updateData.resolvedById = actorId;
     }
   }
 
-  const updated = await db.incident.update({
-    where: { id },
-    data: updateData,
-  });
+  const updated = await repository.updateIncident(id, updateData);
   logger.info('Incident resolved', { incidentId: id });
   return updated;
 }
 
 export async function deleteIncident(id: string, _actorId?: string) {
   await getIncidentById(id);
-  const incident = await db.incident.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const incident = await repository.softDeleteIncident(id);
   logger.info('Incident soft-deleted', { incidentId: id });
   return incident;
 }

@@ -1,11 +1,10 @@
-import { prisma } from '@/prisma/client';
 import { NotFoundError, ConflictError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './trips.repository';
 
 // Allow test injection
-let db = prisma;
-export function setPrismaClient(client: typeof prisma) {
-  db = client;
+export function setPrismaClient(client: any) {
+  repository.setPrismaClient(client);
 }
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -29,25 +28,18 @@ function isValidTransition(from: string, to: string): boolean {
  * @throws ConflictError if bus or driver has overlapping trip
  */
 export async function createTrip(data: any, actorId?: string) {
-  return db.$transaction(
+  return repository.executeTransaction(
     async (tx) => {
       // LAYER 1: Explicit checks for clear error messages
       // These run first to provide user-friendly error messages
       // If they pass but a race condition occurs, the DB constraint will catch it
 
-      const busOverlap = await tx.trip.findFirst({
-        where: {
-          busId: data.busId,
-          status: { in: ['scheduled', 'in_progress'] },
-          deletedAt: null,
-          OR: [
-            {
-              scheduledStart: { lte: data.scheduledEnd },
-              scheduledEnd: { gte: data.scheduledStart }
-            },
-          ],
-        },
-      });
+      const busOverlap = await repository.findBusOverlappingTrip(
+        tx,
+        data.busId,
+        data.scheduledStart,
+        data.scheduledEnd
+      );
 
       if (busOverlap) {
         throw new ConflictError(
@@ -56,19 +48,12 @@ export async function createTrip(data: any, actorId?: string) {
         );
       }
 
-      const driverOverlap = await tx.trip.findFirst({
-        where: {
-          driverId: data.driverId,
-          status: { in: ['scheduled', 'in_progress'] },
-          deletedAt: null,
-          OR: [
-            {
-              scheduledStart: { lte: data.scheduledEnd },
-              scheduledEnd: { gte: data.scheduledStart }
-            },
-          ],
-        },
-      });
+      const driverOverlap = await repository.findDriverOverlappingTrip(
+        tx,
+        data.driverId,
+        data.scheduledStart,
+        data.scheduledEnd
+      );
 
       if (driverOverlap) {
         throw new ConflictError(
@@ -81,24 +66,7 @@ export async function createTrip(data: any, actorId?: string) {
       // If a concurrent request passed the checks above, the DB exclusion constraint
       // will reject this insert with a unique violation error
       try {
-        const trip = await tx.trip.create({
-          data: {
-            busId: data.busId,
-            driverId: data.driverId,
-            versionId: data.versionId,
-            scheduleId: data.scheduleId,
-            keyHandoverId: data.keyHandoverId,
-            scheduledStart: data.scheduledStart,
-            scheduledEnd: data.scheduledEnd,
-            status: 'scheduled',
-          },
-          include: {
-            bus: { select: { id: true, plateNumber: true } },
-            driver: { select: { id: true, fullName: true } },
-            version: { select: { id: true, versionNumber: true } },
-            schedule: { select: { id: true, scheduleName: true } },
-          },
-        });
+        const trip = await repository.createTrip(tx, data);
 
         logger.info('Trip created successfully', {
           tripId: trip.id,
@@ -146,28 +114,11 @@ export async function listTrips(filters: { driverId?: string; status?: string; b
     end.setHours(23, 59, 59, 999);
     where.scheduledStart = { gte: start, lte: end };
   }
-  return db.trip.findMany({
-    where,
-    include: {
-      bus: { select: { id: true, plateNumber: true } },
-      driver: { select: { id: true, fullName: true } },
-      version: { select: { id: true, versionNumber: true } },
-      schedule: { select: { id: true, scheduleName: true } },
-    },
-    orderBy: { scheduledStart: 'desc' },
-  });
+  return repository.findTrips(where);
 }
 
 export async function getTripById(id: string) {
-  const trip = await db.trip.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      bus: { select: { id: true, plateNumber: true } },
-      driver: { select: { id: true, fullName: true } },
-      version: { select: { id: true, versionNumber: true } },
-      schedule: { select: { id: true, scheduleName: true } },
-    },
-  });
+  const trip = await repository.findTripById(id);
   if (!trip) throw new NotFoundError('Trip not found', 'TRIP_NOT_FOUND');
   return trip;
 }
@@ -182,7 +133,7 @@ async function transitionTrip(id: string, newStatus: string, extraData?: any) {
   }
 
   const data: any = { status: newStatus, ...extraData };
-  const updated = await db.trip.update({ where: { id }, data });
+  const updated = await repository.updateTrip(id, data);
   logger.info(`Trip ${newStatus}`, { tripId: id });
   return updated;
 }
@@ -209,10 +160,7 @@ export async function cancelTrip(id: string) {
 
 export async function deleteTrip(id: string, _actorId?: string) {
   await getTripById(id);
-  const trip = await db.trip.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const trip = await repository.softDeleteTrip(id);
   logger.info('Trip soft-deleted', { tripId: id });
   return trip;
 }

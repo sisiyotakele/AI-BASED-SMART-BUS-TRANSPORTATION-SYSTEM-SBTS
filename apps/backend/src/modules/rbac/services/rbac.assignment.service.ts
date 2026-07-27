@@ -2,11 +2,10 @@ import { PrismaClient } from '@prisma/client';
 import { ConflictError, NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
 import type { AssignPermissionInput, AssignRoleInput } from '../rbac.types';
-
-let prisma: PrismaClient;
+import * as repository from './rbac.assignment.repository';
 
 export function setPrismaClient(client: PrismaClient) {
-    prisma = client;
+    repository.setPrismaClient(client);
 }
 
 // ============================================================
@@ -18,37 +17,21 @@ export async function assignPermissionToRole(
     input: AssignPermissionInput,
     actorId?: string
 ) {
-    const role = await prisma.role.findFirst({
-        where: { id: roleId, deletedAt: null },
-    });
+    const role = await repository.findRoleById(roleId);
     if (!role) {
         throw new NotFoundError('Role not found', 'ROLE_NOT_FOUND');
     }
 
-    const permission = await prisma.permission.findUnique({
-        where: { id: input.permissionId },
-    });
+    const permission = await repository.findPermissionById(input.permissionId);
     if (!permission) {
         throw new NotFoundError('Permission not found', 'PERMISSION_NOT_FOUND');
     }
 
     try {
-        const assignment = await prisma.rolePermission.create({
-            data: {
-                roleId,
-                permissionId: input.permissionId,
-                createdById: actorId,
-            },
-            include: {
-                permission: {
-                    select: {
-                        id: true,
-                        permissionName: true,
-                        resource: true,
-                        action: true,
-                    },
-                },
-            },
+        const assignment = await repository.createRolePermission({
+            roleId,
+            permissionId: input.permissionId,
+            createdById: actorId,
         });
         logger.info('Permission assigned to role', { roleId, permissionId: input.permissionId });
         return assignment;
@@ -65,9 +48,7 @@ export async function assignPermissionToRole(
 }
 
 export async function removePermissionFromRole(roleId: string, permissionId: string) {
-    const assignment = await prisma.rolePermission.findFirst({
-        where: { roleId, permissionId },
-    });
+    const assignment = await repository.findRolePermission(roleId, permissionId);
 
     if (!assignment) {
         throw new NotFoundError(
@@ -76,9 +57,7 @@ export async function removePermissionFromRole(roleId: string, permissionId: str
         );
     }
 
-    await prisma.rolePermission.delete({
-        where: { id: assignment.id },
-    });
+    await repository.deleteRolePermission(assignment.id);
 
     logger.info('Permission removed from role', { roleId, permissionId });
     return { removed: true };
@@ -93,36 +72,21 @@ export async function assignRoleToUser(
     input: AssignRoleInput,
     actorId?: string
 ) {
-    const user = await prisma.user.findFirst({
-        where: { id: userId, deletedAt: null },
-    });
+    const user = await repository.findUserById(userId);
     if (!user) {
         throw new NotFoundError('User not found', 'USER_NOT_FOUND');
     }
 
-    const role = await prisma.role.findFirst({
-        where: { id: input.roleId, deletedAt: null },
-    });
+    const role = await repository.findRoleById(input.roleId);
     if (!role) {
         throw new NotFoundError('Role not found', 'ROLE_NOT_FOUND');
     }
 
     try {
-        const assignment = await prisma.userRole.create({
-            data: {
-                userId,
-                roleId: input.roleId,
-                createdById: actorId,
-            },
-            include: {
-                role: {
-                    select: {
-                        id: true,
-                        roleName: true,
-                        description: true,
-                    },
-                },
-            },
+        const assignment = await repository.createUserRole({
+            userId,
+            roleId: input.roleId,
+            createdById: actorId,
         });
         logger.info('Role assigned to user', { userId, roleId: input.roleId });
         return assignment;
@@ -139,9 +103,7 @@ export async function assignRoleToUser(
 }
 
 export async function removeRoleFromUser(userId: string, roleId: string) {
-    const assignment = await prisma.userRole.findFirst({
-        where: { userId, roleId },
-    });
+    const assignment = await repository.findUserRole(userId, roleId);
 
     if (!assignment) {
         throw new NotFoundError(
@@ -150,31 +112,14 @@ export async function removeRoleFromUser(userId: string, roleId: string) {
         );
     }
 
-    await prisma.userRole.delete({
-        where: { id: assignment.id },
-    });
+    await repository.deleteUserRole(assignment.id);
 
     logger.info('Role removed from user', { userId, roleId });
     return { removed: true };
 }
 
 export async function getUserRoles(userId: string) {
-    const user = await prisma.user.findFirst({
-        where: { id: userId, deletedAt: null },
-        include: {
-            userRoles: {
-                include: {
-                    role: {
-                        select: {
-                            id: true,
-                            roleName: true,
-                            description: true,
-                        },
-                    },
-                },
-            },
-        },
-    });
+    const user = await repository.findUserWithRoles(userId);
 
     if (!user) {
         throw new NotFoundError('User not found', 'USER_NOT_FOUND');

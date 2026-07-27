@@ -2,21 +2,18 @@ import { PrismaClient } from '@prisma/client';
 import { ConflictError, NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
 import type { RoleCreateInput, RoleUpdateInput } from '../rbac.types';
-
-let prisma: PrismaClient;
+import * as repository from './rbac.role.repository';
 
 export function setPrismaClient(client: PrismaClient) {
-    prisma = client;
+    repository.setPrismaClient(client);
 }
 
 export async function createRole(input: RoleCreateInput, actorId?: string) {
     try {
-        const role = await prisma.role.create({
-            data: {
-                roleName: input.roleName.toLowerCase().trim(),
-                description: input.description,
-                createdById: actorId,
-            },
+        const role = await repository.createRole({
+            roleName: input.roleName.toLowerCase().trim(),
+            description: input.description,
+            createdById: actorId,
         });
         logger.info('Role created', { roleId: role.id, roleName: role.roleName });
         return role;
@@ -33,20 +30,15 @@ export async function createRole(input: RoleCreateInput, actorId?: string) {
 }
 
 export async function updateRole(roleId: string, input: RoleUpdateInput) {
-    const existing = await prisma.role.findFirst({
-        where: { id: roleId, deletedAt: null },
-    });
+    const existing = await repository.findRoleById(roleId);
     if (!existing) {
         throw new NotFoundError('Role not found', 'ROLE_NOT_FOUND');
     }
 
     try {
-        const role = await prisma.role.update({
-            where: { id: roleId },
-            data: {
-                ...(input.roleName && { roleName: input.roleName.toLowerCase().trim() }),
-                ...(input.description !== undefined && { description: input.description }),
-            },
+        const role = await repository.updateRole(roleId, {
+            ...(input.roleName && { roleName: input.roleName.toLowerCase().trim() }),
+            ...(input.description !== undefined && { description: input.description }),
         });
         logger.info('Role updated', { roleId });
         return role;
@@ -72,52 +64,14 @@ export async function listRoles(options: { search?: string; includePermissions?:
         ];
     }
 
-    const roles = await prisma.role.findMany({
-        where,
-        include: options.includePermissions
-            ? {
-                rolePermissions: {
-                    include: {
-                        permission: {
-                            select: {
-                                id: true,
-                                permissionName: true,
-                                resource: true,
-                                action: true,
-                                description: true,
-                            },
-                        },
-                    },
-                },
-            }
-            : undefined,
-        orderBy: { createdAt: 'asc' },
-    });
-
+    const roles = await repository.findRoles(where, options.includePermissions || false);
     return roles;
 }
 
 export async function getRoleById(roleId: string, includePermissions = false) {
-    const role = await prisma.role.findFirst({
-        where: { id: roleId, deletedAt: null },
-        include: includePermissions
-            ? {
-                rolePermissions: {
-                    include: {
-                        permission: {
-                            select: {
-                                id: true,
-                                permissionName: true,
-                                resource: true,
-                                action: true,
-                                description: true,
-                            },
-                        },
-                    },
-                },
-            }
-            : undefined,
-    });
+    const role = includePermissions
+        ? await repository.findRoleByIdWithPermissions(roleId)
+        : await repository.findRoleById(roleId);
 
     if (!role) {
         throw new NotFoundError('Role not found', 'ROLE_NOT_FOUND');
@@ -127,14 +81,7 @@ export async function getRoleById(roleId: string, includePermissions = false) {
 }
 
 export async function deleteRole(roleId: string, actorId?: string) {
-    const existing = await prisma.role.findFirst({
-        where: { id: roleId, deletedAt: null },
-        include: {
-            userRoles: {
-                take: 1,
-            },
-        },
-    });
+    const existing = await repository.findRoleWithUsers(roleId);
 
     if (!existing) {
         throw new NotFoundError('Role not found', 'ROLE_NOT_FOUND');
@@ -147,13 +94,7 @@ export async function deleteRole(roleId: string, actorId?: string) {
         );
     }
 
-    const role = await prisma.role.update({
-        where: { id: roleId },
-        data: {
-            deletedAt: new Date(),
-            deletedById: actorId,
-        },
-    });
+    const role = await repository.softDeleteRole(roleId, actorId);
 
     logger.info('Role soft-deleted', { roleId });
     return role;

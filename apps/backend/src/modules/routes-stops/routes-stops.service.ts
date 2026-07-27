@@ -1,11 +1,9 @@
-import { prisma as defaultPrisma } from '@/prisma/client';
 import { NotFoundError, ConflictError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
-
-let prisma = defaultPrisma;
+import * as repository from './routes-stops.repository';
 
 export function setPrismaClient(client: any) {
-  prisma = client;
+  repository.setPrismaClient(client);
 }
 
 // ============================================================
@@ -13,7 +11,7 @@ export function setPrismaClient(client: any) {
 // ============================================================
 
 export async function createRoute(data: any, _actorId?: string) {
-  const route = await prisma.$transaction(async (tx) => {
+  const route = await repository.executeTransaction(async (tx) => {
     const newRoute = await tx.route.create({
       data: {
         routeName: data.routeName,
@@ -44,58 +42,31 @@ export async function listRoutes(search?: string) {
       { description: { contains: search, mode: 'insensitive' } },
     ];
   }
-  return prisma.route.findMany({
-    where,
-    include: {
-      versions: { where: { isActive: true, deletedAt: null }, take: 1 },
-      startStop: { select: { id: true, stopName: true } },
-      endStop: { select: { id: true, stopName: true } },
-    },
-    orderBy: { routeName: 'asc' },
-  });
+  return repository.findRoutes(where);
 }
 
 export async function getRouteById(id: string) {
-  const route = await prisma.route.findFirst({
-    where: { id, deletedAt: null },
-    include: {
-      startStop: { select: { id: true, stopName: true } },
-      endStop: { select: { id: true, stopName: true } },
-    },
-  });
+  const route = await repository.findRouteById(id);
   if (!route) throw new NotFoundError('Route not found', 'ROUTE_NOT_FOUND');
   return route;
 }
 
 export async function getRouteVersions(id: string) {
   await getRouteById(id);
-  return prisma.routeVersion.findMany({
-    where: { routeId: id, deletedAt: null },
-    orderBy: { versionNumber: 'desc' },
-    include: {
-      routeStops: {
-        where: { deletedAt: null },
-        orderBy: { sequenceNumber: 'asc' },
-        include: { stop: { select: { id: true, stopName: true, stopCode: true } } },
-      },
-    },
-  });
+  return repository.findRouteVersions(id);
 }
 
 export async function updateRoute(id: string, data: any) {
   await getRouteById(id);
-  const route = await prisma.route.update({ where: { id }, data });
+  const route = await repository.updateRoute(id, data);
   logger.info('Route updated', { routeId: id });
   return route;
 }
 
 export async function createNewRouteVersion(id: string, data: { routeStops?: any[] }, actorId?: string) {
   const route = await getRouteById(id);
-  return prisma.$transaction(async (tx) => {
-    const lastVersion = await tx.routeVersion.findFirst({
-      where: { routeId: id, deletedAt: null },
-      orderBy: { versionNumber: 'desc' },
-    });
+  return repository.executeTransaction(async (tx) => {
+    const lastVersion = await repository.findLastRouteVersion(id);
     const newVersionNumber = (lastVersion?.versionNumber || 0) + 1;
 
     // Deactivate old version
@@ -151,10 +122,7 @@ export async function createNewRouteVersion(id: string, data: { routeStops?: any
 
 export async function deleteRoute(id: string, _actorId?: string) {
   await getRouteById(id);
-  const route = await prisma.route.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const route = await repository.softDeleteRoute(id);
   logger.info('Route soft-deleted', { routeId: id });
   return route;
 }
@@ -165,7 +133,7 @@ export async function deleteRoute(id: string, _actorId?: string) {
 
 export async function createStop(data: any, _actorId?: string) {
   try {
-    const stop = await prisma.stop.create({ data });
+    const stop = await repository.createStop(data);
     logger.info('Stop created', { stopId: stop.id });
     return stop;
   } catch (e: any) {
@@ -182,11 +150,11 @@ export async function listStops(search?: string) {
       { stopCode: { contains: search, mode: 'insensitive' } },
     ];
   }
-  return prisma.stop.findMany({ where, orderBy: { stopName: 'asc' } });
+  return repository.findStops(where);
 }
 
 export async function getStopById(id: string) {
-  const stop = await prisma.stop.findFirst({ where: { id, deletedAt: null } });
+  const stop = await repository.findStopById(id);
   if (!stop) throw new NotFoundError('Stop not found', 'STOP_NOT_FOUND');
   return stop;
 }
@@ -194,7 +162,7 @@ export async function getStopById(id: string) {
 export async function updateStop(id: string, data: any) {
   await getStopById(id);
   try {
-    const stop = await prisma.stop.update({ where: { id }, data });
+    const stop = await repository.updateStop(id, data);
     logger.info('Stop updated', { stopId: id });
     return stop;
   } catch (e: any) {
@@ -205,10 +173,7 @@ export async function updateStop(id: string, data: any) {
 
 export async function deleteStop(id: string, _actorId?: string) {
   await getStopById(id);
-  const stop = await prisma.stop.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const stop = await repository.softDeleteStop(id);
   logger.info('Stop soft-deleted', { stopId: id });
   return stop;
 }
@@ -218,13 +183,12 @@ export async function findNearbyStops(lat: number, lng: number, radiusKm: number
   const latDelta = radiusKm / 111;
   const lngDelta = radiusKm / (111 * Math.cos(lat * Math.PI / 180));
 
-  const stops = await prisma.stop.findMany({
-    where: {
-      deletedAt: null,
-      latitude: { gte: lat - latDelta, lte: lat + latDelta },
-      longitude: { gte: lng - lngDelta, lte: lng + lngDelta },
-    },
-  });
+  const stops = await repository.findStopsInBox(
+    lat - latDelta,
+    lat + latDelta,
+    lng - lngDelta,
+    lng + lngDelta
+  );
 
   return stops
     .map((s: any) => {
@@ -244,18 +208,16 @@ export async function findNearbyStops(lat: number, lng: number, radiusKm: number
 // ============================================================
 
 export async function addRouteStop(versionId: string, data: any) {
-  const version = await prisma.routeVersion.findFirst({ where: { id: versionId, deletedAt: null } });
+  const version = await repository.findRouteVersion(versionId);
   if (!version) throw new NotFoundError('Route version not found', 'VERSION_NOT_FOUND');
   if (version.isActive) throw new BadRequestError('Cannot modify an active version. Create a new version first.');
 
-  const rs = await prisma.routeStop.create({
-    data: {
-      versionId,
-      stopId: data.stopId,
-      sequenceNumber: data.sequenceNumber,
-      estimatedMinutes: data.estimatedMinutes,
-      distanceKm: data.distanceKm,
-    },
+  const rs = await repository.createRouteStop({
+    versionId,
+    stopId: data.stopId,
+    sequenceNumber: data.sequenceNumber,
+    estimatedMinutes: data.estimatedMinutes,
+    distanceKm: data.distanceKm,
   });
   logger.info('Route stop added', { versionId, stopId: data.stopId });
   return rs;

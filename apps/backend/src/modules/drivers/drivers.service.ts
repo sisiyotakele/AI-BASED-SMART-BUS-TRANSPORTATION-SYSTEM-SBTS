@@ -1,36 +1,32 @@
 import bcrypt from 'bcryptjs';
-import { prisma as defaultPrisma } from '@/prisma/client';
 import { config } from '@/config';
 import { NotFoundError, ConflictError, AppError } from '@/common/errors';
 import { logger } from '@/common/logger';
-
-let prisma = defaultPrisma;
+import * as repository from './drivers.repository';
 
 export function setPrismaClient(client: any) {
-  prisma = client;
+  repository.setPrismaClient(client);
 }
 
 export async function createDriver(data: any, actorId?: string) {
-  const driverRole = await prisma.role.findFirst({ where: { roleName: 'DRIVER', deletedAt: null } });
+  const driverRole = await repository.findRoleByName('DRIVER');
   if (!driverRole) throw new AppError('Driver role not found. Run seed first.', 500, 'SEED_MISSING');
 
   const passwordHash = await bcrypt.hash(data.password, config.bcrypt.rounds);
 
   try {
-    const user = await prisma.user.create({
-      data: {
-        fullName: data.fullName,
-        email: data.email.toLowerCase().trim(),
-        phone: data.phone.trim(),
-        passwordHash,
-        homeTerminalId: data.homeTerminalId,
-        licenseNumber: data.licenseNumber,
-        licenseExpiry: data.licenseExpiry,
-        preferredLanguage: data.preferredLanguage,
-        department: data.department,
-        ...(actorId && { createdById: actorId }),
-        userRoles: { create: { roleId: driverRole.id, ...(actorId && { createdById: actorId }) } },
-      },
+    const user = await repository.createDriver({
+      fullName: data.fullName,
+      email: data.email.toLowerCase().trim(),
+      phone: data.phone.trim(),
+      passwordHash,
+      homeTerminalId: data.homeTerminalId,
+      licenseNumber: data.licenseNumber,
+      licenseExpiry: data.licenseExpiry,
+      preferredLanguage: data.preferredLanguage,
+      department: data.department,
+      ...(actorId && { createdById: actorId }),
+      userRoles: { create: { roleId: driverRole.id, ...(actorId && { createdById: actorId }) } },
     });
     logger.info('Driver created', { userId: user.id });
     return user;
@@ -54,11 +50,11 @@ export async function listDrivers(filters: { terminalId?: string; search?: strin
       { licenseNumber: { contains: filters.search, mode: 'insensitive' } },
     ];
   }
-  return prisma.user.findMany({ where, orderBy: { fullName: 'asc' } });
+  return repository.findDrivers(where);
 }
 
 export async function getDriverById(id: string) {
-  const driver = await prisma.user.findFirst({ where: { id, deletedAt: null, licenseNumber: { not: null } } });
+  const driver = await repository.findDriverById(id);
   if (!driver) throw new NotFoundError('Driver not found', 'DRIVER_NOT_FOUND');
   return driver;
 }
@@ -66,7 +62,7 @@ export async function getDriverById(id: string) {
 export async function updateDriver(id: string, data: any) {
   await getDriverById(id);
   try {
-    const driver = await prisma.user.update({ where: { id }, data });
+    const driver = await repository.updateDriver(id, data);
     logger.info('Driver updated', { userId: id });
     return driver;
   } catch (e: any) {
@@ -80,10 +76,7 @@ export async function updateDriver(id: string, data: any) {
 
 export async function deleteDriver(id: string, actorId?: string) {
   await getDriverById(id);
-  const driver = await prisma.user.update({
-    where: { id },
-    data: { deletedAt: new Date(), ...(actorId && { deletedById: actorId }) },
-  });
+  const driver = await repository.softDeleteDriver(id, actorId);
   logger.info('Driver soft-deleted', { userId: id });
   return driver;
 }

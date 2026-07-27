@@ -1,28 +1,12 @@
 import { PrismaClient } from '@prisma/client';
-
-let prisma: PrismaClient;
+import * as repository from './rbac.check.repository';
 
 export function setPrismaClient(client: PrismaClient) {
-    prisma = client;
+    repository.setPrismaClient(client);
 }
 
 export async function getUserPermissions(userId: string): Promise<string[]> {
-    const userRoles = await prisma.userRole.findMany({
-        where: { userId },
-        include: {
-            role: {
-                include: {
-                    rolePermissions: {
-                        include: {
-                            permission: {
-                                select: { permissionName: true },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    });
+    const userRoles = await repository.findUserRolesWithPermissions(userId);
 
     const permissionSet = new Set<string>();
     for (const ur of userRoles as any[]) {

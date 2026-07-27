@@ -1,6 +1,6 @@
-import { prisma } from '@/prisma/client';
 import { NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './tracking.repository';
 
 interface LocationUpdate {
   busId: string;
@@ -16,10 +16,7 @@ interface LocationUpdate {
  */
 export async function updateBusLocation(data: LocationUpdate) {
   // Verify bus exists
-  const bus = await prisma.bus.findUnique({
-    where: { id: data.busId },
-    select: { id: true, plateNumber: true },
-  });
+  const bus = await repository.findBusById(data.busId);
 
   if (!bus) {
     throw new NotFoundError('Bus not found', 'BUS_NOT_FOUND');
@@ -50,14 +47,7 @@ export async function updateBusLocation(data: LocationUpdate) {
  * Get current location of a specific bus
  */
 export async function getBusLocation(busId: string) {
-  const bus = await prisma.bus.findUnique({
-    where: { id: busId },
-    select: {
-      id: true,
-      plateNumber: true,
-      maintenanceStatus: true,
-    },
-  });
+  const bus = await repository.findBusWithDetails(busId);
 
   if (!bus) {
     throw new NotFoundError('Bus not found', 'BUS_NOT_FOUND');
@@ -76,17 +66,7 @@ export async function getBusLocation(busId: string) {
  * Get locations of all active buses
  */
 export async function getAllActiveBusLocations() {
-  const buses = await prisma.bus.findMany({
-    where: {
-      maintenanceStatus: 'operational',
-      deletedAt: null,
-    },
-    select: {
-      id: true,
-      plateNumber: true,
-      maintenanceStatus: true,
-    },
-  });
+  const buses = await repository.findAllActiveBuses();
 
   return buses.map(bus => ({
     busId: bus.id,

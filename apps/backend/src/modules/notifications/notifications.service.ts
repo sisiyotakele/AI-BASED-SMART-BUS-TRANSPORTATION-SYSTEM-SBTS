@@ -1,33 +1,26 @@
-import { prisma } from '@/prisma/client';
 import { NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './notifications.repository';
 
 export async function createNotification(data: any, actorId?: string) {
-  const notification = await prisma.notification.create({
-    data: {
-      notificationType: data.notificationType,
-      title: data.title,
-      message: data.message,
-      priority: data.priority,
-    },
+  const notification = await repository.createNotification({
+    notificationType: data.notificationType,
+    title: data.title,
+    message: data.message,
+    priority: data.priority,
   });
 
   // Filter to only include users that exist in the database
-  const existingUsers = await prisma.user.findMany({
-    where: { id: { in: data.userIds } },
-    select: { id: true },
-  });
-
+  const existingUsers = await repository.findUsersByIds(data.userIds);
   const existingUserIds = existingUsers.map(u => u.id);
 
   if (existingUserIds.length > 0) {
-    await prisma.notificationUser.createMany({
-      data: existingUserIds.map((userId: string) => ({
+    await repository.createManyNotificationUsers(
+      existingUserIds.map((userId: string) => ({
         notificationId: notification.id,
         userId,
-      })),
-      skipDuplicates: true,
-    });
+      }))
+    );
   }
 
   logger.info('Notification created', { notificationId: notification.id, recipients: existingUserIds.length });
@@ -37,33 +30,16 @@ export async function createNotification(data: any, actorId?: string) {
 export async function listNotifications(userId: string, isRead?: boolean) {
   const where: any = { userId };
   if (isRead !== undefined) where.isRead = isRead;
-  return prisma.notificationUser.findMany({
-    where,
-    include: {
-      notification: {
-        select: {
-          id: true,
-          notificationType: true,
-          title: true,
-          message: true,
-          priority: true,
-          createdAt: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
+  return repository.findNotificationUsers(where);
 }
 
 export async function markAsRead(notificationUserId: string, userId: string) {
-  const nu = await prisma.notificationUser.findFirst({
-    where: { id: notificationUserId, userId },
-  });
+  const nu = await repository.findNotificationUser(notificationUserId, userId);
   if (!nu) throw new NotFoundError('Notification not found', 'NOTIFICATION_NOT_FOUND');
 
-  const updated = await prisma.notificationUser.update({
-    where: { id: notificationUserId },
-    data: { isRead: true, readAt: new Date() },
+  const updated = await repository.updateNotificationUser(notificationUserId, {
+    isRead: true,
+    readAt: new Date(),
   });
   logger.info('Notification marked as read', { notificationUserId });
   return updated;
@@ -94,10 +70,7 @@ export async function updateDeliveryStatus(
     }
   }
 
-  const notificationUser = await prisma.notificationUser.update({
-    where: { id: notificationUserId },
-    data: updateData,
-  });
+  const notificationUser = await repository.updateNotificationUser(notificationUserId, updateData);
 
   logger.info('Notification delivery status updated', {
     notificationUserId,
@@ -109,12 +82,9 @@ export async function updateDeliveryStatus(
 }
 
 export async function incrementDeliveryAttempts(notificationUserId: string) {
-  const notificationUser = await prisma.notificationUser.update({
-    where: { id: notificationUserId },
-    data: {
-      deliveryAttempts: { increment: 1 },
-      lastAttemptAt: new Date(),
-    },
+  const notificationUser = await repository.updateNotificationUser(notificationUserId, {
+    deliveryAttempts: { increment: 1 },
+    lastAttemptAt: new Date(),
   });
 
   logger.info('Notification delivery attempt incremented', {
@@ -137,34 +107,17 @@ export async function getFailedDeliveries(
   const retryThreshold = new Date();
   retryThreshold.setMinutes(retryThreshold.getMinutes() - olderThanMinutes);
 
-  const failedDeliveries = await prisma.notificationUser.findMany({
-    where: {
+  const failedDeliveries = await repository.findFailedNotifications(
+    {
       deliveryStatus: 'failed',
       deliveryAttempts: { lt: maxAttempts },
       lastAttemptAt: { lt: retryThreshold },
     },
-    include: {
-      notification: {
-        select: {
-          id: true,
-          notificationType: true,
-          title: true,
-          message: true,
-          priority: true,
-        },
-      },
-      user: {
-        select: {
-          id: true,
-          fullName: true,
-          email: true,
-          phone: true,
-        },
-      },
-    },
-    orderBy: { lastAttemptAt: 'asc' },
-    take: limit,
-  });
+    {
+      orderBy: { lastAttemptAt: 'asc' },
+      take: limit,
+    }
+  );
 
   return failedDeliveries;
 }
@@ -183,12 +136,12 @@ export async function getDeliveryStatistics(notificationId?: string) {
     failed,
     bounced,
   ] = await Promise.all([
-    prisma.notificationUser.count({ where }),
-    prisma.notificationUser.count({ where: { ...where, deliveryStatus: 'pending' } }),
-    prisma.notificationUser.count({ where: { ...where, deliveryStatus: 'sent' } }),
-    prisma.notificationUser.count({ where: { ...where, deliveryStatus: 'delivered' } }),
-    prisma.notificationUser.count({ where: { ...where, deliveryStatus: 'failed' } }),
-    prisma.notificationUser.count({ where: { ...where, deliveryStatus: 'bounced' } }),
+    repository.countNotificationUsers(where),
+    repository.countNotificationUsers({ ...where, deliveryStatus: 'pending' }),
+    repository.countNotificationUsers({ ...where, deliveryStatus: 'sent' }),
+    repository.countNotificationUsers({ ...where, deliveryStatus: 'delivered' }),
+    repository.countNotificationUsers({ ...where, deliveryStatus: 'failed' }),
+    repository.countNotificationUsers({ ...where, deliveryStatus: 'bounced' }),
   ]);
 
   const deliveryRate = totalRecipients > 0
@@ -207,35 +160,12 @@ export async function getDeliveryStatistics(notificationId?: string) {
 }
 
 export async function getUserDeliveryHistory(userId: string, limit = 50) {
-  const deliveryHistory = await prisma.notificationUser.findMany({
-    where: { userId },
-    include: {
-      notification: {
-        select: {
-          id: true,
-          notificationType: true,
-          title: true,
-          message: true,
-          priority: true,
-          createdAt: true,
-        },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-    take: limit,
-  });
-
+  const deliveryHistory = await repository.findUserNotificationHistory(userId, limit);
   return deliveryHistory;
 }
 
 export async function retryFailedDelivery(notificationUserId: string) {
-  const notificationUser = await prisma.notificationUser.findUnique({
-    where: { id: notificationUserId },
-    include: {
-      notification: true,
-      user: true,
-    },
-  });
+  const notificationUser = await repository.findNotificationUserById(notificationUserId);
 
   if (!notificationUser) {
     throw new NotFoundError('Notification not found', 'NOTIFICATION_NOT_FOUND');
@@ -246,13 +176,10 @@ export async function retryFailedDelivery(notificationUserId: string) {
   }
 
   // Reset to pending status for retry
-  await prisma.notificationUser.update({
-    where: { id: notificationUserId },
-    data: {
-      deliveryStatus: 'pending',
-      deliveryAttempts: { increment: 1 },
-      lastAttemptAt: new Date(),
-    },
+  await repository.updateNotificationUser(notificationUserId, {
+    deliveryStatus: 'pending',
+    deliveryAttempts: { increment: 1 },
+    lastAttemptAt: new Date(),
   });
 
   logger.info('Failed notification queued for retry', { notificationUserId });
