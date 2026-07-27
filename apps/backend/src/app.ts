@@ -2,8 +2,11 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
 
 import { config } from '@/config';
+import { swaggerOptions } from '@/common/swagger';
 import { errorResponse } from '@/common/response';
 import { errorHandler } from '@/common/middleware/error.middleware';
 import { requestIdMiddleware } from '@/common/middleware/request-id.middleware';
@@ -38,6 +41,7 @@ try {
 }
 
 const app = express();
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.set('trust proxy', 1);
@@ -166,6 +170,13 @@ if (devRoutes) {
     devRoutes
   );
 }
+
+// Swagger API Documentation
+app.use(
+  '/api-docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
 // 404 handler
 app.use((_req: Request, res: Response) => {
