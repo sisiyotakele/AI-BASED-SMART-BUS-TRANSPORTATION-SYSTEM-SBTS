@@ -1,7 +1,7 @@
 import { prisma } from '@/prisma/client';
 import * as notificationService from '../notifications.service';
 import { NotFoundError } from '@/common/errors';
-import { createTestUser } from '@/common/test-utils/factories';
+import { createUser } from '@/common/test-utils/factories';
 
 describe('Notifications Service', () => {
     let user1: any;
@@ -9,9 +9,9 @@ describe('Notifications Service', () => {
     let user3: any;
 
     beforeAll(async () => {
-        user1 = await createTestUser({ email: 'user1@test.com' });
-        user2 = await createTestUser({ email: 'user2@test.com' });
-        user3 = await createTestUser({ email: 'user3@test.com' });
+        user1 = await createUser({ email: 'user1@test.com' });
+        user2 = await createUser({ email: 'user2@test.com' });
+        user3 = await createUser({ email: 'user3@test.com' });
     });
 
     afterEach(async () => {

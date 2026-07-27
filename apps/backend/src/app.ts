@@ -26,6 +26,7 @@ import { tripRoutes } from '@/modules/trips';
 import { trackingRoutes } from '@/modules/tracking';
 import { incidentRoutes } from '@/modules/incidents';
 import { notificationRoutes } from '@/modules/notifications';
+import { aiPredictionRoutes } from '@/modules/ai-prediction';
 
 // Optional dev routes (only if folder exists locally)
 let devRoutes: any = null;
@@ -72,6 +73,7 @@ app.get('/', (_req: Request, res: Response) => {
       tracking: `${config.apiPrefix}/tracking`,
       incidents: `${config.apiPrefix}/incidents`,
       notifications: `${config.apiPrefix}/notifications`,
+      aiPrediction: `${config.apiPrefix}/ai-prediction`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -149,6 +151,12 @@ app.use(
 app.use(
   `${apiPrefix}/notifications`,
   notificationRoutes
+);
+
+// AI Prediction
+app.use(
+  `${apiPrefix}/ai-prediction`,
+  aiPredictionRoutes
 );
 
 // Development helpers (only loaded if dev folder exists locally)
