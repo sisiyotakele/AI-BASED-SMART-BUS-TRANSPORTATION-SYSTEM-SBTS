@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# ML Models (IMPORTANT: app/models/ not trained_models/)
+app/models/*.pkl
+app/models/*.joblib
+app/models/*.h5
+!app/models/.gitkeep
+
+# Data (IMPORTANT: needs subdirectories)
+data/raw/**/*.csv
+data/raw/**/*.txt
+data/processed/**/*.csv
+data/features/**/*.pkl
+!data/**/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
