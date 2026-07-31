@@ -13,7 +13,7 @@ print("\n" + "=" * 70)
 print("📊 SECTION 1: LOADING GTFS DATA")
 print("=" * 70)
 
-gtfs_dir = Path(__file__).parent.parent.parent.parent / "uploads" / "tld-6782-202412062052"
+gtfs_dir = Path(__file__).parent.parent / "data" / "raw" / "gtfs"
 
 print(f"\n📂 Loading GTFS files from: {gtfs_dir}")
 
