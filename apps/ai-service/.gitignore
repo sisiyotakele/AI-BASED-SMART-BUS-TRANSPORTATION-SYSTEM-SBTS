@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# ML Models (large files - don't commit)
+app/models/*.pkl
+app/models/*.joblib
+app/models/*.h5
+!app/models/.gitkeep
+
+# Data (large files - can be regenerated)
+data/raw/**/*.csv
+data/raw/**/*.txt
+data/processed/**/*.csv
+data/features/**/*.pkl
+!data/**/.gitkeep
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+logs/
