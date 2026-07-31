@@ -11,16 +11,18 @@ ENV/
 dist/
 build/
 
-# ML Models
-trained_models/*.pkl
-trained_models/*.joblib
-trained_models/*.h5
-!trained_models/.gitkeep
+# ML Models (IMPORTANT: app/models/ not trained_models/)
+app/models/*.pkl
+app/models/*.joblib
+app/models/*.h5
+!app/models/.gitkeep
 
-# Data
-data/*.csv
-data/*.json
-!data/.gitkeep
+# Data (IMPORTANT: needs subdirectories)
+data/raw/**/*.csv
+data/raw/**/*.txt
+data/processed/**/*.csv
+data/features/**/*.pkl
+!data/**/.gitkeep
 
 # IDE
 .vscode/
