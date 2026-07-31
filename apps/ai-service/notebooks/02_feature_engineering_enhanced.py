@@ -1,14 +1,3 @@
-"""
-SBTS ML Pipeline - Phase 2: Enhanced Feature Engineering with GTFS
-===================================================================
-Create 37-40 powerful features from enhanced trip data.
-
-Uses: final_data_enhanced.csv (with GTFS features)
-Creates: Training-ready datasets with all features
-
-Run this script: python notebooks/02_feature_engineering_enhanced.py
-"""
-
 import pandas as pd
 import numpy as np
 from pathlib import Path

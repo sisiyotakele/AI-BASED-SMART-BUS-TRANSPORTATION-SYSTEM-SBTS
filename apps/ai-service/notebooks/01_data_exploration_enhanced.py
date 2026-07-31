@@ -1,16 +1,3 @@
-"""
-SBTS ML Pipeline - Phase 1: Enhanced Data Exploration with GTFS
-================================================================
-Analyze trip data AND integrate with GTFS transit network.
-
-This combines:
-- Your 140K trip records (final_data.csv)
-- GTFS transit data (routes, stops, shapes)
-- Creates enhanced dataset with route information
-
-Run this script: python notebooks/01_data_exploration_enhanced.py
-"""
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt

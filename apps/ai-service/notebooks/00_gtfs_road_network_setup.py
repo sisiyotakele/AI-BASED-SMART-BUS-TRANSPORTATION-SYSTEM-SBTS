@@ -1,17 +1,3 @@
-"""
-SBTS ML Pipeline - Phase 0: GTFS & OpenStreetMap Road Network Setup
-====================================================================
-Process GTFS transit data and extract road network from OpenStreetMap.
-
-This creates enhanced features using:
-- GTFS route shapes (actual road paths)
-- OSM road network topology
-- Traffic patterns on road segments
-- Route complexity metrics
-
-Run this BEFORE 01_data_exploration.py
-"""
-
 import pandas as pd
 import numpy as np
 from pathlib import Path
