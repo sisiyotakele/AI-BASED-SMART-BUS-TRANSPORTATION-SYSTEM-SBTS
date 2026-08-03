@@ -86,6 +86,8 @@ export const config = {
     maxLoginAttempts: 5,
     lockoutDurationMinutes: 15,
   },
+
+  aiServiceUrl: env.AI_SERVICE_URL || 'http://localhost:5000',
 } as const;
 
 export type Config = typeof config;
