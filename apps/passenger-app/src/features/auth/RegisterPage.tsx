@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { Mail, Lock, User, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
 import "@/styles/auth.css";
-import { api } from "@/lib/api";
+import { authApi } from "@/lib/api";
 import { Link, useNavigate } from "react-router-dom";
 import busImg from "../../assets/bus.jpg";
 import shegerLogo from "../../assets/sheger-logo.jpg";
@@ -11,6 +11,7 @@ export const RegisterPage = () => {
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
+    phone: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -24,20 +25,27 @@ export const RegisterPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await api.post("/auth/passenger/register", formData);
-      localStorage.setItem("token", res.data?.token || "active-token");
+      const res = await authApi.register(formData);
+      const { accessToken, refreshToken } = res.data.data;
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.removeItem("isGuest");
       navigate("/dashboard");
     } catch (err: any) {
-      if (!err.response) {
-        console.warn("Backend API unreachable. Proceeding with development token...");
-        localStorage.setItem("token", "dev-mock-token");
-        navigate("/dashboard");
-        return;
-      }
-      setError(err.response?.data?.message || "Registration failed. Please try again.");
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error?.details ||
+        "Registration failed. Please check your details and try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -176,6 +184,25 @@ export const RegisterPage = () => {
                   onChange={handleChange}
                   className="auth-input w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
                   placeholder="passenger@example.com"
+                />
+              </div>
+            </div>
+
+            {/* Phone Number (Required by Swagger schema for POST /auth/register) */}
+            <div className="form-group space-y-1">
+              <label className="text-xs font-bold text-slate-700 uppercase">
+                Phone Number
+              </label>
+              <div className="input-field-wrapper relative flex items-center">
+                <Phone className="input-icon-left w-4 h-4 text-slate-400 absolute left-3" />
+                <input
+                  type="tel"
+                  name="phone"
+                  required
+                  value={formData.phone}
+                  onChange={handleChange}
+                  className="auth-input w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  placeholder="+251 91 123 4567"
                 />
               </div>
             </div>
