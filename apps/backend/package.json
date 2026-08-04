@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && tsc-alias",
     "start": "node dist/server.js",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
@@ -18,7 +18,10 @@
     "test": "jest --runInBand",
     "test:unit": "jest --runInBand --testPathPattern=unit",
     "test:integration": "jest --runInBand --testPathPattern=integration",
-    "test:watch": "jest --watch --runInBand"
+    "test:watch": "jest --watch --runInBand",
+    "prod:checklist": "tsx scripts/production-checklist.ts",
+    "prod:change-passwords": "tsx scripts/change-default-passwords.ts",
+    "prod:generate-secrets": "node scripts/generate-secrets.js"
   },
   "dependencies": {
     "@prisma/client": "^5.16.0",
@@ -57,6 +60,7 @@
     "prisma": "^5.16.0",
     "supertest": "^7.0.0",
     "ts-jest": "^29.1.5",
+    "tsc-alias": "^1.9.1",
     "tsx": "^4.15.7",
     "typescript": "^5.5.2"
   },
