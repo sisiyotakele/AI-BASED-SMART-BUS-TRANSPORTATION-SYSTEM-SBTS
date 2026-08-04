@@ -370,7 +370,4 @@ else:
 print("=" * 70)
 
 print("\n✅ ETA PREDICTION MODEL TRAINING COMPLETE!")
-print("\nNext steps:")
-print("  1. Deploy FastAPI: python app/main.py")
-print("  2. Test endpoints: http://localhost:5000/docs")
-print("  3. Integrate with backend")
+

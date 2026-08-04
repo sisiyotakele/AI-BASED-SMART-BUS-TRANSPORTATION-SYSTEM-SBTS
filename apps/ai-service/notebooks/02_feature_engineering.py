@@ -382,5 +382,3 @@ print(f"   ✅ All transformers saved for production")
 print("\n💡 Expected Performance:")
 print(f"   Without GTFS: ~84% accuracy (26 features)")
 print(f"   With GTFS: ~92-95% accuracy ({len(traffic_features)} features!)")
-
-print("\nRun next: python notebooks\\03_traffic_model_training.py")
