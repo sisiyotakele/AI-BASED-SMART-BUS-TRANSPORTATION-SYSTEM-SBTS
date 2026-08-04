@@ -10,13 +10,21 @@ import { TicketsPage } from "@/pages/TicketsPage";
 import { RoutesPage } from "@/pages/RoutesPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { NotificationsPage } from "@/pages/NotificationsPage";
+import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
 
-// Route Guard: Protects routes, allowing authenticated users OR guests
+// Route Guard: Protects routes using AuthContext, allowing authenticated users OR guests
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const token = localStorage.getItem("token");
-  const isGuest = localStorage.getItem("isGuest");
+  const { isAuthenticated, isGuest, isLoading } = useAuth();
 
-  if (!token && !isGuest) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 text-slate-600 text-sm font-semibold">
+        Loading session...
+      </div>
+    );
+  }
+
+  if (!isAuthenticated && !isGuest) {
     return <Navigate to="/login" replace />;
   }
 
@@ -25,69 +33,71 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Public Landing Page at Root URL */}
-        <Route path="/" element={<LandingPage />} />
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Landing Page at Root URL */}
+          <Route path="/" element={<LandingPage />} />
 
-        {/* Public Auth Routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
-        {/* Protected Passenger Dashboard & App Routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tracking"
-          element={
-            <ProtectedRoute>
-              <LiveTrackingPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tickets"
-          element={
-            <ProtectedRoute>
-              <TicketsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/trip"
-          element={
-            <ProtectedRoute>
-              <RoutesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute>
-              <HistoryPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/notifications"
-          element={
-            <ProtectedRoute>
-              <NotificationsPage />
-            </ProtectedRoute>
-          }
-        />
+          {/* Protected Passenger Dashboard & App Routes */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tracking"
+            element={
+              <ProtectedRoute>
+                <LiveTrackingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/tickets"
+            element={
+              <ProtectedRoute>
+                <TicketsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trip"
+            element={
+              <ProtectedRoute>
+                <RoutesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/history"
+            element={
+              <ProtectedRoute>
+                <HistoryPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }

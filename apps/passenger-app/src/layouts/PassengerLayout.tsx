@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ProfileModal from "../features/profile/ProfileModal"; 
+import { useAuth } from "../features/auth/AuthContext";
 import shegerlogo from "../assets/sheger-logo.jpg";
 
 interface LayoutProps {
@@ -82,6 +83,8 @@ const MOCK_HEADER_NOTIFICATIONS = [
 ];
 
 export const PassengerLayout: React.FC<LayoutProps> = ({ children }) => {
+  const { user, isGuest, logout: authLogout } = useAuth();
+
   // Popover States
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
@@ -90,15 +93,14 @@ export const PassengerLayout: React.FC<LayoutProps> = ({ children }) => {
   // Light Mode default state
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  const isGuest = localStorage.getItem("isGuest") === "true";
-
-  const [userProfile] = useState({
-    name: isGuest ? "Guest Commuter" : "Abebe Bikila",
-    email: isGuest ? "guest@shegerbus.et" : "abebe.bikila@example.com",
-    phone: isGuest ? "N/A (Guest Session)" : "+251 91 123 4567",
+  // Derive user profile from AuthContext (GET /auth/me) or Guest fallback
+  const userProfile = {
+    name: user?.fullName || (isGuest ? "Guest Commuter" : "Passenger"),
+    email: user?.email || (isGuest ? "guest@shegerbus.et" : "passenger@shegerbus.et"),
+    phone: user?.phone || (isGuest ? "N/A (Guest Session)" : "+251..."),
     avatar: "",
-    passengerId: isGuest ? "GUEST-PASSER" : "PAS-9821"
-  });
+    passengerId: user?.id ? `PAS-${user.id.slice(0, 6)}` : (isGuest ? "GUEST-PASSER" : "PAS-9821")
+  };
 
   const navigate = useNavigate();
   const historyRef = useRef<HTMLDivElement>(null);
@@ -120,9 +122,8 @@ export const PassengerLayout: React.FC<LayoutProps> = ({ children }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("isGuest");
+  const handleLogout = async () => {
+    await authLogout();
     sessionStorage.clear();
     navigate("/login", { replace: true });
   };
@@ -161,7 +162,7 @@ export const PassengerLayout: React.FC<LayoutProps> = ({ children }) => {
             className="flex items-center gap-2 px-3 py-2 bg-slate-100 hover:bg-[#1B2A4A] hover:text-white text-slate-700 rounded-xl border border-slate-200/80 transition-colors text-sm font-semibold"
             title="Sheger Bus Landing Page"
           >
-            <span>Landing Page</span>
+            <span>Explore</span>
           </Link>
 
           {/* HOME BUTTON */}
