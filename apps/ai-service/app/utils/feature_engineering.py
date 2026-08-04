@@ -67,24 +67,45 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 def get_time_category(hour: int) -> str:
-    """Categorize time of day"""
-    if 5 <= hour < 12:
-        return 'Morning'
-    elif 12 <= hour < 17:
-        return 'Afternoon'
-    elif 17 <= hour < 21:
-        return 'Evening'
+    """Categorize time of day - matches training data categories"""
+    if 6 <= hour < 10:
+        return 'morning_rush'
+    elif 10 <= hour < 16:
+        return 'midday'
+    elif 16 <= hour < 20:
+        return 'evening_rush'
+    elif 20 <= hour < 24:
+        return 'evening'
     else:
-        return 'Night'
+        return 'night'
+
+def get_direction_category(bearing: float) -> str:
+    """Convert bearing to compass direction - matches training data categories"""
+    if bearing < 22.5 or bearing >= 337.5:
+        return 'N'
+    elif bearing < 67.5:
+        return 'NE'
+    elif bearing < 112.5:
+        return 'E'
+    elif bearing < 157.5:
+        return 'SE'
+    elif bearing < 202.5:
+        return 'S'
+    elif bearing < 247.5:
+        return 'SW'
+    elif bearing < 292.5:
+        return 'W'
+    else:
+        return 'NW'
 
 def get_distance_category(distance: float) -> str:
-    """Categorize distance"""
+    """Categorize distance - matches training data categories"""
     if distance < 5:
-        return 'Short'
+        return 'short'
     elif distance < 15:
-        return 'Medium'
+        return 'medium'
     else:
-        return 'Long'
+        return 'long'
 
 def build_feature_vector(
     trip_data: Dict[str, Any],
@@ -110,12 +131,13 @@ def build_feature_vector(
     # Get categories
     time_cat = get_time_category(temporal['hour'])
     dist_cat = get_distance_category(straight_dist)
+    direction_cat = get_direction_category(bearing)
     
     # Encode categorical features
     encoders = feature_info['encoders']
     time_encoded = encoders['time_category'].transform([time_cat])[0]
     dist_encoded = encoders['distance_category'].transform([dist_cat])[0]
-    direction_encoded = encoders['Direction'].transform([trip_data.get('direction', 'Forward')])[0]
+    direction_encoded = encoders['direction'].transform([direction_cat])[0]
     
     # Build feature dictionary
     features = {
