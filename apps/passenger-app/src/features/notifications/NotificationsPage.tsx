@@ -1,21 +1,18 @@
 // src/features/notifications/NotificationsPage.tsx
 import React from "react";
-// 1. Fixed import path relative to this file
 import NotificationList from "./NotificationList";
 
 export const NotificationsPage = () => {
   return (
     <div className="space-y-4">
-      <div className="border-b border-slate-700/60 pb-3">
-        <h2 className="text-lg font-bold text-white">Notifications</h2>
-        <p className="text-xs text-slate-400">
-          Stay updated on your schedule, routes, and delay alerts.
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs space-y-1">
+        <h2 className="text-xl font-extrabold text-slate-900">Notifications & Transit Alerts</h2>
+        <p className="text-xs text-slate-500 font-normal">
+          Stay updated on your schedule, bus corridor traffic, and real-time boarding alerts across Addis Ababa.
         </p>
       </div>
 
-      <div className="max-h-[60vh] overflow-y-auto pr-1">
-        <NotificationList />
-      </div>
+      <NotificationList />
     </div>
   );
 };
