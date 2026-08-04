@@ -314,8 +314,3 @@ print("\n" + "=" * 70)
 print("✅ GTFS & ROAD NETWORK SETUP COMPLETE!")
 print("=" * 70)
 
-print("\n🚀 Run next:")
-print("   python notebooks\\01_data_exploration_enhanced.py")
-print("")
-print("   This will combine your trip data with GTFS information")
-print("   to create a powerful dataset for ML training.")

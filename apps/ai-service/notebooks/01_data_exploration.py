@@ -289,4 +289,3 @@ print("\n" + "=" * 70)
 print("✅ ENHANCED DATA EXPLORATION COMPLETE!")
 print("=" * 70)
 
-print("\nRun next: python notebooks\\02_feature_engineering_enhanced.py")
