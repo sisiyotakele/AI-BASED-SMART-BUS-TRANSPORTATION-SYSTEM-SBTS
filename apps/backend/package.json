@@ -10,6 +10,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:seed": "tsx src/prisma/seed.ts",
+    "db:seed:base": "tsx src/prisma/seed-base-data.ts",
+    "db:seed:all": "npm run db:seed && npm run db:seed:base",
     "db:studio": "prisma studio",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc --noEmit",
