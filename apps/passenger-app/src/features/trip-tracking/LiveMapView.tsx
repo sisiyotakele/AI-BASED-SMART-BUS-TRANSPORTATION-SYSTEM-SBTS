@@ -1,5 +1,5 @@
 // src/features/trip-tracking/LiveMapView.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { 
   MapPin, 
   Radio, 
@@ -17,8 +17,10 @@ import {
   Navigation2,
   Plus,
   Minus,
-  Target
+  Target,
+  RefreshCw
 } from "lucide-react";
+import { trackingApi } from "@/lib/api";
 
 interface Stop {
   id: string;
@@ -29,6 +31,16 @@ interface Stop {
   status: "completed" | "current" | "upcoming";
 }
 
+export interface BusTrackingLocation {
+  id: string;
+  busId: string;
+  latitude: number;
+  longitude: number;
+  speed: number;
+  heading?: number;
+  timestamp?: string;
+}
+
 export const LiveMapView: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSimulating, setIsSimulating] = useState(true);
@@ -36,18 +48,38 @@ export const LiveMapView: React.FC = () => {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activeStopTooltip, setActiveStopTooltip] = useState<string | null>(null);
 
-  // Route stops data matching Sheger Bus Route 12 (Megenagna → Bole Airport)
-  const stops: Stop[] = [
-    { id: "1", name: "Megenagna Terminal", time: "06:35 AM", coords: { x: 8, y: 35 }, passengersWaiting: 12, status: "completed" },
-    { id: "2", name: "Edna Mall Bypass", time: "06:51 AM", coords: { x: 24, y: 55 }, passengersWaiting: 8, status: "completed" },
-    { id: "3", name: "Bole Atlas Station", time: "07:08 AM", coords: { x: 38, y: 40 }, passengersWaiting: 15, status: "completed" },
-    { id: "4", name: "CMC Michael Stop", time: "07:24 AM", coords: { x: 54, y: 65 }, passengersWaiting: 22, status: "current" },
-    { id: "5", name: "Bole Medhanealem", time: "07:41 AM", coords: { x: 70, y: 45 }, passengersWaiting: 19, status: "upcoming" },
-    { id: "6", name: "Friendship Center", time: "07:55 AM", coords: { x: 84, y: 60 }, passengersWaiting: 9, status: "upcoming" },
-    { id: "7", name: "Bole International Airport", time: "08:12 AM", coords: { x: 94, y: 40 }, passengersWaiting: 4, status: "upcoming" },
-  ];
+  // Backend tracking state
+  const [liveBusLocations, setLiveBusLocations] = useState<BusTrackingLocation[]>([]);
+  const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Smooth Live GPS movement simulation loop
+  // Step 2: Poll GET /tracking from Swagger API
+  const fetchLiveTracking = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const res = await trackingApi.getAllBusLocations();
+      if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
+        setLiveBusLocations(res.data.data);
+        setIsLiveConnected(true);
+      } else {
+        setIsLiveConnected(false);
+      }
+    } catch (err) {
+      console.warn("Could not reach /tracking API, falling back to live simulation mode:", err);
+      setIsLiveConnected(false);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLiveTracking();
+    // Poll live bus positions every 8 seconds
+    const interval = setInterval(fetchLiveTracking, 8000);
+    return () => clearInterval(interval);
+  }, [fetchLiveTracking]);
+
+  // Smooth Live GPS movement simulation loop (fallback or demo mode)
   useEffect(() => {
     if (!isSimulating) return;
 
@@ -61,10 +93,11 @@ export const LiveMapView: React.FC = () => {
     return () => clearInterval(interval);
   }, [isSimulating]);
 
-  // Calculate live telemetry values based on bus progress
-  const currentSpeed = Math.round(36 + Math.sin(busProgress / 5) * 8);
-  const currentLat = (9.005 + (busProgress * 0.00035)).toFixed(4);
-  const currentLng = (38.765 + (busProgress * 0.00042)).toFixed(4);
+  // Calculate live telemetry values based on real API data or simulated progress
+  const activeLiveBus = liveBusLocations[0];
+  const currentSpeed = activeLiveBus ? activeLiveBus.speed : Math.round(36 + Math.sin(busProgress / 5) * 8);
+  const currentLat = activeLiveBus ? activeLiveBus.latitude.toFixed(4) : (9.005 + (busProgress * 0.00035)).toFixed(4);
+  const currentLng = activeLiveBus ? activeLiveBus.longitude.toFixed(4) : (38.765 + (busProgress * 0.00042)).toFixed(4);
   const nextStopEtaMinutes = Math.max(1, Math.round((55 - busProgress) * 0.3));
 
   // Determine current active stop based on progress percentage
@@ -87,7 +120,7 @@ export const LiveMapView: React.FC = () => {
             <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
               Real-Time GPS Fleet Tracker
               <span className="text-xs text-slate-400 font-normal hidden sm:inline">
-                • Route 12 Express (SBTS-BUS-114)
+                • Route 12 Express ({activeLiveBus ? activeLiveBus.busId.slice(0, 8) : "SBTS-BUS-114"})
               </span>
             </h3>
           </div>
@@ -95,11 +128,25 @@ export const LiveMapView: React.FC = () => {
 
         {/* Live GPS Telemetry Badges & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Live Signal Badge */}
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+          {/* Live Server Connection Badge */}
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+            isLiveConnected 
+              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+              : "bg-sky-500/10 text-sky-600 border-sky-500/20"
+          }`}>
             <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-500" />
-            GPS Active (±3m)
+            {isLiveConnected ? "API Connected (Live GPS)" : "GPS Simulation Mode"}
           </span>
+
+          {/* Refresh API Button */}
+          <button
+            onClick={fetchLiveTracking}
+            disabled={isRefreshing}
+            className="p-1.5 text-slate-600 hover:text-slate-900 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+            title="Fetch Latest GPS Telemetry"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
+          </button>
 
           {/* Simulation Toggle Controls */}
           <button
