@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
 import "@/styles/auth.css";
-import { api } from "@/lib/api";
+import { authApi } from "@/lib/api"; // ← Step 1: Use typed authApi instead of raw axios instance
 import { Link, useNavigate } from "react-router-dom";
 import busImg from "../../assets/bus.jpg";
 import shegerLogo from "../../assets/sheger-logo.jpg";
@@ -23,17 +23,25 @@ export const LoginPage = () => {
     setLoading(true);
 
     try {
-      const res = await api.post("/auth/passenger/login", formData);
-      localStorage.setItem("token", res.data?.token || "active-token");
+      // Step 2: Call the correct real endpoint POST /auth/login via authApi
+      const res = await authApi.login(formData);
+
+      // Step 3: Swagger returns { data: { accessToken, refreshToken, user } }
+      // Save both tokens — accessToken for API calls, refreshToken to auto-renew sessions
+      const { accessToken, refreshToken } = res.data.data;
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+      localStorage.removeItem("isGuest"); // Clear any guest session
+
       navigate("/dashboard");
     } catch (err: any) {
-      if (!err.response) {
-        console.warn("Backend API unreachable. Proceeding with development token...");
-        localStorage.setItem("token", "dev-mock-token");
-        navigate("/dashboard");
-        return;
-      }
-      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
+      // Step 4 & 5: No more mock bypass — show the real error from the server
+      // Swagger error shape: { success: false, message: "..." }
+      const message =
+        err.response?.data?.message ||
+        err.response?.data?.error?.details ||
+        "Login failed. Please check your credentials and try again.";
+      setError(message);
     } finally {
       setLoading(false);
     }
