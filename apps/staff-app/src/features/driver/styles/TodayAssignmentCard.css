@@ -1,0 +1,54 @@
+.assignment-card {
+  background: #f7f9fc;
+  border-radius: 12px;
+  padding: 20px;
+
+}
+
+/* Header */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.card-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.status {
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 20px;
+}
+
+.status.active {
+  background: #e6f7ec;
+  color: #1e8e3e;
+}
+
+/* Grid */
+.assignment-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.item {
+  border-top: 1px solid #e0e0e0;
+  padding-top: 10px;
+}
+
+.item label {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.item p {
+  margin-top: 5px;
+  font-weight: 600;
+  color: #2c3e50;
+}

@@ -1,0 +1,36 @@
+/* LIGHT MODE (default) */
+body {
+  background: #f5f5f5;
+  color: #222;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* DARK MODE */
+body.dark {
+  background: #121212;
+  color: #f1f1f1;
+}
+
+/* Cards */
+body.dark .settings-card,
+body.dark .profile-card,
+body.dark .trip-card {
+  background: #1e1e1e;
+  color: white;
+}
+
+/* Sidebar */
+body.dark .sidebar {
+  background: #1b1b1b;
+}
+
+/* Menu */
+body.dark .menu-item {
+  color: #ccc;
+}
+
+body.dark .menu-item.active-menu {
+  background: #333;
+  color: white;
+}

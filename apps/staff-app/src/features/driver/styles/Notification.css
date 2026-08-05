@@ -1,0 +1,137 @@
+.notification-container {
+  padding: 20px;
+}
+
+.notification-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: #f5f7fb;
+}
+
+.notification-item .icon {
+  background: #e6f0ff;
+  color: #1e3a8a;
+  padding: 10px;
+  border-radius: 50%;
+}
+
+.notification-item .content p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.notification-item .content span {
+  font-size: 12px;
+  color: gray;
+}
+
+.unread {
+  font-weight: bold;
+}
+
+.read {
+  opacity: 0.6;
+}
+
+.dot {
+  margin-left: auto;
+  width: 8px;
+  height: 8px;
+  background: red;
+  border-radius: 50%;
+}
+.notification-type {
+  display: block;
+  font-size: 12px;
+  color: #2563eb;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+
+.empty {
+  text-align: center;
+  color: gray;
+  padding: 20px;
+}
+/* =========================
+   DARK MODE NOTIFICATIONS
+========================= */
+
+
+body.dark .notification-card {
+
+  background:#1e1e1e;
+
+}
+
+
+
+body.dark .notification-item {
+
+  border-color:#333;
+
+}
+
+
+
+body.dark .notification-item:hover {
+
+  background:#262626;
+
+}
+
+
+
+body.dark .notification-item .content p {
+
+  color:#f8fafc;
+
+}
+
+
+
+body.dark .notification-item .content span {
+
+  color:#94a3b8;
+
+}
+
+
+
+body.dark .notification-type {
+
+  color:#60a5fa;
+
+}
+
+
+
+body.dark .notification-item .icon {
+
+  background:#1e3a8a;
+
+  color:#bfdbfe;
+
+}
+
+
+
+body.dark .empty {
+
+  color:#94a3b8;
+
+}

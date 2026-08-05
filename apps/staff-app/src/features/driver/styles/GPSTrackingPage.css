@@ -1,0 +1,137 @@
+.gps-page {
+
+  padding:25px;
+
+}
+
+
+.gps-card,
+.gps-map-card {
+
+  background:white;
+
+  padding:25px;
+
+  border-radius:15px;
+
+  margin-bottom:25px;
+
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+
+}
+
+
+
+.gps-card h2,
+.gps-map-card h2 {
+
+  margin-bottom:20px;
+
+}
+
+
+
+.gps-card p {
+
+  margin-bottom:12px;
+
+}
+
+
+
+.gps-buttons {
+
+  display:flex;
+
+  gap:15px;
+
+  margin-top:20px;
+
+}
+
+
+
+.start-btn,
+.stop-btn {
+
+  padding:12px 20px;
+
+  border:none;
+
+  border-radius:10px;
+
+  color:white;
+
+  cursor:pointer;
+
+}
+
+
+
+.start-btn {
+
+  background:#2ecc71;
+
+}
+
+
+
+.stop-btn {
+
+  background:#e74c3c;
+
+}
+
+
+
+.gps-placeholder {
+
+  height:500px;
+
+  background:#e8f1ff;
+
+  border-radius:15px;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  font-size:20px;
+
+}
+.gps-map {
+
+  height:500px;
+
+  width:100%;
+
+  border-radius:15px;
+
+}
+.status-on {
+  color: green;
+  font-weight: bold;
+}
+
+
+.status-off {
+  color: red;
+  font-weight: bold;
+}
+
+
+.gps-error {
+  color: red;
+  font-weight: bold;
+}
+
+
+.center-btn {
+  margin-bottom: 15px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+}

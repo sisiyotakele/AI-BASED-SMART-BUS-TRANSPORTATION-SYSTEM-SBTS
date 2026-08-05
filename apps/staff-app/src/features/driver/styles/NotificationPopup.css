@@ -1,0 +1,40 @@
+.popup {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  width: 280px;
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  z-index: 999;
+
+  animation: slideIn 0.4s ease;
+}
+
+.popup strong {
+  display: block;
+  color: #1e293b;
+}
+
+.popup p {
+  font-size: 13px;
+  margin: 5px 0;
+  color: #475569;
+}
+
+.popup span {
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

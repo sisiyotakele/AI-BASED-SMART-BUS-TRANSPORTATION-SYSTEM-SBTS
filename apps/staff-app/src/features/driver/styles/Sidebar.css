@@ -1,0 +1,229 @@
+body, html, #root {
+  height: 100%;
+}
+.sidebar {
+  width: 250px;
+  height: 100vh;
+  background-color: #2c3e75;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+/* Logo */
+.sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sidebar-logo h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.sidebar-logo p {
+  margin: 0;
+  font-size: 12px;
+  color: #cfd8ff;
+}
+
+.logo-circle {
+  width: 40px;
+  height: 40px;
+  background: #2e4a8a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Driver Card */
+.driver-card {
+  background: #2b4378;
+  padding: 15px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+.avatar {
+  background: #4a6fdc;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
+
+.driver-info {
+  flex: 1;
+  margin-left: 10px;
+}
+
+.menu-item:hover {
+  background-color: #3b4f8a;
+  border-radius: 10px;
+}
+.menu-item.active {
+  background-color: #3b4f8a;
+
+  /* 👇 VERY IMPORTANT */
+  padding: 12px 16px;   /* SAME as normal */
+  margin: 6px 12px;     /* SAME as normal */
+}
+/* Menu */
+.menu {
+ list-style: none;
+  padding: 0;
+  margin: 20px 0;
+}
+
+.menu-item {
+   padding: 12px;
+  display: flex;
+  gap: 10px;
+  cursor: pointer;
+  color: white;
+} 
+
+
+
+.menu-item:hover {
+  background: #2e4a8a;
+}
+.menu-item svg {
+  font-size: 18px;
+    min-width: 20px;   /* 👈 keeps all icons aligned */
+}
+.menu-item span {
+  flex: 1;
+   display: inline-block;
+}
+.menu-item.active {
+  background-color: #3b4f8a;
+  border-radius: 10px;
+}
+.menu-item.active span {
+  margin-left: 0px;
+}
+/* Notification badge */
+.menu-item.notification {
+  position: relative;
+}
+
+.menu-item.notification b {
+  position: absolute;
+  right: 10px;
+  background: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+/* Sign out */
+.signout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: #cfd8ff;
+
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.logout {
+  margin-top: auto;   /* 👈 MAGIC LINE */
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+.logout:hover {
+  background-color: #3b4f8a;
+  border-radius: 10px;
+}
+.top-section {
+  display: flex;
+  flex-direction: column;
+}
+.active-menu {
+  background: #4f46e5;
+  color: white;
+  border-radius: 10px;
+}
+.notification-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: white;
+
+  font-size: 10px;
+  font-weight: 600;
+
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+/* =========================
+   DARK MODE SIDEBAR
+========================= */
+
+body.dark .sidebar {
+
+  background:#151b35;
+
+}
+
+
+body.dark .driver-card {
+
+  background:#202a52;
+
+}
+
+
+body.dark .logo-circle {
+
+  background:#263b78;
+
+}
+
+
+body.dark .sidebar-logo p {
+
+  color:#a5b4fc;
+
+}
+
+
+body.dark .menu-item {
+
+  color:#e2e8f0;
+
+}
+
+
+body.dark .menu-item:hover,
+body.dark .menu-item.active {
+
+  background:#334155;
+
+}
+
+
+body.dark .logout {
+
+  color:#cbd5e1;
+
+}
+
+
+body.dark .logout:hover {
+
+  background:#334155;
+
+}

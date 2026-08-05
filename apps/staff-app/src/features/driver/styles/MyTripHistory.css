@@ -1,0 +1,764 @@
+.history-container {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 50px;
+  overflow-x: hidden;
+}
+.history-container h2 {
+  margin-bottom: 20px;
+}
+/* COMPLETED TRIP CARD */
+.trip-history-card {
+  background:white;
+  padding:20px;
+  margin-bottom:20px;
+  border-radius:15px;
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+  width:100%;
+  box-sizing:border-box;
+}
+.trip-history-card h3 {
+  margin-bottom:15px;
+
+}
+
+
+.trip-history-card p {
+
+  margin:8px 0;
+
+}
+
+
+
+/* STATUS */
+
+.completed-status {
+
+  display:inline-block;
+
+  margin-top:15px;
+
+  padding:6px 15px;
+
+  background:#d1fae5;
+
+  color:#047857;
+
+  border-radius:20px;
+
+}
+
+
+
+/* STATISTIC SECTIONS */
+
+.weekly-statistics,
+.monthly-statistics,
+.distance-card-section,
+.passenger-section,
+.rating-section,
+.incident-history-section {
+
+  margin-top:30px;
+
+}
+
+
+
+/* ALL SMALL CARDS */
+
+.statistics-grid {
+
+  display:grid;
+
+  grid-template-columns:repeat(4, minmax(0,1fr));
+
+  gap:20px;
+
+  width:100%;
+
+}
+
+
+
+.stat-card {
+
+  background:white;
+
+  padding:20px;
+
+  border-radius:15px;
+
+  text-align:center;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  min-width:0;
+
+}
+
+
+
+.stat-card h3 {
+
+  font-size:16px;
+
+  margin-bottom:15px;
+
+}
+
+
+.stat-card p {
+
+  font-size:28px;
+
+  font-weight:bold;
+
+}
+
+
+
+/* INCIDENT */
+
+.incident-history-card {
+
+  background:white;
+
+  padding:20px;
+
+  margin-bottom:15px;
+
+  border-radius:15px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+}
+
+
+
+.incident-history-card p {
+
+  margin:8px 0;
+
+}
+
+
+.resolved-status,
+.pending-status {
+
+  display:inline-block;
+
+  padding:6px 15px;
+
+  border-radius:20px;
+
+}
+
+
+
+/* TABLET */
+
+@media(max-width:1100px){
+
+  .statistics-grid{
+
+    grid-template-columns:repeat(2,1fr);
+
+  }
+
+}
+
+
+
+/* MOBILE */
+
+@media(max-width:700px){
+
+  .statistics-grid{
+
+    grid-template-columns:1fr;
+
+  }
+
+}
+.trip-search {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0 15px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.trip-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.trip-table th,
+.trip-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.trip-table th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.trip-table tr:hover {
+  background: #f5f7ff;
+  transition: 0.2s;
+}
+.chart-container {
+  background: white;
+  padding: 15px;
+  border-radius: 12px;
+  margin-top: 20px;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.06);
+}
+/* =========================
+   MONTHLY PERFORMANCE CARD
+========================= */
+
+
+.monthly-statistics .stat-card {
+
+  position: relative;
+
+  overflow: hidden;
+
+  cursor: pointer;
+
+  transition: 0.3s ease;
+
+}
+
+
+
+.monthly-statistics .stat-card:hover {
+
+  transform: translateY(-5px);
+
+  box-shadow:0 12px 25px rgba(0,0,0,0.12);
+
+}
+
+
+
+/* ICON AREA */
+
+.monthly-icon {
+
+  font-size:30px;
+
+  margin-bottom:10px;
+
+}
+
+
+
+/* MAIN NUMBER */
+
+.monthly-value {
+
+  font-size:32px;
+
+  font-weight:bold;
+
+  margin:10px 0;
+
+}
+
+
+
+/* DESCRIPTION */
+
+.monthly-description {
+
+  font-size:14px;
+
+  color:#64748b;
+
+}
+
+
+
+/* GROWTH INDICATOR */
+
+.monthly-growth {
+
+  margin-top:12px;
+
+  font-size:14px;
+
+  font-weight:600;
+
+  color:#16a34a;
+
+}
+
+
+
+/* PROGRESS BAR */
+
+.monthly-progress {
+
+  width:100%;
+
+  height:8px;
+
+  background:#e5e7eb;
+
+  border-radius:10px;
+
+  margin-top:15px;
+
+  overflow:hidden;
+
+}
+
+
+.monthly-progress-fill {
+
+  height:100%;
+
+  background:#4f46e5;
+
+  border-radius:10px;
+
+}
+/* =========================
+   DISTANCE DRIVEN PROFESSIONAL CARD
+========================= */
+
+
+.distance-summary-card {
+
+  background:white;
+
+  padding:25px;
+
+  border-radius:18px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:30px;
+
+  margin-bottom:25px;
+
+}
+
+
+
+.distance-total h1 {
+
+  font-size:42px;
+
+  margin:10px 0;
+
+}
+
+
+
+.distance-total p {
+
+  color:#64748b;
+
+}
+
+
+
+.distance-progress-bar {
+
+  width:100%;
+
+  height:15px;
+
+  background:#e5e7eb;
+
+  border-radius:20px;
+
+  overflow:hidden;
+
+  margin:15px 0;
+
+}
+
+
+
+.distance-progress-fill {
+
+  height:100%;
+
+  background:#4f46e5;
+
+  border-radius:20px;
+
+  transition:0.4s;
+
+}
+
+
+
+.distance-progress span {
+
+  font-weight:bold;
+
+  color:#4f46e5;
+
+}
+
+
+
+@media(max-width:800px){
+
+  .distance-summary-card{
+
+    grid-template-columns:1fr;
+
+  }
+
+}
+/* =========================
+   PASSENGER ANALYTICS
+========================= */
+
+
+.passenger-summary-card {
+
+  background:white;
+
+  padding:25px;
+
+  border-radius:18px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:30px;
+
+  margin-bottom:25px;
+
+}
+
+
+
+.passenger-total h1 {
+
+  font-size:42px;
+
+  margin:10px 0;
+
+}
+
+
+
+.passenger-total p {
+
+  color:#64748b;
+
+}
+
+
+
+.passenger-progress-bar {
+
+  width:100%;
+
+  height:15px;
+
+  background:#e5e7eb;
+
+  border-radius:20px;
+
+  overflow:hidden;
+
+  margin-top:15px;
+
+}
+
+
+
+.passenger-progress-fill {
+
+  height:100%;
+
+  background:#10b981;
+
+  border-radius:20px;
+
+  transition:0.4s;
+
+}
+
+
+
+.passenger-capacity p {
+
+  font-weight:bold;
+
+  color:#10b981;
+
+}
+
+
+
+@media(max-width:800px){
+
+  .passenger-summary-card{
+
+    grid-template-columns:1fr;
+  }
+}
+/* =========================
+   DRIVER RATING CARD
+========================= */
+
+
+.rating-summary-card {
+
+  background:white;
+
+  padding:25px;
+
+  border-radius:18px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:30px;
+
+}
+
+
+
+.overall-rating h1 {
+
+  font-size:40px;
+
+  margin:15px 0;
+
+}
+
+
+
+.overall-rating p {
+
+  color:#64748b;
+
+}
+
+
+
+.stars {
+
+  font-size:24px;
+
+  letter-spacing:5px;
+
+}
+
+
+
+
+.rating-performance {
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:15px;
+
+}
+
+
+
+
+.performance-item {
+
+  background:#f8fafc;
+
+  padding:18px;
+
+  border-radius:12px;
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+}
+
+
+
+
+.performance-item strong {
+
+  font-size:22px;
+
+  color:#4f46e5;
+
+}
+
+
+
+
+@media(max-width:800px){
+
+  .rating-summary-card{
+
+    grid-template-columns:1fr;
+
+  }
+
+}
+/* =========================
+   INCIDENT MANAGEMENT
+========================= */
+
+
+.incident-summary-card {
+
+  background:white;
+
+  padding:25px;
+
+  border-radius:18px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:30px;
+
+  margin-bottom:25px;
+
+}
+
+
+
+.incident-summary-card h1 {
+
+  font-size:40px;
+
+  margin:10px 0;
+
+}
+
+
+
+.incident-status-summary {
+
+  font-size:20px;
+
+  font-weight:bold;
+
+  color:#10b981;
+
+}
+
+
+
+
+.professional-incident-card {
+
+  background:white;
+
+  padding:20px;
+
+  border-radius:16px;
+
+  box-shadow:0 8px 20px rgba(0,0,0,0.08);
+
+  margin-bottom:20px;
+
+}
+
+
+
+.incident-header {
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+}
+
+
+
+.incident-header h3 {
+
+  margin:0;
+
+}
+
+
+
+.incident-resolved,
+.incident-pending {
+
+  padding:7px 15px;
+
+  border-radius:20px;
+
+  font-weight:bold;
+
+}
+
+
+
+.incident-resolved {
+
+  background:#dcfce7;
+
+  color:#166534;
+
+}
+
+
+
+.incident-pending {
+
+  background:#fee2e2;
+
+  color:#991b1b;
+
+}
+
+
+
+.incident-details p {
+
+  margin:10px 0;
+
+}
+
+
+
+@media(max-width:800px){
+
+  .incident-summary-card{
+
+    grid-template-columns:1fr;
+
+  }
+
+}

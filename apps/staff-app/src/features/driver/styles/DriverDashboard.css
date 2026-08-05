@@ -1,0 +1,1201 @@
+/* =========================
+   MAIN DASHBOARD LAYOUT
+========================= */
+
+.dashboard {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  overflow: hidden;
+}
+
+.middle-section{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:20px;
+}
+
+/* RIGHT CONTENT AREA */
+
+.main-content {
+
+  flex: 1;
+
+  display:flex;
+
+  flex-direction:column;
+
+  height:100vh;
+
+  overflow:hidden;
+
+}
+
+
+/* PAGE CONTENT */
+
+.page-content {
+
+  flex:1;
+
+  padding:30px;
+
+  background:#eef2f7;
+
+  overflow-y:auto;
+
+  overflow-x:hidden;
+
+  box-sizing:border-box;
+
+}
+
+/* MAIN DASHBOARD STRUCTURE */
+
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+
+/* AI TRAFFIC + QUICK ACTIONS ROW */
+
+.middle-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+
+/* =========================
+   COMMON CARD
+========================= */
+
+
+.card {
+  background:white;
+  padding:20px;
+  border-radius:16px;
+  box-shadow:0 5px 20px rgba(0,0,0,0.05);
+  width:100%;
+  box-sizing:border-box;
+}
+
+
+.card h2 {
+
+  font-size:14px;
+
+  color:#64748b;
+
+  margin-bottom:12px;
+
+  font-weight:500;
+
+}
+
+
+
+/* =========================
+   ASSIGNMENT CARD
+========================= */
+
+
+.assignment-grid {
+
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:15px;
+
+}
+
+
+.assignment-grid span {
+
+  font-size:12px;
+
+  color:#94a3b8;
+
+}
+
+
+.assignment-grid p {
+
+  font-weight:600;
+
+  color:#1e293b;
+
+}
+
+
+
+/* =========================
+   MAP
+========================= */
+
+
+.map-container {
+
+  height:450px;
+
+  width:100%;
+
+  border-radius:12px;
+
+  overflow:hidden;
+
+}
+
+
+
+/* =========================
+   GPS CARD
+========================= */
+
+
+.gps-grid {
+
+  display:grid;
+
+  grid-template-columns:repeat(2,1fr);
+
+  gap:12px;
+
+}
+
+
+.gps-grid span {
+
+  font-size:12px;
+
+  color:#94a3b8;
+
+}
+
+
+.gps-grid p {
+
+  font-weight:600;
+
+}
+
+
+.green {
+
+  color:#16a34a;
+
+}
+
+
+
+/* =========================
+   BUTTON COLORS
+========================= */
+
+
+.green-btn {
+
+  background:#22c55e;
+
+}
+
+
+.red-btn {
+
+  background:#ef4444;
+
+}
+
+
+.yellow-btn {
+
+  background:#f59e0b;
+
+}
+
+
+.blue-btn {
+
+  background:#3b82f6;
+
+}
+
+
+
+/* =========================
+   AI TRAFFIC CARD
+========================= */
+
+
+.traffic-card {
+
+  background:#f8fafc;
+
+  border-radius:18px;
+
+  padding:20px;
+
+}
+
+
+
+.traffic-header {
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+  margin-bottom:15px;
+
+}
+
+
+
+.traffic-header h2 {
+
+  font-size:13px;
+
+  color:#64748b;
+
+  letter-spacing:1px;
+
+}
+
+
+
+.ai-badge {
+
+  background:#e9d5ff;
+
+  color:#7c3aed;
+
+  font-size:11px;
+
+  padding:4px 10px;
+
+  border-radius:999px;
+
+}
+
+
+
+/* TRAFFIC CONTENT */
+
+
+.traffic-content {
+
+  display:flex;
+
+  gap:20px;
+
+}
+
+
+
+/* TRAFFIC CIRCLE */
+
+
+.circle {
+
+  width:90px;
+
+  height:90px;
+
+  border-radius:50%;
+
+  border:10px solid #facc15;
+
+  display:flex;
+
+  flex-direction:column;
+
+  justify-content:center;
+
+  align-items:center;
+
+}
+
+
+.circle span {
+
+  font-size:18px;
+
+  font-weight:700;
+
+  color:#f59e0b;
+
+}
+
+
+.circle small {
+
+  font-size:11px;
+
+  color:#64748b;
+
+}
+
+
+
+/* TRAFFIC DETAILS */
+
+
+.traffic-details h3 {
+
+  font-size:20px;
+
+  color:#f59e0b;
+
+}
+
+
+.sub {
+
+  font-size:13px;
+
+  color:#64748b;
+
+}
+
+
+.delay {
+
+  color:#ea580c;
+
+  font-weight:600;
+
+  margin-bottom:10px;
+
+}
+
+
+
+/* INFO ROW */
+
+
+.info-row {
+
+  display:flex;
+
+  justify-content:space-between;
+
+  font-size:13px;
+
+  margin:6px 0;
+
+}
+
+
+.info-row span {
+
+  color:#64748b;
+}
+.info-row strong {
+  color:#1e293b;
+}
+/* =========================
+   TRAFFIC GRAPH
+========================= */
+
+
+.traffic-graph {
+
+  display:flex;
+
+  align-items:flex-end;
+
+  justify-content:space-between;
+
+  margin-top:20px;
+
+  height:120px;
+
+}
+
+
+.bar-group {
+
+  display:flex;
+
+  flex-direction:column;
+
+  align-items:center;
+
+  justify-content:flex-end;
+
+}
+
+
+.bar {
+
+  width:18px;
+
+  height:0;
+
+  background:#6c7aa1;
+
+  border-radius:4px;
+
+  animation:growBar 1s ease forwards;
+
+}
+
+
+@keyframes growBar {
+
+  from {
+
+    height:0;
+
+  }
+
+  to {
+
+    height:var(--height);
+
+  }
+
+}
+
+
+
+.bar-group span {
+
+  margin-top:6px;
+
+  font-size:12px;
+
+  color:#8a8a8a;
+
+}
+
+
+
+/* =========================
+   ROUTE SUGGESTION BOX
+========================= */
+
+
+.route-box {
+
+  background:#fff7ed;
+
+  border:1px solid #fdba74;
+
+  padding:12px;
+
+  border-radius:12px;
+
+  margin-top:15px;
+
+}
+
+
+.route-box strong {
+
+  color:#ea580c;
+
+  font-size:13px;
+
+}
+
+
+.route-box p {
+
+  font-size:12px;
+
+  color:#9a3412;
+
+}
+
+
+
+/* =========================
+   UPCOMING SHIFT CARD
+========================= */
+
+
+.upcoming-card {
+
+  background:linear-gradient(
+    135deg,
+    #0f172a,
+    #1e293b
+  );
+
+  color:white;
+
+  border-radius:16px;
+
+  padding:20px;
+
+  position:relative;
+
+  overflow:hidden;
+
+}
+
+
+
+.upcoming-card::before {
+
+  content:"";
+
+  position:absolute;
+
+  top:-40px;
+
+  right:-40px;
+
+  width:120px;
+
+  height:120px;
+
+  background:rgba(59,130,246,0.2);
+
+  border-radius:50%;
+
+}
+
+
+
+.upcoming-header {
+
+  display:flex;
+
+  justify-content:space-between;
+
+  align-items:center;
+
+}
+
+
+
+.next-badge {
+
+  background:#22c55e;
+
+  color:#052e16;
+
+  font-size:12px;
+
+  font-weight:700;
+
+  padding:4px 10px;
+
+  border-radius:999px;
+
+}
+
+
+
+.upcoming-body {
+
+  margin-top:15px;
+
+}
+
+
+
+.route {
+
+  font-size:22px;
+
+  font-weight:700;
+
+  color:#38bdf8;
+
+}
+
+
+
+.time {
+
+  margin-top:4px;
+
+  font-size:14px;
+
+  color:#cbd5f5;
+
+}
+
+
+
+.shift-meta {
+
+  margin-top:15px;
+
+  display:flex;
+
+  gap:20px;
+
+}
+
+
+
+.shift-meta span {
+
+  font-size:11px;
+
+  color:#94a3b8;
+
+}
+
+
+
+.shift-meta p {
+
+  font-size:14px;
+
+  font-weight:600;
+
+}
+
+
+
+/* =========================
+   QUICK ACTIONS
+========================= */
+
+
+.quick-actions {
+
+  display:grid;
+
+  grid-template-columns:1fr;
+
+  gap:12px;
+
+}
+
+
+
+.quick-item {
+
+  display:flex;
+
+  align-items:center;
+
+  gap:15px;
+
+  width:100%;
+
+  padding:14px;
+
+  border:none;
+
+  border-radius:14px;
+
+  cursor:pointer;
+
+  text-align:left;
+
+  transition:0.3s ease;
+
+  font-family:inherit;
+
+}
+
+
+
+.quick-item svg {
+
+  font-size:22px;
+
+}
+
+
+
+.quick-item div {
+
+  display:flex;
+
+  flex-direction:column;
+
+}
+
+
+
+.quick-item strong {
+
+  font-size:14px;
+
+  font-weight:600;
+
+}
+
+
+
+.quick-item span {
+
+  font-size:12px;
+
+  opacity:0.8;
+
+}
+
+
+
+/* BUTTON COLORS */
+
+
+.complete {
+
+  background:#dcfce7;
+
+  color:#15803d;
+
+}
+
+
+
+.report {
+
+  background:#fee2e2;
+
+  color:#dc2626;
+
+}
+
+
+
+.maintenance {
+
+  background:#fef3c7;
+
+  color:#d97706;
+
+}
+
+
+
+.handover {
+
+  background:#dbeafe;
+
+  color:#2563eb;
+
+}
+
+
+
+/* HOVER */
+
+
+.quick-item:hover {
+ background:#7dd3fc !important;
+  
+  color:#0f172a;
+
+  transform:translateY(-3px);
+
+  box-shadow:0 8px 18px rgba(0,0,0,0.12);
+
+}
+
+
+
+/* CLICK EFFECT LIGHT BLUE */
+
+
+.quick-item:active {
+
+  background:#7dd3fc !important;
+
+  color:#0f172a !important;
+
+  transform:scale(0.97);
+
+}
+
+
+
+/* REMOVE PURPLE FOCUS */
+
+
+.quick-item:focus {
+
+  outline:none;
+
+}
+
+
+.quick-item:focus-visible {
+
+  outline:none;
+
+}
+
+
+
+/* =========================
+   DARK MODE
+========================= */
+
+
+body.dark .page-content {
+
+  background:#121212;
+
+}
+
+
+
+body.dark .card,
+body.dark .dashboard-card {
+
+  background:#1e1e1e;
+
+  box-shadow:0 5px 20px rgba(0,0,0,0.4);
+
+}
+
+
+
+body.dark .card h2 {
+
+  color:#e2e8f0;
+
+}
+
+
+
+body.dark .assignment-grid p,
+body.dark .info-row strong {
+
+  color:#f8fafc;
+
+}
+
+
+
+body.dark .assignment-grid span,
+body.dark .gps-grid span,
+body.dark .info-row span,
+body.dark .sub {
+
+  color:#94a3b8;
+
+}
+
+
+
+body.dark .traffic-card {
+
+  background:#1e1e1e;
+
+}
+
+
+
+body.dark .traffic-header h2 {
+
+  color:#cbd5e1;
+
+}
+
+
+
+body.dark .route-box {
+
+  background:#2a2118;
+
+  border-color:#7c4a12;
+
+}
+
+
+
+body.dark .route-box p {
+
+  color:#fdba74;
+
+}
+
+
+
+body.dark .bar-group span {
+
+  color:#94a3b8;
+
+}
+/* =========================
+   MAINTENANCE MODAL
+========================= */
+
+
+.maintenance-overlay {
+
+  position:fixed;
+
+  top:0;
+
+  left:0;
+
+  width:100%;
+
+  height:100%;
+
+  background:rgba(0,0,0,0.45);
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  z-index:999;
+
+}
+
+
+
+.maintenance-modal {
+
+  background:white;
+
+  width:350px;
+
+  padding:25px;
+
+  border-radius:16px;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:15px;
+
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+
+}
+
+
+
+.maintenance-modal h2 {
+
+  font-size:20px;
+
+  color:#1e293b;
+
+  margin:0;
+
+}
+
+
+
+.maintenance-modal select,
+.maintenance-modal textarea {
+
+  width:100%;
+
+  padding:12px;
+
+  border-radius:10px;
+
+  border:1px solid #ddd;
+
+  font-size:14px;
+
+  outline:none;
+
+}
+
+
+
+.maintenance-modal select:focus,
+.maintenance-modal textarea:focus {
+
+  border-color:#f59e0b;
+
+}
+
+
+
+.maintenance-modal textarea {
+
+  height:100px;
+
+  resize:none;
+
+}
+
+
+
+/* SUBMIT BUTTON */
+
+
+.submit-maintenance {
+
+  background:#f59e0b;
+
+  color:white;
+
+  padding:12px;
+
+  border:none;
+
+  border-radius:10px;
+
+  cursor:pointer;
+
+  font-weight:600;
+
+}
+
+
+
+.submit-maintenance:hover {
+
+  background:#d97706;
+
+}
+
+
+
+/* CANCEL BUTTON */
+
+
+.close-maintenance {
+
+  background:#64748b;
+
+  color:white;
+
+  padding:12px;
+
+  border:none;
+
+  border-radius:10px;
+
+  cursor:pointer;
+
+}
+
+
+
+.close-maintenance:hover {
+
+  background:#475569;
+
+}
+
+
+
+/* =========================
+   DARK MODE MODAL
+========================= */
+
+
+body.dark .maintenance-modal {
+
+  background:#1e1e1e;
+
+}
+
+
+
+body.dark .maintenance-modal h2 {
+
+  color:#f8fafc;
+
+}
+
+
+
+body.dark .maintenance-modal select,
+body.dark .maintenance-modal textarea {
+
+  background:#262626;
+
+  color:white;
+
+  border-color:#444;
+
+}
+
+
+
+/* =========================
+   RESPONSIVE DESIGN
+========================= */
+
+
+@media(max-width:900px){
+
+
+  .dashboard-grid {
+
+    grid-template-columns:1fr;
+
+  }
+
+
+
+  .assignment-grid {
+
+    grid-template-columns:1fr;
+
+  }
+
+
+
+  .traffic-content {
+
+    flex-direction:column;
+
+  }
+
+
+}
+
+
+
+@media(max-width:600px){
+
+
+  .page-content {
+
+    padding:15px;
+
+  }
+
+
+
+  .card {
+
+    padding:15px;
+
+  }
+
+
+
+  .gps-grid {
+
+    grid-template-columns:1fr;
+
+  }
+
+
+
+  .maintenance-modal {
+
+    width:90%;
+
+  }
+
+
+
+  .quick-item {
+
+    padding:12px;
+
+  }
+
+
+}
