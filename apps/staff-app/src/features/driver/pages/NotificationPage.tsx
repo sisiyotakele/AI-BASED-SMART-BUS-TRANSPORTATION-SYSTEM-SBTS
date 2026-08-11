@@ -1,190 +1,77 @@
-import { FaBell, FaRoute, FaCarCrash, FaExclamationTriangle, FaBullhorn } from "react-icons/fa";
-import "../styles/Notification.css";
+// src/features/driver/pages/NotificationPage.tsx
 
-function NotificationPage({ notifications, setNotifications }: any) {
+import React, { useState } from 'react';
+import {
+  NotificationHeader,
+  NotificationFilters,
+  NotificationList,
+} from '../components/notification';
+import { useNotifications } from '../hooks/useNotifications';
 
+type FilterType = "all" | "unread" | "alerts" | "updates";
 
+const NotificationPage: React.FC = () => {
+  const { notifications, markAsRead, markAllAsRead } = useNotifications();
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+
+  // ─── Get Settings from localStorage ────────────────────────────
   const savedSettings = localStorage.getItem("driverSettings");
+  const settings = savedSettings ? JSON.parse(savedSettings) : null;
 
-  const settings = savedSettings 
-    ? JSON.parse(savedSettings)
-    : null;
-
-
-  const filteredNotifications = settings
-    ? notifications.filter((n:any)=>{
-
-        if(n.type === "Route Updates")
-          return settings.notifications.trip;
-
-
-        if(n.type === "Traffic Alerts")
-          return settings.notifications.traffic;
-
-
-        if(n.type === "Emergency Messages")
-          return settings.notifications.emergency;
-
-
-        if(n.type === "Dispatch Communications")
-          return settings.notifications.incident;
-
-
+  // ─── Filter Notifications Based on Settings ────────────────────
+  const settingsFiltered = settings
+    ? notifications.filter((n) => {
+        if (n.type === "Route Updates") return settings.notifications?.trip;
+        if (n.type === "Traffic Alerts") return settings.notifications?.traffic;
+        if (n.type === "Emergency Messages") return settings.notifications?.emergency;
+        if (n.type === "Dispatch Communications") return settings.notifications?.incident;
         return true;
-
       })
     : notifications;
 
+  // ─── Apply Category Filter ─────────────────────────────────────
+  const filteredNotifications = settingsFiltered.filter((n) => {
+    if (activeFilter === "all") return true;
+    if (activeFilter === "unread") return !n.read;
+    if (activeFilter === "alerts") return n.type === "Traffic Alerts" || n.type === "Emergency Messages";
+    if (activeFilter === "updates") return n.type === "Route Updates" || n.type === "Dispatch Communications";
+    return true;
+  });
 
-  const markAsRead = (id: number) => {
-
-    setNotifications((prev: any[]) =>
-      prev.map((n) =>
-        n.id === id
-          ? { ...n, read: true }
-          : n
-      )
-    );
-
+  // ─── Counts for Filters ────────────────────────────────────────
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const counts = {
+    all: settingsFiltered.length,
+    unread: settingsFiltered.filter((n) => !n.read).length,
+    alerts: settingsFiltered.filter((n) => n.type === "Traffic Alerts" || n.type === "Emergency Messages").length,
+    updates: settingsFiltered.filter((n) => n.type === "Route Updates" || n.type === "Dispatch Communications").length,
   };
-
-
-
-  const getIcon = (type: string) => {
-
-    switch(type) {
-
-      case "Route Updates":
-        return <FaRoute />;
-
-      case "Traffic Alerts":
-        return <FaCarCrash />;
-
-      case "Emergency Messages":
-        return <FaExclamationTriangle />;
-
-      case "Dispatch Communications":
-        return <FaBullhorn />;
-
-      default:
-        return <FaBell />;
-
-    }
-
-  };
-
-
 
   return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 p-4 sm:p-6">
+          
+          <NotificationHeader
+            unreadCount={unreadCount}
+            onMarkAllRead={markAllAsRead}
+          />
 
-    <div className="notification-container">
+          <NotificationFilters
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            counts={counts}
+          />
 
+          <NotificationList
+            notifications={filteredNotifications}
+            onMarkAsRead={markAsRead}
+          />
 
-      <div className="notification-card">
-
-
-        <h3>
-          Notifications
-        </h3>
-
-
-
-        {
-          notifications.length === 0 && (
-
-            <p className="empty">
-              No notifications yet
-            </p>
-
-          )
-        }
-
-
-
-
-        {
-          filteredNotifications.map((n:any)=>(
-
-
-            <div
-
-              key={n.id}
-
-              className={`notification-item ${
-                n.read ? "read" : "unread"
-              }`}
-
-              onClick={() => markAsRead(n.id)}
-
-            >
-
-
-
-              <div className="icon">
-
-                {getIcon(n.type)}
-
-              </div>
-
-
-
-
-
-              <div className="content">
-
-
-                <span className="notification-type">
-
-                  {n.type || "General"}
-
-                </span>
-
-
-                <p>
-                  {n.message}
-                </p>
-
-
-                <span>
-                  {n.time}
-                </span>
-
-
-
-              </div>
-
-
-
-
-
-              {
-                !n.read && (
-
-                  <div className="dot"/>
-
-                )
-              }
-
-
-
-            </div>
-
-
-
-          ))
-        }
-
-
-
-
+        </div>
       </div>
-
-
     </div>
-
   );
-
-}
-
+};
 
 export default NotificationPage;

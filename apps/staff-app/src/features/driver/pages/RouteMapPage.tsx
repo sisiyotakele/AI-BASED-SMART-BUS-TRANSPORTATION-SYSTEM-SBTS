@@ -1,905 +1,169 @@
+// src/features/driver/pages/RouteMapPage.tsx
+
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Popup,
-  Polyline,
-  useMap
-} from "react-leaflet";
-
-import * as L from "leaflet";
-import { useEffect, useState } from "react";
-import "leaflet/dist/leaflet.css";
-import "../styles/RouteMapPage.css";
-
-
-// 🚌 Bus icon
-const busIcon = new L.Icon({
-  iconUrl:
-    "https://cdn-icons-png.flaticon.com/512/3448/3448339.png",
-
-  iconSize: [55, 55],
-
-  iconAnchor: [27, 27],
-
-  popupAnchor: [0, -25],
-});
-
-// 📍 Stop icon
-const stopIcon = new L.Icon({
-  iconUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-
-  shadowUrl:
-    "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-
-  iconSize:[25,41],
-  iconAnchor:[12,41]
-});
-
-
-// 🟢 Current stop
-const currentStopIcon = new L.Icon({
-  iconUrl:
-    "https://cdn-icons-png.flaticon.com/512/447/447031.png",
-
-  iconSize:[35,35]
-});
-
-
-// 🔵 Next stop
-const nextStopIcon = new L.Icon({
-  iconUrl:
-    "https://cdn-icons-png.flaticon.com/512/684/684908.png",
-
-  iconSize:[30,30]
-});
-
-
-// Follow bus movement
-function FollowBus(
-{
- position
-}:{
- position:[number,number]
-}
-){
-
-const map = useMap();
-
-
-useEffect(()=>{
-
-map.setView(
- position,
- map.getZoom(),
- {
- animate:true
- }
-);
-
-
-},[position,map]);
-
-
-return null;
-
-}
-
-
-
-function RouteMapPage(){
-
-
-const stops:[number,number][]=[
-
-[9.0320,38.7469],
-
-[9.0200,38.7500],
-
-[9.0100,38.7600],
-
-[8.9900,38.7800]
-
-];
-
-
-const stopNames=[
-
-"Mexico Square",
-
-"Stadium",
-
-"Bole Road",
-
-"Bole Airport"
-
-];
-
-
-
-// ================= STATES =================
-
-
-const TOTAL_DISTANCE = 12.5;
-
-
-const [busLocation,setBusLocation]
-=
-useState<[number,number]>(stops[0]);
-
-
-const [currentStop,setCurrentStop]
-=
-useState(0);
-
-
-
-const [speed,setSpeed]
-=
-useState(35);
-
-
-
-const [distance,setDistance]
-=
-useState(TOTAL_DISTANCE);
-
-
-
-const [eta,setEta]
-=
-useState(
-Math.ceil((TOTAL_DISTANCE / 35) * 60)
-);
-
-
-
-const [tripProgress,setTripProgress]
-=
-useState(0);
-
-
-
-// 🚦 AI Traffic
-
-const [trafficStatus,setTrafficStatus]
-=
-useState("Normal Traffic");
-
-
-const [trafficDelay,setTrafficDelay]
-=
-useState(0);
-
-
-const [trafficSuggestion,setTrafficSuggestion]
-=
-useState(
-"Continue current route"
-);
-
-
-
-
-// ================= BUS MOVEMENT =================
-
-
-useEffect(()=>{
-
-
-let stopIndex = 0;
-
-let progress = 0;
-
-
-
-const interval = setInterval(()=>{
-
-
-const start = stops[stopIndex];
-
-const end = stops[stopIndex+1];
-
-
-
-if(!end){
-
-clearInterval(interval);
-
-return;
-
-}
-
-
-
-const lat =
-start[0] +
-(end[0]-start[0])
-*
-progress;
-
-
-
-const lng =
-start[1] +
-(end[1]-start[1])
-*
-progress;
-
-
-
-setBusLocation([
-lat,
-lng
-]);
-
-
-
-
-// SPEED
-
-const randomSpeed =
-Math.floor(
-Math.random()*(45-25)+25
-);
-
-
-setSpeed(randomSpeed);
-
-
-
-
-// DISTANCE + ETA + PROGRESS
-
-
-setDistance(prevDistance=>{
-
-
-const updatedDistance =
-Math.max(
-prevDistance - 0.01,
-0
-);
-
-
-
-const percentage =
-(
-(TOTAL_DISTANCE-updatedDistance)
-/ TOTAL_DISTANCE
-)
-*100;
-
-
-
-setTripProgress(percentage);
-
-
-
-if(updatedDistance > 0){
-
-
-const calculatedETA =
-(updatedDistance/randomSpeed)*60;
-
-
-setEta(
-Math.ceil(calculatedETA)
-);
-
-
-}
-else{
-
-setEta(0);
-
-}
-
-
-
-return Number(
-updatedDistance.toFixed(2)
-);
-
-
-});
-
-
-
-progress += 0.005;
-
-
-
-if(progress>=1){
-
-progress=0;
-
-stopIndex++;
-
-setCurrentStop(stopIndex);
-
-}
-
-
-
-},100);
-
-
-
-return ()=>clearInterval(interval);
-
-
-},[]);
-
-
-
-
-// ================= AI TRAFFIC =================
-
-
-useEffect(()=>{
-
-
-const trafficInterval =
-setInterval(()=>{
-
-
-const trafficLevels=[
-
-
-{
-status:"Normal Traffic",
-delay:0,
-suggestion:"Continue current route"
-},
-
-
-{
-status:"Moderate Traffic",
-delay:5,
-suggestion:"Reduce speed near intersection"
-},
-
-
-{
-status:"Heavy Traffic",
-delay:10,
-suggestion:"Consider alternative route"
-}
-
-
-];
-
-
-
-const randomTraffic =
-trafficLevels[
-Math.floor(
-Math.random()*trafficLevels.length
-)
-];
-
-
-
-setTrafficStatus(randomTraffic.status);
-
-setTrafficDelay(randomTraffic.delay);
-
-setTrafficSuggestion(
-randomTraffic.suggestion
-);
-
-
-
-},5000);
-
-
-
-return ()=>clearInterval(trafficInterval);
-
-
-
-},[]);
-
-
-
-const totalStops = stops.length;
-
-const completedStops = currentStop;
-
-const remainingStops =
-totalStops-currentStop-1;
-
-
-const progressPercentage =
-tripProgress;
-return(
-
-<div className="route-map-page">
-
-
-<h1>Route Map</h1>
-
-
-<div className="route-layout-vertical">
-
-
-
-{/* =========================
-    TODAY'S ROUTE
-========================= */}
-
-
-<div className="route-info-card">
-
-
-<h2>Today's Route</h2>
-
-
-<p>
-<strong>Route:</strong>
-Addis Ababa → Bole
-</p>
-
-
-<p>
-<strong>Bus:</strong>
-SBTS-102
-</p>
-
-
-<p>
-<strong>Driver:</strong>
-Abebe
-</p>
-
-
-<p>
-<strong>Total Distance:</strong>
-12.5 km
-</p>
-
-
-<h3>Bus Stops</h3>
-
-
-<ul>
-
-{
-stopNames.map((stop,index)=>(
-
-<li key={index}>
-
-{
-index < currentStop
-?
-"✓ "
-:
-index === currentStop
-?
-"🟢 "
-:
-"→ "
-}
-
-{stop}
-
-</li>
-
-))
-
-}
-
-</ul>
-
-
-</div>
-
-
-
-
-
-{/* =========================
-    TRIP PROGRESS
-========================= */}
-
-
-
-<div className="progress-card">
-
-
-<h2>Trip Progress</h2>
-
-
-<p className="status-text">
-
-🟢 Trip Running
-
-</p>
-
-
-
-<div className="progress-bar">
-
-
-<div
-
-className="progress-fill"
-
-style={{
-width:`${progressPercentage}%`
-}}
-
->
-
-
-</div>
-
-
-</div>
-
-
-
-<div className="progress-details">
-
-
-<p>
-
-<strong>
-Completed:
-</strong>
-
-{progressPercentage.toFixed(0)}%
-
-</p>
-
-
-
-<p>
-
-<strong>
-Remaining:
-</strong>
-
-{distance} km
-
-</p>
-
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-{/* =========================
-    LIVE ROUTE MAP
-========================= */}
-
-
-
-<div className="map-card">
-
-
-<h2>
-Live Route Map
-</h2>
-
-
-
-<MapContainer
-
-center={busLocation}
-
-zoom={13}
-
-className="real-map"
-
->
-
-
-<FollowBus
-
-position={busLocation}
-
-/>
-
-
-
-<TileLayer
-
-url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-
-/>
-
-
-
-
-
-{/* BUS */}
-
-
-<Marker
-
-position={busLocation}
-
-icon={busIcon}
-
->
-
-
-<Popup>
-  <strong>🚌 SBTS-102</strong>
-  <br/>
-  Status: Running
-  <br/>
-  Speed: {speed} km/h
-  <br/>
-  Next Stop:
-  {stopNames[currentStop + 1]}
-</Popup>
-
-</Marker>
-
-
-
-
-
-
-{/* STOPS */}
-
-
-
-{
-stops.map((stop,index)=>(
-
-
-<Marker
-
-key={index}
-
-position={stop}
-
-icon={
-
-index === currentStop
-
-?
-
-currentStopIcon
-
-:
-
-index === currentStop+1
-
-?
-
-nextStopIcon
-
-:
-
-stopIcon
-
-}
-
->
-
-
-<Popup>
-
-
-{
-
-index === currentStop
-
-?
-
-"🟢 Current Stop: "
-+ stopNames[index]
-
-
-:
-
-index === currentStop+1
-
-?
-
-"🔵 Next Stop: "
-+ stopNames[index]
-
-
-:
-
-"📍 "
-+ stopNames[index]
-
-
-}
-
-
-
-</Popup>
-
-
-</Marker>
-
-
-))
-
-}
-
-
-
-
-
-
-{/* ROUTE LINE */}
-
-
-<Polyline
-
-positions={stops}
-
-/>
-
-
-
-</MapContainer>
-
-
-</div>
-
-
-
-
-
-
-
-{/* =========================
-    NEXT STOP
-========================= */}
-
-
-
-<div className="next-stop-card">
-
-
-<h2>
-Next Stop
-</h2>
-
-
-<p>
-
-📍
-
-<strong>
-
-{
-stopNames[currentStop+1]
-||
-"Trip Completed"
-}
-
-</strong>
-
-
-</p>
-
-
-
-<p>
-
-🚌 Speed:
-
-{speed}
-
-km/h
-
-</p>
-
-
-
-<p>
-
-⏱ ETA:
-
-{eta}
-
-minutes
-
-</p>
-
-
-
-<p>
-
-📏 Distance:
-
-{distance}
-
-km
-
-</p>
-
-
-</div>
-
-
-
-
-
-
-
-{/* =========================
-    AI TRAFFIC
-========================= */}
-
-
-
-<div className="traffic-card">
-
-
-<h2>
-AI Traffic Prediction
-</h2>
-
-
-
-<p>
-
-🚦
-
-{trafficStatus}
-
-</p>
-
-
-
-<p>
-
-⏱ Delay:
-
-+
-
-{trafficDelay}
-
-minutes
-
-</p>
-
-
-
-<p>
-
-🤖 Suggestion:
-
-{trafficSuggestion}
-
-</p>
-
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-</div>
-
-
-);
-
-}
-
+  FaCompass,
+  FaExpand,
+  FaCompress,
+  FaBus,
+  FaClock,
+  FaRoute,
+  FaArrowLeft,
+  FaLocationArrow,
+  FaPlus,
+  FaMinus,
+  FaCrosshairs,
+} from 'react-icons/fa';
+import { RouteMapView } from '../components/map';
+import { useRouteTracking } from '../hooks/useRouteTracking';
+import { useDriverProfile } from '../hooks';
+import { MapType, TRAFFIC_STYLES, STOPS, STOP_NAMES, BUS_ID, TOTAL_DISTANCE_KM } from '../constants/map';
+import { DEFAULT_DRIVER } from '../constants/driver';
+
+const RouteMapPage: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { profile } = useDriverProfile();
+  const {
+    trip,
+    speed,
+    trafficStatus,
+    trafficDelay,
+    trafficSuggestion,
+    isFollowing,
+    toggleFollowing,
+  } = useRouteTracking();
+
+  const [mapType, setMapType] = useState<MapType>("street");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+
+  const driverName = profile.name || DEFAULT_DRIVER.name;
+  const tStyle = TRAFFIC_STYLES[trafficStatus];
+  const progressPercentage = trip.progressPercentage;
+
+  // ─── Check if navigation was triggered from MyTripPage ────────
+  const isNavigating = location.state?.startNavigation || false;
+
+  // ─── Map type buttons ──────────────────────────────────────────
+  const mapTypeButtons: Array<{ type: MapType; label: string; icon: string }> = [
+    { type: 'street', label: 'Street', icon: '🗺️' },
+    { type: 'satellite', label: 'Satellite', icon: '🛰️' },
+    { type: 'terrain', label: 'Terrain', icon: '⛰️' },
+    { type: 'dark', label: 'Dark', icon: '🌙' },
+  ];
+
+  // ─── Go back to MyTripPage ─────────────────────────────────────
+  const goBack = () => {
+    navigate('/driver');
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 overflow-hidden">
+      {/* ─── Full Screen Map ────────────────────────────────────── */}
+      <div className="relative h-screen w-full">
+        <RouteMapView
+          position={trip.position}
+          stops={STOPS}
+          stopNames={STOP_NAMES}
+          currentStop={trip.currentStop}
+          progress={progressPercentage}
+          following={isFollowing}
+          mapType={mapType}
+          onMapTypeChange={setMapType}
+          onFollowToggle={toggleFollowing}
+          onUserMove={() => {}}
+          speed={speed}
+        />
+
+        {/* ─── Back Button ────────────────────────────────────────── */}
+        <button
+          onClick={goBack}
+          className="absolute top-4 left-4 z-[1000] w-10 h-10 rounded-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-white/60 dark:border-gray-700 shadow-lg flex items-center justify-center text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-700 transition-all touch-manipulation"
+        >
+          <FaArrowLeft size={18} />
+        </button>
+
+        {/* ─── Navigation Status ──────────────────────────────────── */}
+        {isNavigating && (
+          <div className="absolute top-4 left-16 z-[1000] bg-[#12B2E4] text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 animate-pulse">
+            <FaLocationArrow size={14} />
+            <span className="text-sm font-semibold">Navigating...</span>
+          </div>
+        )}
+
+        {/* ─── Map Type Selector ────────────────────────────────── */}
+        <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-1.5">
+          {mapTypeButtons.map(({ type, label, icon }) => (
+            <button
+              key={type}
+              onClick={() => setMapType(type)}
+              className={`w-9 h-9 rounded-lg text-sm font-medium transition-all touch-manipulation flex items-center justify-center ${
+                mapType === type
+                  ? 'bg-[#12B2E4] text-white shadow-lg shadow-[#12B2E4]/30'
+                  : 'bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-white/60 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-white dark:hover:bg-gray-700'
+              }`}
+              title={label}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
+
+        {/* ─── Speed Indicator ──────────────────────────────────── */}
+        <div className="absolute left-4 bottom-24 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-white/60 dark:border-gray-700 rounded-xl px-4 py-2 shadow-lg flex items-center gap-3">
+          <FaCompass size={16} className="text-[#12B2E4]" />
+          <span className="text-lg font-bold text-[#12B2E4]">{speed}</span>
+          <span className="text-xs text-gray-400 dark:text-gray-500">km/h</span>
+        </div>
+
+        {/* ─── Bottom Info Panel ────────────────────────────────── */}
+        <div className="absolute bottom-0 left-0 right-0 z-[1000] bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 p-4">
+          {/* Progress Bar */}
+          <div className="mb-3">
+            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+              <span>Progress</span>
+              <span className="font-semibold text-[#12B2E4]">{Math.round(progressPercentage)}%</span>
+            </div>
+            <div className="relative h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <div
+                className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-[#12B2E4] to-[#2B4B9E] transition-all duration-700 ease-out"
+                style={{ width: `${Math.min(progressPercentage, 100)}%` }}
+              />
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white dark:bg-gray-800 shadow-[0_2px_8px_rgba(18,178,228,0.4)] border-2 border-[#12B2E4] transition-all duration-700 ease-out"
+                style={{ left: `${Math.min(Math.max(progressPercentage, 2), 98)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Info Grid */}
+          <div className="grid grid-cols-4 gap-2 text-xs">
+            <div>
+              <p className="text-gray-400 dark:text-gray-500">Next Stop</p>
+              <p className="font-semibold text-gray-800 dark:text-white truncate">{trip.nextStop}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 dark:text-gray-500">ETA</p>
+              <p className="font-semibold text-[#12B2E4]">{trip.etaFormatted}</p>
+            </div>
+            <div>
+              <p className="text-gray-400 dark:text-gray-500">Distance</p>
+              <p className="font-semibold text-gray-800 dark:text-white">{trip.remainingKm.toFixed(1)} km</p>
+            </div>
+            <div>
+              <p className="text-gray-400 dark:text-gray-500">Traffic</p>
+              <p className={`font-semibold flex items-center gap-1 ${tStyle.text}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${tStyle.dot}`} />
+                {trafficStatus}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default RouteMapPage;

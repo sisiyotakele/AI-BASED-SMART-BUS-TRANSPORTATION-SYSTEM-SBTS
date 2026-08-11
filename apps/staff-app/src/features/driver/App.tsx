@@ -1,199 +1,141 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import DriverLogin from "./pages/DriverLogin";
-import DriverDashboard from "./pages/DriverDashboard";
-import IncidentPage from "./pages/IncidentPage";
-import NotificationPage from "./pages/NotificationPage";
 import MyTripPage from "./pages/MyTripPage";
+import RouteMapPage from "./pages/RouteMapPage";
 import MyTripHistory from "./pages/MyTripHistory";
+import NotificationPage from "./pages/NotificationPage";
 import ProfilePage from "./pages/ProfilePage";
 import SettingsPage from "./pages/SettingsPage";
-import DriverSignup from "./pages/DriverSignup";
-import ForgotPasswordPage from "./pages/ForgotPassword";
-import RouteMapPage from "./pages/RouteMapPage";
-import GPSTrackingPage from "./pages/GPSTrackingPage";
+import IncidentPage from "./pages/IncidentPage";
+
+// Sample location data (will be replaced with actual GPS)
+const defaultLocation = {
+  latitude: 9.03,
+  longitude: 38.74,
+};
+
 function App() {
-  // =========================
-  // INCIDENT GLOBAL STATE
-  // =========================
+  // Shared state for notifications and incidents
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [incidents, setIncidents] = useState<any[]>([]);
-  // =========================
-  // NOTIFICATION GLOBAL STATE
-  // =========================
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "Dispatch Communications",
-      message: "Welcome to SBTS Driver System",
-      time: "Just now",
-      read: false,
-    },
-    {
-      id: 2,
-      type: "Route Updates",
-      message:
-        "Route 12 has been updated. Check the new stop sequence.",
-      time: "10 minutes ago",
-      read: false,
-    },
-    {
-      id: 3,
-      type: "Traffic Alerts",
-      message:
-        "Heavy traffic detected near Bole Road. Consider alternative route.",
-      time: "20 minutes ago",
-      read: false,
-    },
-    {
-      id: 4,
-      type: "Emergency Messages",
-      message:
-        "Emergency alert: Drive carefully due to road conditions.",
-      time: "30 minutes ago",
-      read: false,
-    },
-  ]);
-  // =========================
-  // LOAD INCIDENTS
-  // =========================
-  useEffect(() => {
-    const savedIncidents =
-      localStorage.getItem("incidents");
-    if (savedIncidents) {
-      setIncidents(JSON.parse(savedIncidents));
-    }
-  }, []);
-  // =========================
-  // SAVE INCIDENTS
-  // =========================
-  useEffect(() => {
-    localStorage.setItem(
-      "incidents",
-      JSON.stringify(incidents)
-    );
-  }, [incidents]);
-  // =========================
-  // LOAD NOTIFICATIONS
-  // =========================
-  useEffect(() => {
-    const savedNotifications =
-      localStorage.getItem("notifications");
-    if (savedNotifications) {
-      setNotifications(
-        JSON.parse(savedNotifications)
-      );
-    }
-  }, []);
-  // =========================
-  // SAVE NOTIFICATIONS
-  // =========================
-  useEffect(() => {
-    localStorage.setItem(
-      "notifications",
-      JSON.stringify(notifications)
-    );
-  }, [notifications]);
-  // =========================
-  // LOAD THEME
-  // ========================
-  useEffect(() => {
-    const savedTheme =
-      localStorage.getItem("theme");
-    if(savedTheme === "dark"){
-      document.body.classList.add("dark");
-    }
-    return () => {
-      document.body.classList.remove("dark");
-    };
-  }, []);
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* LOGIN */}
-        <Route
-          path="/"
-          element={<DriverLogin />}
+        {/* Main/Default Route - MyTripPage */}
+        <Route 
+          path="/" 
+          element={<MyTripPage location={defaultLocation} />} 
         />
-        {/* FORGOT PASSWORD */}
-        <Route
-          path="/forgot-password"
-          element={<ForgotPasswordPage />}
+        
+        {/* Driver Routes */}
+        <Route 
+          path="/driver" 
+          element={<MyTripPage location={defaultLocation} />} 
         />
-        {/* SIGNUP */}
-        <Route
-          path="/signup"
-          element={<DriverSignup />}
+        
+        <Route 
+          path="/driver/route-map" 
+          element={<RouteMapPage />} 
         />
-        {/* DASHBOARD MAIN LAYOUT */}
-        <Route
-          path="/dashboard"
+        
+        <Route 
+          path="/driver/trip-history" 
+          element={<MyTripHistory />} 
+        />
+        
+        <Route 
+          path="/driver/notifications" 
           element={
-            <DriverDashboard
-              notifications={notifications}
+            <NotificationPage 
+              notifications={notifications} 
+              setNotifications={setNotifications} 
             />
-          }
-        >
-          {/* DASHBOARD HOME */}
-          <Route
-            index
-            element={
-              <h2>Dashboard Home</h2>
-            }
-          />
-          {/* MY TRIP */}
-          <Route
-            path="my-trip"
-            element={<MyTripPage />}
-          />
-          {/* INCIDENT REPORT */}
-          <Route
-            path="incidents"
-            element={
-              <IncidentPage
-                incidents={incidents}
-                setIncidents={setIncidents}
-                setNotifications={setNotifications}
-              />
-            }
-          />
-          {/* NOTIFICATIONS */}
-          <Route
-            path="notifications"
-            element={
-              <NotificationPage
-                notifications={notifications}
-                setNotifications={setNotifications}
-              />
-            }
-          />
-          {/* TRIP HISTORY */}
-          <Route
-            path="trip-history"
-            element={<MyTripHistory />}
-          />
-          {/* ROUTE MAP */}
-          <Route
-            path="route-map"
-            element={<RouteMapPage />}
-          />
-         {/* GPS */}
-<Route
-  path="gps"
-  element={<GPSTrackingPage />}
-/>
-          {/* PROFILE */}
-          <Route
-            path="profile"
-            element={<ProfilePage />}
-          />
-          {/* SETTINGS */}
-          <Route
-            path="settings"
-            element={<SettingsPage />}
-          />
-        </Route>
+          } 
+        />
+        
+        <Route 
+          path="/driver/profile" 
+          element={<ProfilePage />} 
+        />
+        
+        <Route 
+          path="/driver/settings" 
+          element={<SettingsPage />} 
+        />
+        
+        <Route 
+          path="/driver/incident" 
+          element={
+            <IncidentPage 
+              incidents={incidents} 
+              setIncidents={setIncidents} 
+              setNotifications={setNotifications} 
+            />
+          } 
+        />
+        
+        {/* Placeholder routes for other features */}
+        <Route 
+          path="/driver/fuel-log" 
+          element={
+            <div className="min-h-screen bg-gray-50 p-6">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-2xl font-bold text-gray-900">Fuel Log</h1>
+                <p className="text-gray-500 mt-2">Fuel tracking feature coming soon...</p>
+              </div>
+            </div>
+          } 
+        />
+        
+        <Route 
+          path="/driver/vehicle-check" 
+          element={
+            <div className="min-h-screen bg-gray-50 p-6">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-2xl font-bold text-gray-900">Vehicle Inspection</h1>
+                <p className="text-gray-500 mt-2">Vehicle inspection feature coming soon...</p>
+              </div>
+            </div>
+          } 
+        />
+        
+        <Route 
+          path="/driver/support" 
+          element={
+            <div className="min-h-screen bg-gray-50 p-6">
+              <div className="max-w-4xl mx-auto">
+                <h1 className="text-2xl font-bold text-gray-900">Support</h1>
+                <p className="text-gray-500 mt-2">Support center coming soon...</p>
+              </div>
+            </div>
+          } 
+        />
+        
+        {/* Login Route (if needed) */}
+        <Route 
+          path="/login" 
+          element={
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+              <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+                <h1 className="text-2xl font-bold text-gray-900 text-center">Driver Login</h1>
+                <p className="text-gray-500 text-center mt-2">Sign in to start your shift</p>
+                <button 
+                  onClick={() => window.location.href = "/driver"}
+                  className="w-full mt-6 bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-colors"
+                >
+                  Login (Demo)
+                </button>
+              </div>
+            </div>
+          } 
+        />
+        
+        {/* Catch all - redirect to home */}
+        <Route path="*" element={<MyTripPage location={defaultLocation} />} />
       </Routes>
     </BrowserRouter>
-          )
+  );
 }
+
 export default App;

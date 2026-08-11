@@ -1,36 +1,134 @@
-/* LIGHT MODE (default) */
+/* src/features/driver/index.css */
+
+@import "tailwindcss";
+/* ─── Fix: Import Leaflet CSS ───────────────────────────────────── */
+@import "leaflet/dist/leaflet.css";
+
+
+/* ─── FIX: Tell Tailwind v4 to use .dark class instead of OS preference ─── */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ================================================================
+   THEME VARIABLES
+================================================================ */
+
+@theme {
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  --color-primary-blue: #12B2E4;
+  --color-secondary-blue: #2B4B9E;
+}
+
+/* ================================================================
+   BASE STYLES
+================================================================ */
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-  background: #f5f5f5;
-  color: #222;
+  background: #f3f4f6;
+  color: #1f2937;
   margin: 0;
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* DARK MODE */
-body.dark {
-  background: #121212;
-  color: #f1f1f1;
+/* ─── Dark Mode Base ──────────────────────────────────────────── */
+html.dark {
+  background: #111827;
 }
 
-/* Cards */
-body.dark .settings-card,
-body.dark .profile-card,
-body.dark .trip-card {
-  background: #1e1e1e;
-  color: white;
+html.dark body {
+  background: #111827;
+  color: #f9fafb;
 }
 
-/* Sidebar */
-body.dark .sidebar {
-  background: #1b1b1b;
+/* ================================================================
+   SCROLLBAR STYLING
+================================================================ */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
 
-/* Menu */
-body.dark .menu-item {
-  color: #ccc;
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 8px;
 }
 
-body.dark .menu-item.active-menu {
-  background: #333;
-  color: white;
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* ================================================================
+   INPUT FOCUS
+================================================================ */
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #12B2E4;
+  box-shadow: 0 0 0 2px rgba(18, 178, 228, 0.15);
+}
+
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background: #1f2937;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6b7280;
+}
+
+/* ================================================================
+   NOTIFICATION POPUP ANIMATION
+================================================================ */
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slideIn {
+  animation: slideIn 0.4s ease forwards;
 }
