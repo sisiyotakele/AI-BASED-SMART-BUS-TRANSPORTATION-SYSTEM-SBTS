@@ -28,6 +28,7 @@ import {
   deleteStop,
   nearbyStops,
   addRouteStop as addRouteStopController,
+  overwriteVersionStops,
 } from './routes-stops.controller';
 
 const router = Router();
@@ -640,6 +641,13 @@ router.post(
   validateParams(z.object({ versionId: z.string().uuid() })),
   validateBody(addRouteStopSchema),
   addRouteStopController
+);
+
+router.put(
+  '/route-versions/:versionId/stops',
+  requirePermission('manage_routes'),
+  validateParams(z.object({ versionId: z.string().uuid() })),
+  overwriteVersionStops
 );
 
 export default router;

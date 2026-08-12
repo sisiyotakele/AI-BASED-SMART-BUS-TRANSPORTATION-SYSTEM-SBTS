@@ -21,6 +21,16 @@ export async function createNotification(data: any, actorId?: string) {
         userId,
       }))
     );
+
+    // Emit live socket event to all recipients
+    try {
+        const { SocketServer } = require('@/config/socket');
+        existingUserIds.forEach((userId: string) => {
+            SocketServer.emitToUser(userId, 'notification:new', notification);
+        });
+    } catch(e) {
+        logger.error('Failed to emit live notification socket event', { error: e });
+    }
   }
 
   logger.info('Notification created', { notificationId: notification.id, recipients: existingUserIds.length });

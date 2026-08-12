@@ -5,6 +5,7 @@ export const createRouteSchema = z.object({
   description: z.string().optional(),
   startStopId: z.string().uuid(),
   endStopId: z.string().uuid(),
+  status: z.string().optional(),
 });
 
 export const updateRouteSchema = z.object({
@@ -12,6 +13,7 @@ export const updateRouteSchema = z.object({
   description: z.string().optional(),
   startStopId: z.string().uuid().optional(),
   endStopId: z.string().uuid().optional(),
+  status: z.string().optional(),
 }).refine(d => Object.keys(d).length > 0, 'At least one field required');
 
 export const routeIdParamSchema = z.object({ id: z.string().uuid() });
@@ -39,8 +41,8 @@ export const stopIdParamSchema = z.object({ id: z.string().uuid() });
 export const addRouteStopSchema = z.object({
   stopId: z.string().uuid(),
   sequenceNumber: z.coerce.number().int().positive(),
-  estimatedMinutes: z.coerce.number().int().positive().optional(),
-  distanceKm: z.coerce.number().positive().optional(),
+  estimatedMinutes: z.coerce.number().int().nonnegative().optional(),
+  distanceKm: z.coerce.number().nonnegative().optional(),
 });
 
 export const nearbyQuerySchema = z.object({

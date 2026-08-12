@@ -6,6 +6,7 @@ import { prisma } from './prisma/client';
 import { initializeSocketIO } from './config/socket';
 import { initializeTrackingSocket } from './modules/tracking/tracking.socket';
 import { createServer } from 'http';
+import { initTripCronJobs } from './modules/trips/trips.cron';
 
 const PORT = config.port;
 
@@ -39,6 +40,7 @@ async function bootstrap() {
       logger.info(`🔌 API Base: ${config.apiPrefix}`);
       logger.info(`🔴 Socket.IO ready for real-time events`);
       logger.info(`📍 GPS Tracking enabled`);
+      initTripCronJobs();
     });
   } catch (error) {
     logger.error('Failed to start server', { error });

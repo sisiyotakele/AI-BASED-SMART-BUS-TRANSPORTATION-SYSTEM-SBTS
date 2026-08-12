@@ -1,1 +1,0 @@
-﻿const DriverLayout = () => <div>Driver Layout</div>; const AdminLayout = () => <div>Admin Layout</div>; export const AppLayout = ({ role }: { role: 'driver' | 'admin' }) => role === 'admin' ? <AdminLayout /> : <DriverLayout />;

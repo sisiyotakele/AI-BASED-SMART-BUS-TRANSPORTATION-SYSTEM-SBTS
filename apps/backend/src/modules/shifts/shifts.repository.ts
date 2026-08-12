@@ -22,7 +22,7 @@ export async function findOverlappingShift(
             shiftDate,
             deletedAt: null,
             OR: [
-                { shiftStart: { lte: end }, shiftEnd: { gte: start } },
+                { shiftStart: { lt: end }, shiftEnd: { gt: start } },
             ],
         },
     });

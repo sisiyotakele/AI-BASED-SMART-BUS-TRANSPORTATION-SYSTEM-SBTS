@@ -11,6 +11,13 @@ export const deactivateSchema = z.object({
   endDate: z.coerce.date().optional(),
 });
 
+export const updateAssignmentSchema = z.object({
+  busId: z.string().uuid().optional(),
+  routeId: z.string().uuid().optional(),
+  assignedDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+});
+
 export const assignmentIdParamSchema = z.object({ id: z.string().uuid() });
 export const assignmentQuerySchema = z.object({
   busId: z.string().uuid().optional(),

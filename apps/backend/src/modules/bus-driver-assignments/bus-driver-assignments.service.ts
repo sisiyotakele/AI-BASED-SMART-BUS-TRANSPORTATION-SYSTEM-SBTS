@@ -59,7 +59,7 @@ export async function getAssignmentById(id: string) {
 
 export async function updateAssignment(id: string, data: any) {
   await getAssignmentById(id);
-  const assignment = await repository.updateAssignment(id, { status: data.status });
+  const assignment = await repository.updateAssignment(id, data);
   logger.info('Assignment updated', { assignmentId: id });
   return assignment;
 }

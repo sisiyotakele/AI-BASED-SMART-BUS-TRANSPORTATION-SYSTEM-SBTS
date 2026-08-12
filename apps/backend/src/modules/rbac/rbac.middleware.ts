@@ -45,6 +45,35 @@ export function requirePermission(permissionName: string) {
 }
 
 /**
+ * Middleware factory that strictly enforces SUPER_ADMIN role access.
+ */
+export function requireSuperAdmin() {
+  return async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new UnauthorizedError('Authentication required'));
+      }
+
+      const roles = req.user.roles || [];
+      const isSuperAdmin = roles.some((role: any) => role.name === 'SUPER_ADMIN' || role.roleName === 'SUPER_ADMIN');
+
+      if (!isSuperAdmin) {
+        return next(
+          new ForbiddenError(
+            'Access denied: Only SUPER_ADMIN can manage roles and permissions',
+            'SUPER_ADMIN_REQUIRED'
+          )
+        );
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
  * Middleware factory that checks if the authenticated user has ANY of the specified permissions.
  * OPTIMIZED: Fetches all user permissions in a single query instead of N separate queries.
  */

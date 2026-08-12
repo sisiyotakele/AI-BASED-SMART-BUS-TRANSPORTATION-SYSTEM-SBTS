@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
-import { createAssignmentSchema, deactivateSchema, assignmentIdParamSchema, assignmentQuerySchema } from './bus-route-assignments.validation';
-import { createAssignment, listAssignments, getAssignment, deactivateAssignment, deleteAssignment } from './bus-route-assignments.controller';
+import { createAssignmentSchema, deactivateSchema, assignmentIdParamSchema, assignmentQuerySchema, updateAssignmentSchema } from './bus-route-assignments.validation';
+import { createAssignment, listAssignments, getAssignment, updateAssignment, deactivateAssignment, deleteAssignment } from './bus-route-assignments.controller';
 
 const router = Router();
 
@@ -126,6 +126,27 @@ router.get('/', requirePermission('view_assignments'), validateQuery(assignmentQ
  *         description: Server error
  */
 router.get('/:id', requirePermission('view_assignments'), validateParams(assignmentIdParamSchema), getAssignment);
+
+/**
+ * @swagger
+ * /api/v1/bus-route-assignments/{id}:
+ *   patch:
+ *     summary: Update assignment
+ *     tags: [Bus Route Assignments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Assignment updated successfully
+ */
+router.patch('/:id', requirePermission('manage_assignments'), validateParams(assignmentIdParamSchema), validateBody(updateAssignmentSchema), updateAssignment);
 
 /**
  * @swagger

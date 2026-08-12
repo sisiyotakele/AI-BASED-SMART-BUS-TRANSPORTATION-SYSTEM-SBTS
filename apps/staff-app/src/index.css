@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-600 active:bg-primary-700;
+  }
+
+  .btn-secondary {
+    @apply bg-navy text-white hover:bg-navy-600 active:bg-navy-700;
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary text-primary hover:bg-primary hover:text-white;
+  }
+
+  .card {
+    @apply bg-white dark:bg-navy-800 rounded-lg shadow-sm border border-gray-200 dark:border-navy-700 p-6;
+  }
+
+  .input {
+    @apply w-full px-4 py-2 border border-gray-300 dark:border-navy-600 dark:bg-navy-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2;
+  }
+
+  /* Compact Data Tables - Forces 10 rows to fit on one screen without vertical scrolling */
+  table th {
+    padding-top: 0.625rem !important;
+    padding-bottom: 0.625rem !important;
+  }
+  table td {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white {
+    @apply bg-navy-800 !important;
+  }
+  .dark .bg-gray-50 {
+    @apply bg-navy-900 !important;
+  }
+  .dark .bg-gray-100 {
+    @apply bg-navy-800 !important;
+  }
+  .dark .bg-gray-200 {
+    @apply bg-navy-700 !important;
+  }
+  .dark .text-gray-900 {
+    @apply text-gray-100 !important;
+  }
+  .dark .text-gray-800 {
+    @apply text-gray-200 !important;
+  }
+  .dark .text-gray-700 {
+    @apply text-gray-300 !important;
+  }
+  .dark .text-gray-600 {
+    @apply text-gray-400 !important;
+  }
+  .dark .text-gray-500 {
+    @apply text-gray-400 !important;
+  }
+  .dark .border-gray-200 {
+    @apply border-navy-700 !important;
+  }
+  .dark .border-gray-300 {
+    @apply border-navy-600 !important;
+  }
+  .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    @apply border-navy-700 !important;
+  }
+  .dark .hover\:bg-gray-50:hover {
+    @apply hover:bg-navy-700 !important;
+  }
+  .dark .hover\:bg-gray-100:hover {
+    @apply hover:bg-navy-600 !important;
+  }
+
+  /* Universal Dark Mode Input Styling fix for unstyled modal inputs */
+  .dark input,
+  .dark select,
+  .dark textarea {
+    @apply bg-navy-900 text-gray-100 border-navy-600 !important;
+  }
+  
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    @apply text-gray-400 !important;
+  }
+}

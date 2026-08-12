@@ -84,7 +84,11 @@ export async function findTrips(where: any) {
         include: {
             bus: { select: { id: true, plateNumber: true } },
             driver: { select: { id: true, fullName: true } },
-            version: { select: { id: true, versionNumber: true } },
+            version: { 
+                include: { 
+                    route: { select: { routeName: true, id: true, description: true } } 
+                } 
+            },
             schedule: { select: { id: true, scheduleName: true } },
         },
         orderBy: { scheduledStart: 'desc' },
@@ -95,10 +99,23 @@ export async function findTripById(id: string) {
     return db.trip.findFirst({
         where: { id, deletedAt: null },
         include: {
-            bus: { select: { id: true, plateNumber: true } },
-            driver: { select: { id: true, fullName: true } },
-            version: { select: { id: true, versionNumber: true } },
-            schedule: { select: { id: true, scheduleName: true } },
+            bus: { select: { id: true, plateNumber: true, model: true, capacity: true } },
+            driver: { select: { id: true, fullName: true, phone: true } },
+            version: { 
+                include: { 
+                    route: {
+                        include: {
+                            startStop: true,
+                            endStop: true
+                        }
+                    },
+                    routeStops: {
+                        include: { stop: true },
+                        orderBy: { sequenceNumber: 'asc' }
+                    }
+                } 
+            },
+            schedule: { include: { route: true } },
         },
     });
 }

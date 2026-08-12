@@ -19,6 +19,11 @@ export const getAssignment = asyncHandler(async (req: Request, res: Response) =>
   successResponse(res, result, 'Assignment retrieved');
 });
 
+export const updateAssignment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await service.updateAssignment(req.params.id, req.body);
+  successResponse(res, result, 'Assignment updated');
+});
+
 export const deactivateAssignment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   const result = await service.deactivateAssignment(req.params.id, req.body.endDate ? { endDate: new Date(req.body.endDate) } : undefined);
   successResponse(res, result, 'Assignment deactivated');

@@ -19,13 +19,15 @@ export async function createBus(data: any) {
 export async function findBuses(where: any) {
     return prisma.bus.findMany({
         where,
-        orderBy: { plateNumber: 'asc' }
+        orderBy: { plateNumber: 'asc' },
+        include: { terminal: true }
     });
 }
 
 export async function findBusById(id: string) {
     return prisma.bus.findFirst({
-        where: { id, deletedAt: null }
+        where: { id, deletedAt: null },
+        include: { terminal: true }
     });
 }
 

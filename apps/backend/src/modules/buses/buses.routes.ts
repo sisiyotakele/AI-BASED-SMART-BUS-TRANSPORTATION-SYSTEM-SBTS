@@ -5,6 +5,7 @@ import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createBusSchema, updateBusSchema, busIdParamSchema } from './buses.validation';
 import { createBus, listBuses, getBus, updateBus, updateMaintenance, deleteBus } from './buses.controller';
+import { auditMiddleware } from '@/modules/audit';
 
 const router = Router();
 
@@ -55,7 +56,17 @@ router.use(authenticate);
  *       500:
  *         description: Server error
  */
-router.post('/', requirePermission('manage_fleet'), validateBody(createBusSchema), createBus);
+router.post(
+  '/', 
+  requirePermission('manage_fleet'), 
+  validateBody(createBusSchema), 
+  auditMiddleware({
+    action: 'CREATE',
+    entityName: 'Bus',
+    getDescription: (req) => `Created new bus with plate ${req.body.plateNumber}`
+  }),
+  createBus
+);
 
 /**
  * @swagger
@@ -164,7 +175,19 @@ router.get('/:id', requirePermission('view_fleet'), validateParams(busIdParamSch
  *       500:
  *         description: Server error
  */
-router.patch('/:id', requirePermission('manage_fleet'), validateParams(busIdParamSchema), validateBody(updateBusSchema), updateBus);
+router.patch(
+  '/:id', 
+  requirePermission('manage_fleet'), 
+  validateParams(busIdParamSchema), 
+  validateBody(updateBusSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Bus',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Updated bus details`
+  }),
+  updateBus
+);
 
 /**
  * @swagger
@@ -208,7 +231,19 @@ router.patch('/:id', requirePermission('manage_fleet'), validateParams(busIdPara
  *       500:
  *         description: Server error
  */
-router.patch('/:id/maintenance-status', requirePermission('manage_fleet'), validateParams(busIdParamSchema), validateBody(z.object({ status: z.enum(['operational', 'in_maintenance', 'retired']) })), updateMaintenance);
+router.patch(
+  '/:id/maintenance-status', 
+  requirePermission('manage_fleet'), 
+  validateParams(busIdParamSchema), 
+  validateBody(z.object({ status: z.enum(['operational', 'in_maintenance', 'retired']) })), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Bus',
+    getEntityId: (req) => req.params.id,
+    getDescription: (req) => `Updated maintenance status to ${req.body.status}`
+  }),
+  updateMaintenance
+);
 
 /**
  * @swagger
@@ -238,6 +273,17 @@ router.patch('/:id/maintenance-status', requirePermission('manage_fleet'), valid
  *       500:
  *         description: Server error
  */
-router.delete('/:id', requirePermission('manage_fleet'), validateParams(busIdParamSchema), deleteBus);
+router.delete(
+  '/:id', 
+  requirePermission('manage_fleet'), 
+  validateParams(busIdParamSchema), 
+  auditMiddleware({
+    action: 'DELETE',
+    entityName: 'Bus',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Deleted bus`
+  }),
+  deleteBus
+);
 
 export default router;

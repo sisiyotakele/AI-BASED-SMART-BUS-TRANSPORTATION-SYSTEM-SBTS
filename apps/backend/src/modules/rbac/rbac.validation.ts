@@ -21,6 +21,16 @@ export const userIdParamSchema = z.object({
   id: z.string().uuid('Invalid user ID format'),
 });
 
+export const removePermissionParamSchema = z.object({
+  id: z.string().uuid('Invalid role ID format'),
+  permissionId: z.string().uuid('Invalid permission ID format'),
+});
+
+export const removeRoleParamSchema = z.object({
+  id: z.string().uuid('Invalid user ID format'),
+  roleId: z.string().uuid('Invalid role ID format'),
+});
+
 export const assignPermissionSchema = z.object({
   permissionId: z.string().uuid('Invalid permission ID format'),
 });

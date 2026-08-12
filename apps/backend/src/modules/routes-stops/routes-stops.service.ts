@@ -42,7 +42,14 @@ export async function listRoutes(search?: string) {
       { description: { contains: search, mode: 'insensitive' } },
     ];
   }
-  return repository.findRoutes(where);
+  const results = await repository.findRoutes(where);
+  return results.map(r => {
+    const activeVersion = r.versions && r.versions.length > 0 ? r.versions[0] : null;
+    return {
+      ...r,
+      stopCount: activeVersion && activeVersion.routeStops ? activeVersion.routeStops.length : 0
+    };
+  });
 }
 
 export async function getRouteById(id: string) {
@@ -63,7 +70,7 @@ export async function updateRoute(id: string, data: any) {
   return route;
 }
 
-export async function createNewRouteVersion(id: string, data: { routeStops?: any[] }, actorId?: string) {
+export async function createNewRouteVersion(id: string, data: { routeStops?: any[], versionName?: string }, actorId?: string) {
   const route = await getRouteById(id);
   return repository.executeTransaction(async (tx) => {
     const lastVersion = await repository.findLastRouteVersion(id);
@@ -82,6 +89,7 @@ export async function createNewRouteVersion(id: string, data: { routeStops?: any
       data: {
         routeId: id,
         versionNumber: newVersionNumber,
+        versionName: data.versionName || `Version ${newVersionNumber}`,
         isActive: true,
         effectiveFrom: new Date(),
       },
@@ -221,4 +229,35 @@ export async function addRouteStop(versionId: string, data: any) {
   });
   logger.info('Route stop added', { versionId, stopId: data.stopId });
   return rs;
+}
+
+export async function overwriteVersionStops(versionId: string, data: { routeStops: any[] }) {
+  const version = await repository.findRouteVersion(versionId);
+  if (!version) throw new NotFoundError('Route version not found', 'VERSION_NOT_FOUND');
+
+  return repository.executeTransaction(async (tx) => {
+    // Delete all existing stops for this version
+    await tx.routeStop.deleteMany({
+      where: { versionId }
+    });
+
+    const createdStops = [];
+    if (data.routeStops && data.routeStops.length > 0) {
+      for (const rs of data.routeStops) {
+        const row = await tx.routeStop.create({
+          data: {
+            versionId: versionId,
+            stopId: rs.stopId,
+            sequenceNumber: rs.sequenceNumber,
+            estimatedMinutes: rs.estimatedMinutes,
+            distanceKm: rs.distanceKm,
+          },
+        });
+        createdStops.push(row);
+      }
+    }
+    
+    logger.info('Overwrote route stops for draft version', { versionId, stopsCount: createdStops.length });
+    return createdStops;
+  });
 }

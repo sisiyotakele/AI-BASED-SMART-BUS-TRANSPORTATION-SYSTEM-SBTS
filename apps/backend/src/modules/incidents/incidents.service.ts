@@ -37,7 +37,7 @@ export async function createIncident(data: any, actorId?: string) {
 
 export async function listIncidents(filters: { status?: string; tripId?: string; driverId?: string } = {}) {
   const where: any = { deletedAt: null };
-  if (filters.status) where.status = filters.status;
+  if (filters.status && filters.status !== 'all') where.status = filters.status;
   if (filters.tripId) where.tripId = filters.tripId;
   if (filters.driverId) where.driverId = filters.driverId;
   return repository.findIncidents(where);

@@ -287,22 +287,26 @@ model UserRole {
 // ============================================================
 
 model Terminal {
-  id          String   @id @default(uuid()) @db.Uuid
-  terminalName String  @unique @map("terminal_name") @db.VarChar(255)
-  address     String?  @db.Text
-  latitude    Decimal? @db.Decimal(9, 6)
-  longitude   Decimal? @db.Decimal(9, 6)
-  capacity    Int?
-  facilities  String?  @db.Text
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+  id           String   @id @default(uuid()) @db.Uuid
+  terminalName String   @unique @map("terminal_name") @db.VarChar(255)
+  address      String?  @db.Text
+  latitude     Decimal? @db.Decimal(9, 6)
+  longitude    Decimal? @db.Decimal(9, 6)
+  capacity     Int?
+  facilities   String?  @db.Text
+  status       String   @default("active") @db.VarChar(50)
+  phoneNumber  String?  @map("phone_number") @db.VarChar(20)
+  managerName  String?  @map("manager_name") @db.VarChar(255)
+  email        String?  @db.VarChar(255)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
 
-  users       User[]
-  buses       Bus[]
-  stops       Stop[]
+  users        User[]
+  buses        Bus[]
+  stops        Stop[]
   keyHandovers KeyHandover[]
-  gpsLogs     TripGpsLog[]
+  gpsLogs      TripGpsLog[]
 
   @@map("terminals")
 }
@@ -346,6 +350,7 @@ model Route {
   description String?  @db.Text
   startStopId String   @map("start_stop_id") @db.Uuid
   endStopId   String   @map("end_stop_id") @db.Uuid
+  status      String   @default("active") @db.VarChar(50)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
@@ -366,6 +371,7 @@ model RouteVersion {
   id             String   @id @default(uuid()) @db.Uuid
   routeId        String   @map("route_id") @db.Uuid
   versionNumber  Int      @map("version_number")
+  versionName    String?  @map("version_name") @db.VarChar(255)
   isActive       Boolean  @default(false) @map("is_active")
   effectiveFrom  DateTime? @map("effective_from") @db.Timestamptz(6)
   effectiveUntil DateTime? @map("effective_until") @db.Timestamptz(6)

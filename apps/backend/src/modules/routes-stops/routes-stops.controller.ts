@@ -80,3 +80,9 @@ export const addRouteStop = asyncHandler(async (req: AuthenticatedRequest, res: 
   const result = await service.addRouteStop(req.params.versionId, req.body);
   successResponse(res, result, 'Route stop added', 201);
 });
+
+export const overwriteVersionStops = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await service.overwriteVersionStops(req.params.versionId, req.body);
+  successResponse(res, result, 'Route stops overwritten', 200);
+});
+

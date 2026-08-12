@@ -39,7 +39,11 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     if (prismaError.code === 'P2003') {
       return res.status(409).json(errorResponse('Foreign key constraint violation', 'CONFLICT'));
     }
-    return res.status(500).json(errorResponse('Database error', 'DATABASE_ERROR'));
+    return res.status(500).json(errorResponse('Database error', 'DATABASE_ERROR', { 
+      code: prismaError.code, 
+      meta: prismaError.meta,
+      msg: prismaError.message 
+    }));
   }
 
   logger.error('Unhandled error', {

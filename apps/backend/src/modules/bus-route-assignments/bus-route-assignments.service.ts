@@ -30,6 +30,13 @@ export async function getAssignmentById(id: string) {
   return assignment;
 }
 
+export async function updateAssignment(id: string, data: any) {
+  await getAssignmentById(id);
+  const assignment = await repository.updateAssignment(id, data);
+  logger.info('Bus-route assignment updated', { assignmentId: id });
+  return assignment;
+}
+
 export async function deactivateAssignment(id: string, data?: { endDate?: Date }) {
   await getAssignmentById(id);
   const assignment = await repository.updateAssignment(id, {

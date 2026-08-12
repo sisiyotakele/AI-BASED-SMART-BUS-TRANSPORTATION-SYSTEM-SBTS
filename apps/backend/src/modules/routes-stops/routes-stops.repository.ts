@@ -18,9 +18,19 @@ export async function findRoutes(where: any) {
     return prisma.route.findMany({
         where,
         include: {
-            versions: { where: { isActive: true, deletedAt: null }, take: 1 },
-            startStop: { select: { id: true, stopName: true } },
-            endStop: { select: { id: true, stopName: true } },
+            startStop: { select: { id: true, stopName: true, terminalId: true } },
+            endStop: { select: { id: true, stopName: true, terminalId: true } },
+            versions: {
+                where: { deletedAt: null },
+                take: 1,
+                include: {
+                    routeStops: {
+                        where: { deletedAt: null },
+                        orderBy: { sequenceNumber: 'asc' },
+                        include: { stop: true }
+                    }
+                }
+            }
         },
         orderBy: { routeName: 'asc' },
     });
@@ -30,8 +40,19 @@ export async function findRouteById(id: string) {
     return prisma.route.findFirst({
         where: { id, deletedAt: null },
         include: {
-            startStop: { select: { id: true, stopName: true } },
-            endStop: { select: { id: true, stopName: true } },
+            startStop: { select: { id: true, stopName: true, terminalId: true, latitude: true, longitude: true } },
+            endStop: { select: { id: true, stopName: true, terminalId: true, latitude: true, longitude: true } },
+            versions: {
+                where: { deletedAt: null },
+                orderBy: { versionNumber: 'desc' },
+                include: {
+                    routeStops: {
+                        where: { deletedAt: null },
+                        orderBy: { sequenceNumber: 'asc' },
+                        include: { stop: true }
+                    }
+                }
+            }
         },
     });
 }
