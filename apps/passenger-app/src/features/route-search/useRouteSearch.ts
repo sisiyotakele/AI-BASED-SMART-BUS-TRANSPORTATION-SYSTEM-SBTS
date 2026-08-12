@@ -30,22 +30,32 @@ export const useRouteSearch = () => {
     try {
       const res = await routesApi.getRoutes();
       if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
-        const fetched: RouteItem[] = res.data.data.map((r: any) => ({
-          id: r.id || String(Math.random()),
-          routeName: r.name || r.routeName || "Route Line",
-          origin: r.startTerminal?.terminalName || r.origin || "Terminal A",
-          destination: r.endTerminal?.terminalName || r.destination || "Terminal B",
-          fareEtb: r.fare || r.fareEtb || 12,
-          estimatedDurationMin: r.estimatedDurationMin || 30,
-          activeBusesCount: r.activeBusesCount || 4,
-          description: r.description,
+        const fetched: RouteItem[] = res.data.data.map((r: Record<string, unknown>) => ({
+          id: String(r.id || Math.random()),
+          routeName: String(r.routeName || r.name || "Route Line"),
+          origin: String(
+            (r.startStop as { stopName?: string } | undefined)?.stopName ||
+              (r.startTerminal as { terminalName?: string } | undefined)?.terminalName ||
+              r.origin ||
+              "Start Stop"
+          ),
+          destination: String(
+            (r.endStop as { stopName?: string } | undefined)?.stopName ||
+              (r.endTerminal as { terminalName?: string } | undefined)?.terminalName ||
+              r.destination ||
+              "End Stop"
+          ),
+          fareEtb: Number(r.fare || r.fareEtb || 12),
+          estimatedDurationMin: Number(r.estimatedDurationMin || 30),
+          activeBusesCount: Number(r.activeBusesCount || 4),
+          description: r.description ? String(r.description) : undefined,
         }));
         setRoutes(fetched);
       } else {
-        setRoutes(MOCK_FALLBACK_ROUTES);
+        setRoutes([]);
       }
     } catch (err) {
-      console.warn("Could not fetch /routes-stops/routes from backend, using fallback routes:", err);
+      console.warn("Could not fetch /routes-stops/routes from backend:", err);
       setRoutes(MOCK_FALLBACK_ROUTES);
     } finally {
       setIsLoading(false);

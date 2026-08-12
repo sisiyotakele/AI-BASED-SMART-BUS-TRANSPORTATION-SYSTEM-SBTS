@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Bell, AlertTriangle, CheckCircle2, Info, Clock, Check, RefreshCw } from "lucide-react";
 import { notificationsApi } from "@/lib/api";
+import { subscribeToNotifications } from "@/lib/socket";
 
 export interface NotificationItem {
   id: string;
@@ -46,39 +47,50 @@ export const NotificationList: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Step 1: Fetch notifications & unread count from Swagger GET /notifications
+  // Fetch notifications from GET /notifications (unread count derived locally)
   const fetchNotificationsData = useCallback(async () => {
     setIsRefreshing(true);
     try {
-      const [listRes, countRes] = await Promise.allSettled([
-        notificationsApi.getNotifications(),
-        notificationsApi.getUnreadCount(),
-      ]);
-
+      const listRes = await notificationsApi.getNotifications({ limit: 50 });
       let items: NotificationItem[] = [];
 
-      if (listRes.status === "fulfilled" && listRes.value.data?.success && Array.isArray(listRes.value.data?.data)) {
-        items = listRes.value.data.data.map((n: any) => ({
-          id: n.id || String(Math.random()),
-          type: (n.type?.toLowerCase() as any) || "info",
-          title: n.title || "Notification",
-          message: n.message || n.description || "",
-          time: n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
-          read: !!(n.read || n.isRead),
-        }));
+      if (listRes.data?.success && Array.isArray(listRes.data?.data)) {
+        items = listRes.data.data.map((entry: Record<string, unknown>) => {
+          const notification = (entry.notification || entry) as Record<string, unknown>;
+          const typeRaw = String(notification.notificationType || notification.type || "info").toLowerCase();
+          const type: NotificationItem["type"] =
+            typeRaw.includes("emergency") || typeRaw.includes("alert")
+              ? "alert"
+              : typeRaw.includes("maintenance") || typeRaw.includes("warning")
+                ? "warning"
+                : typeRaw.includes("trip") || typeRaw.includes("success")
+                  ? "success"
+                  : "info";
+
+          return {
+            id: String(entry.id || notification.id || Math.random()),
+            type,
+            title: String(notification.title || "Notification"),
+            message: String(notification.message || notification.description || ""),
+            time: notification.createdAt
+              ? new Date(String(notification.createdAt)).toLocaleString([], {
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "Just now",
+            read: !!(entry.isRead ?? entry.read ?? notification.isRead),
+          };
+        });
       }
 
       if (items.length > 0) {
         setNotifications(items);
+        setUnreadCount(items.filter((n) => !n.read).length);
       } else {
         setNotifications(FALLBACK_NOTIFICATIONS);
-      }
-
-      if (countRes.status === "fulfilled" && countRes.value.data?.data?.count !== undefined) {
-        setUnreadCount(countRes.value.data.data.count);
-      } else {
-        const count = (items.length > 0 ? items : FALLBACK_NOTIFICATIONS).filter((n) => !n.read).length;
-        setUnreadCount(count);
+        setUnreadCount(FALLBACK_NOTIFICATIONS.filter((n) => !n.read).length);
       }
     } catch (err) {
       console.warn("Could not reach /notifications API, using transit alerts:", err);
@@ -92,9 +104,28 @@ export const NotificationList: React.FC = () => {
 
   useEffect(() => {
     fetchNotificationsData();
+
+    const unsubscribeSocket = subscribeToNotifications((evt) => {
+      if (evt && evt.message) {
+        const newItem: NotificationItem = {
+          id: `ws-${Date.now()}`,
+          type: evt.type === "warning" ? "warning" : evt.type === "alert" ? "alert" : "info",
+          title: evt.title || "Live Transit Update",
+          message: evt.message,
+          time: "Just now",
+          read: false,
+        };
+        setNotifications((prev) => [newItem, ...prev]);
+        setUnreadCount((prev) => prev + 1);
+      }
+    });
+
+    return () => {
+      unsubscribeSocket();
+    };
   }, [fetchNotificationsData]);
 
-  // Step 2: Mark notification as read via POST /notifications/{id}/mark-read
+  // Mark notification as read via PATCH /notifications/{id}/read
   const handleMarkAsRead = async (id: string) => {
     try {
       await notificationsApi.markAsRead(id);

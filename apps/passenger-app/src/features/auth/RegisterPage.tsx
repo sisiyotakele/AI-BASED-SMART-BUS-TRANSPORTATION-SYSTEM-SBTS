@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import { Mail, Lock, User, Phone, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
 import "@/styles/auth.css";
-import { authApi } from "@/lib/api";
+import { authApi, getApiDiagnosticError, normalizeUserProfile, type ApiDiagnosticError } from "@/lib/api";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/AuthContext";
 import busImg from "../../assets/bus.jpg";
 import shegerLogo from "../../assets/sheger-logo.jpg";
 
 export const RegisterPage = () => {
   const navigate = useNavigate();
+  const { login, enterGuestMode } = useAuth();
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -15,7 +17,7 @@ export const RegisterPage = () => {
     password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiDiagnosticError | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -24,28 +26,28 @@ export const RegisterPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
 
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (formData.password.length < 8) {
+      setError({ type: 'validation', message: '⚠️ Password Too Short', detail: 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character.' });
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await authApi.register(formData);
-      const { accessToken, refreshToken } = res.data.data;
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.removeItem("isGuest");
+      const res = await authApi.registerAndLogin(formData);
+      const { accessToken, refreshToken, user: rawUser } = res.data.data || {};
+
+      if (!accessToken || !refreshToken) {
+        setError({ type: 'server', message: '🛑 Login After Registration Failed', detail: 'Your account was created but the automatic login failed. Please go to the Login page and sign in manually.' });
+        return;
+      }
+
+      login(accessToken, refreshToken, normalizeUserProfile(rawUser));
       navigate("/dashboard");
-    } catch (err: any) {
-      const message =
-        err.response?.data?.message ||
-        err.response?.data?.error?.details ||
-        "Registration failed. Please check your details and try again.";
-      setError(message);
+    } catch (err: unknown) {
+      setError(getApiDiagnosticError(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -53,8 +55,8 @@ export const RegisterPage = () => {
 
   return (
     <div className="auth-container min-h-screen flex flex-col lg:flex-row">
-      {/* Left Branding Hero Section with assets/bus.jpg */}
-      <div className="auth-hero-sidebar relative w-full lg:w-1/2 min-h-screen flex flex-col justify-between p-8 sm:p-12 overflow-hidden bg-slate-950 text-white">
+      {/* Left Branding Hero Section — HIDDEN on mobile, visible lg+ */}
+      <div className="auth-hero-sidebar hidden lg:flex relative w-full lg:w-1/2 min-h-screen flex-col justify-between p-8 sm:p-12 overflow-hidden bg-slate-950 text-white">
         
         {/* 1. BACKGROUND IMAGE (assets/bus.jpg) */}
         <div 
@@ -122,10 +124,25 @@ export const RegisterPage = () => {
       </div>
 
       {/* Right Form Section */}
-      <div className="auth-form-container flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-slate-50">
-        <div className="auth-card bg-white p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
-          {/* Back to Landing Page Button */}
-          <div className="mb-4">
+      <div className="auth-form-container flex-1 flex flex-col justify-center items-center min-h-screen p-5 sm:p-10 bg-slate-50">
+        <div className="auth-card bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
+
+          {/* Mobile-only top branding */}
+          <div className="flex lg:hidden items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+            <div className="w-9 h-9 rounded-full bg-white p-0.5 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={shegerLogo} alt="Sheger Bus Logo" className="w-full h-full object-cover rounded-full" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm text-slate-900 tracking-wide">SHEGER BUS</span>
+              <p className="text-[10px] text-slate-400 -mt-0.5">Smart Transit System</p>
+            </div>
+            <Link to="/" className="ml-auto text-[11px] font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1">
+              ← Home
+            </Link>
+          </div>
+
+          {/* Back to Landing Page Button — desktop only */}
+          <div className="hidden lg:block mb-4">
             <Link 
               to="/" 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#1B2A4A] hover:text-white text-slate-700 rounded-xl text-xs font-semibold transition-colors border border-slate-200/80"
@@ -144,8 +161,11 @@ export const RegisterPage = () => {
           </div>
 
           {error && (
-            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold">
-              {error}
+            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
+              <p className="font-bold text-sm mb-1">{error.message}</p>
+              {error.detail && (
+                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[11px] leading-relaxed">{error.detail}</pre>
+              )}
             </div>
           )}
 
@@ -238,7 +258,8 @@ export const RegisterPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#1B2A4A] hover:bg-[#283863] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: "#2B4B9E" }}
             >
               {loading ? "Creating Account..." : "Sign Up"}
             </button>
@@ -255,10 +276,8 @@ export const RegisterPage = () => {
           <button
             type="button"
             onClick={() => {
-              // Mock Google sign-up for development
-              console.log("Google Sign-Up clicked");
-              localStorage.setItem("token", "google-auth-token");
-              localStorage.setItem("authProvider", "google");
+              // Local dev shortcut — same access as guest without fake tokens
+              enterGuestMode();
               navigate("/dashboard");
             }}
             className="w-full flex items-center justify-center gap-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"

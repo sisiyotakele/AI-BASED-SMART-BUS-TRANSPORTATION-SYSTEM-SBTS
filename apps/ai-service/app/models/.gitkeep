@@ -1,0 +1,5 @@
+# This folder will contain trained model files after running training scripts:
+# - traffic_classifier.pkl
+# - traffic_classifier_metadata.pkl
+# - eta_predictor.pkl
+# - eta_predictor_metadata.pkl

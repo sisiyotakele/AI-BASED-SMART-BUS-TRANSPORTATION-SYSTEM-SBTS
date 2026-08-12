@@ -1,16 +1,18 @@
 import React, { useState } from "react";
 import { Mail, Lock, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
 import "@/styles/auth.css";
-import { authApi } from "@/lib/api"; // ← Step 1: Use typed authApi instead of raw axios instance
+import { authApi, getApiDiagnosticError, normalizeUserProfile, type ApiDiagnosticError } from "@/lib/api";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/AuthContext";
 import busImg from "../../assets/bus.jpg";
 import shegerLogo from "../../assets/sheger-logo.jpg";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
+  const { login, enterGuestMode } = useAuth();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<ApiDiagnosticError | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -19,29 +21,26 @@ export const LoginPage = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setError(null);
     setLoading(true);
 
     try {
-      // Step 2: Call the correct real endpoint POST /auth/login via authApi
       const res = await authApi.login(formData);
+      const { accessToken, refreshToken, user: rawUser } = res.data.data || {};
 
-      // Step 3: Swagger returns { data: { accessToken, refreshToken, user } }
-      // Save both tokens — accessToken for API calls, refreshToken to auto-renew sessions
-      const { accessToken, refreshToken } = res.data.data;
-      localStorage.setItem("token", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.removeItem("isGuest"); // Clear any guest session
+      if (!accessToken || !refreshToken) {
+        setError({
+          type: 'server',
+          message: '🛑 Login Response Error',
+          detail: 'Invalid response from server. Missing authentication tokens.',
+        });
+        return;
+      }
 
+      login(accessToken, refreshToken, normalizeUserProfile(rawUser));
       navigate("/dashboard");
-    } catch (err: any) {
-      // Step 4 & 5: No more mock bypass — show the real error from the server
-      // Swagger error shape: { success: false, message: "..." }
-      const message =
-        err.response?.data?.message ||
-        err.response?.data?.error?.details ||
-        "Login failed. Please check your credentials and try again.";
-      setError(message);
+    } catch (err: unknown) {
+      setError(getApiDiagnosticError(err, 'Login failed. Please check your credentials.'));
     } finally {
       setLoading(false);
     }
@@ -49,8 +48,8 @@ export const LoginPage = () => {
 
   return (
     <div className="auth-container min-h-screen flex flex-col lg:flex-row">
-      {/* Left Branding Hero Section with bus.jpg background */}
-      <div className="auth-hero-sidebar relative w-full lg:w-1/2 min-h-screen flex flex-col justify-between p-8 sm:p-12 overflow-hidden bg-slate-950 text-white">
+      {/* Left Branding Hero Section — HIDDEN on mobile, visible lg+ */}
+      <div className="auth-hero-sidebar hidden lg:flex relative w-full lg:w-1/2 min-h-screen flex-col justify-between p-8 sm:p-12 overflow-hidden bg-slate-950 text-white">
         
         {/* 1. BACKGROUND IMAGE (assets/bus.jpg) */}
         <div 
@@ -118,10 +117,25 @@ export const LoginPage = () => {
       </div>
 
       {/* Right Form Section */}
-      <div className="auth-form-container flex-1 flex flex-col justify-center items-center p-6 sm:p-12 bg-slate-50">
-        <div className="auth-card bg-white p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
-          {/* Back to Landing Page Button */}
-          <div className="mb-4">
+      <div className="auth-form-container flex-1 flex flex-col justify-center items-center min-h-screen p-5 sm:p-10 bg-slate-50">
+        <div className="auth-card bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
+
+          {/* Mobile-only top branding */}
+          <div className="flex lg:hidden items-center gap-3 mb-5 pb-4 border-b border-slate-100">
+            <div className="w-9 h-9 rounded-full bg-white p-0.5 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={shegerLogo} alt="Sheger Bus Logo" className="w-full h-full object-cover rounded-full" />
+            </div>
+            <div>
+              <span className="font-extrabold text-sm text-slate-900 tracking-wide">SHEGER BUS</span>
+              <p className="text-[10px] text-slate-400 -mt-0.5">Smart Transit System</p>
+            </div>
+            <Link to="/" className="ml-auto text-[11px] font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1">
+              ← Home
+            </Link>
+          </div>
+
+          {/* Back to Landing Page Button — desktop only */}
+          <div className="hidden lg:block mb-4">
             <Link 
               to="/" 
               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-[#1B2A4A] hover:text-white text-slate-700 rounded-xl text-xs font-semibold transition-colors border border-slate-200/80"
@@ -140,8 +154,11 @@ export const LoginPage = () => {
           </div>
 
           {error && (
-            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold">
-              {error}
+            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
+              <p className="font-bold text-sm mb-1">{error.message}</p>
+              {error.detail && (
+                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[11px] leading-relaxed">{error.detail}</pre>
+              )}
             </div>
           )}
 
@@ -206,7 +223,8 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-[#1B2A4A] hover:bg-[#283863] text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50"
+              className="w-full py-3 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: "#2B4B9E" }}
             >
               {loading ? "Logging in..." : "Login"}
             </button>
@@ -223,11 +241,8 @@ export const LoginPage = () => {
           <button
             type="button"
             onClick={() => {
-              // Mock Google sign-in for development
-              console.log("Google Sign-In clicked");
-              localStorage.setItem("token", "google-auth-token");
-              localStorage.setItem("authProvider", "google");
-              localStorage.removeItem("isGuest");
+              // Local dev shortcut — same access as guest without fake tokens
+              enterGuestMode();
               navigate("/dashboard");
             }}
             className="w-full flex items-center justify-center gap-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
@@ -245,8 +260,7 @@ export const LoginPage = () => {
           <button
             type="button"
             onClick={() => {
-              localStorage.setItem("isGuest", "true");
-              localStorage.removeItem("token");
+              enterGuestMode();
               navigate("/dashboard");
             }}
             className="w-full flex items-center justify-center gap-2 py-2.5 mt-2 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#1B2A4A] hover:text-white transition-all cursor-pointer shadow-2xs group"

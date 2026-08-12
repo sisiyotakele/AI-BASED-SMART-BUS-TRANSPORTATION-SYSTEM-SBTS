@@ -2,8 +2,12 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
+import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerUi from 'swagger-ui-express';
+
 import { config } from '@/config';
-import { logger } from '@/common/logger';
+import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from '@/config/sentry';
+import { swaggerOptions } from '@/common/swagger';
 import { errorResponse } from '@/common/response';
 import { errorHandler } from '@/common/middleware/error.middleware';
 import { requestIdMiddleware } from '@/common/middleware/request-id.middleware';
@@ -15,15 +19,47 @@ import { authRoutes } from '@/modules/auth';
 import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
+import { driverRoutes } from '@/modules/drivers';
+import { routesStopsRoutes } from '@/modules/routes-stops';
+import { pricingRoutes } from '@/modules/pricing';
+import { scheduleRoutes } from '@/modules/schedules';
+import { shiftRoutes } from '@/modules/shifts';
+import { busDriverAssignmentRoutes } from '@/modules/bus-driver-assignments';
+import { busRouteAssignmentRoutes } from '@/modules/bus-route-assignments';
+import { keyHandoverRoutes } from '@/modules/key-handovers';
+import { tripRoutes } from '@/modules/trips';
+import { trackingRoutes } from '@/modules/tracking';
+import { incidentRoutes } from '@/modules/incidents';
+import { notificationRoutes } from '@/modules/notifications';
+import { aiPredictionRoutes } from '@/modules/ai-prediction';
+import { aiIntegrationRoutes } from '@/modules/ai-integration';
+import auditRoutes from '@/modules/audit/audit.routes';
+
+// Optional dev routes (only if folder exists locally)
+let devRoutes: any = null;
+try {
+  const devModule = require('@/modules/dev');
+  devRoutes = devModule.devRoutes;
+} catch (e) {
+  // Dev module not found - skip it
+}
 
 const app = express();
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 // Middleware
 app.set('trust proxy', 1);
+
+// Sentry request handler must be the first middleware
+app.use(sentryRequestHandler);
+
+// Sentry tracing for performance monitoring
+app.use(sentryTracingHandler);
+
 app.use(requestIdMiddleware);
 app.use(responseTimeMiddleware);
 app.use(helmet());
-app.use(compression());
+app.use(compression() as any);
 app.use(cors({ origin: config.cors.origin, credentials: true }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -41,6 +77,21 @@ app.get('/', (_req: Request, res: Response) => {
       rbac: `${config.apiPrefix}/rbac`,
       terminals: `${config.apiPrefix}/terminals`,
       buses: `${config.apiPrefix}/buses`,
+      drivers: `${config.apiPrefix}/drivers`,
+      routesStops: `${config.apiPrefix}/routes-stops`,
+      pricing: `${config.apiPrefix}/pricing`,
+      schedules: `${config.apiPrefix}/schedules`,
+      shifts: `${config.apiPrefix}/shifts`,
+      busDriverAssignments: `${config.apiPrefix}/bus-driver-assignments`,
+      busRouteAssignments: `${config.apiPrefix}/bus-route-assignments`,
+      keyHandovers: `${config.apiPrefix}/key-handovers`,
+      trips: `${config.apiPrefix}/trips`,
+      tracking: `${config.apiPrefix}/tracking`,
+      incidents: `${config.apiPrefix}/incidents`,
+      notifications: `${config.apiPrefix}/notifications`,
+      aiPrediction: `${config.apiPrefix}/ai-prediction`,
+      aiIntegration: `${config.apiPrefix}/ai-integration`,
+      audit: `${config.apiPrefix}/audit`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -51,7 +102,7 @@ app.get('/health', (_req: Request, res: Response) => {
   res.status(200).json(getSimpleHealth());
 });
 
-// API routes
+// API prefix
 const apiPrefix = config.apiPrefix;
 
 // Authentication
@@ -66,12 +117,110 @@ app.use(`${apiPrefix}/terminals`, terminalRoutes);
 // Buses
 app.use(`${apiPrefix}/buses`, busRoutes);
 
+// Drivers
+app.use(`${apiPrefix}/drivers`, driverRoutes);
+
+// Routes & Stops
+app.use(`${apiPrefix}/routes-stops`, routesStopsRoutes);
+
+// Pricing
+app.use(`${apiPrefix}/pricing`, pricingRoutes);
+
+// Schedules
+app.use(`${apiPrefix}/schedules`, scheduleRoutes);
+
+// Shifts
+app.use(`${apiPrefix}/shifts`, shiftRoutes);
+
+// Bus Driver Assignments
+app.use(
+  `${apiPrefix}/bus-driver-assignments`,
+  busDriverAssignmentRoutes
+);
+
+// Bus Route Assignments
+app.use(
+  `${apiPrefix}/bus-route-assignments`,
+  busRouteAssignmentRoutes
+);
+
+// Key Handovers
+app.use(
+  `${apiPrefix}/key-handovers`,
+  keyHandoverRoutes
+);
+
+// Trips
+app.use(
+  `${apiPrefix}/trips`,
+  tripRoutes
+);
+
+// Tracking (GPS)
+app.use(
+  `${apiPrefix}/tracking`,
+  trackingRoutes
+);
+
+// Incidents
+app.use(
+  `${apiPrefix}/incidents`,
+  incidentRoutes
+);
+
+// Notifications
+app.use(
+  `${apiPrefix}/notifications`,
+  notificationRoutes
+);
+
+// AI Prediction
+app.use(
+  `${apiPrefix}/ai-prediction`,
+  aiPredictionRoutes
+);
+
+// AI Integration
+app.use(
+  `${apiPrefix}/ai-integration`,
+  aiIntegrationRoutes
+);
+
+// Audit Logs
+app.use(
+  `${apiPrefix}/audit`,
+  auditRoutes
+);
+
+// Development helpers (only loaded if dev folder exists locally)
+if (devRoutes) {
+  app.use(
+    `${apiPrefix}/dev`,
+    devRoutes
+  );
+}
+
+// Swagger API Documentation
+app.use(
+  '/api-docs',
+  ...(swaggerUi.serve as any),
+  swaggerUi.setup(swaggerSpec) as any
+);
+
+// Test route to trigger Sentry error (for verification)
+app.get('/debug-sentry', (_req: Request, _res: Response) => {
+  throw new Error('Test Sentry error - this is intentional for testing');
+});
+
 // 404 handler
 app.use((_req: Request, res: Response) => {
   res.status(404).json(errorResponse('Endpoint not found', 'NOT_FOUND'));
 });
 
-// Error handler
+// Sentry error handler must be before custom error handler
+app.use(sentryErrorHandler);
+
+// Global error handler (custom)
 app.use(errorHandler);
 
 export default app;

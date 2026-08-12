@@ -1,18 +1,16 @@
 import { PrismaClient } from '@prisma/client';
-import { prisma as defaultPrisma } from '@/prisma/client';
 import { NotFoundError, ConflictError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import * as repository from './buses.repository';
 
 // Allow prisma client to be injected for testing
-let prisma: PrismaClient = defaultPrisma;
-
 export function setPrismaClient(client: PrismaClient) {
-  prisma = client;
+  repository.setPrismaClient(client);
 }
 
 export async function createBus(data: any, actorId?: string) {
   try {
-    const bus = await prisma.bus.create({ data });
+    const bus = await repository.createBus(data);
     logger.info('Bus created', { busId: bus.id });
     return bus;
   } catch (e: any) {
@@ -31,11 +29,11 @@ export async function listBuses(filters: { terminalId?: string; status?: string;
       { model: { contains: filters.search, mode: 'insensitive' } },
     ];
   }
-  return prisma.bus.findMany({ where, orderBy: { plateNumber: 'asc' } });
+  return repository.findBuses(where);
 }
 
 export async function getBusById(id: string) {
-  const bus = await prisma.bus.findFirst({ where: { id, deletedAt: null } });
+  const bus = await repository.findBusById(id);
   if (!bus) throw new NotFoundError('Bus not found', 'BUS_NOT_FOUND');
   return bus;
 }
@@ -43,7 +41,7 @@ export async function getBusById(id: string) {
 export async function updateBus(id: string, data: any) {
   await getBusById(id);
   try {
-    const bus = await prisma.bus.update({ where: { id }, data });
+    const bus = await repository.updateBus(id, data);
     logger.info('Bus updated', { busId: id });
     return bus;
   } catch (e: any) {
@@ -54,17 +52,14 @@ export async function updateBus(id: string, data: any) {
 
 export async function updateMaintenanceStatus(id: string, status: string) {
   await getBusById(id);
-  const bus = await prisma.bus.update({ where: { id }, data: { maintenanceStatus: status as any } });
+  const bus = await repository.updateBus(id, { maintenanceStatus: status as any });
   logger.info('Bus maintenance status updated', { busId: id, status });
   return bus;
 }
 
 export async function deleteBus(id: string, _actorId?: string) {
   await getBusById(id);
-  const bus = await prisma.bus.update({
-    where: { id },
-    data: { deletedAt: new Date() },
-  });
+  const bus = await repository.softDeleteBus(id);
   logger.info('Bus soft-deleted', { busId: id });
   return bus;
 }

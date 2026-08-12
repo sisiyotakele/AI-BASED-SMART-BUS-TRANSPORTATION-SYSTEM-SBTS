@@ -1,13 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
-import { authApi } from "@/lib/api";
+import { authApi, normalizeUserProfile, type ApiUserProfile } from "@/lib/api";
 
-export interface UserProfile {
-  id: string;
-  email: string;
-  fullName: string;
-  phone: string;
-  role: string;
-}
+export type UserProfile = ApiUserProfile;
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -15,6 +9,7 @@ interface AuthContextType {
   isLoading: boolean;
   user: UserProfile | null;
   login: (accessToken: string, refreshToken: string, userData?: UserProfile) => void;
+  enterGuestMode: () => void;
   logout: () => Promise<void>;
   refetchUser: () => Promise<void>;
 }
@@ -40,7 +35,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       const res = await authApi.me();
       if (res.data?.success && res.data?.data) {
-        setUser(res.data.data);
+        setUser(normalizeUserProfile(res.data.data) ?? null);
       }
     } catch (error) {
       console.warn("Failed to fetch user profile via GET /auth/me:", error);
@@ -69,9 +64,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsGuest(false);
     if (userData) {
       setUser(userData);
+      setIsLoading(false);
     } else {
       fetchUserProfile();
     }
+  };
+
+  const enterGuestMode = () => {
+    localStorage.setItem("isGuest", "true");
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+    setToken(null);
+    setUser(null);
+    setIsGuest(true);
+    setIsLoading(false);
   };
 
   // Step 3: Server-side logout via POST /auth/logout
@@ -98,6 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isLoading,
         user,
         login,
+        enterGuestMode,
         logout,
         refetchUser: fetchUserProfile,
       }}

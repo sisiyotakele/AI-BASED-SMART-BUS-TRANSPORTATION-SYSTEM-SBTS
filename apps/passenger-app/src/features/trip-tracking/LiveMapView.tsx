@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { trackingApi } from "@/lib/api";
+import { subscribeToAllTracking, BusLocationUpdate } from "@/lib/socket";
 
 interface Stop {
   id: string;
@@ -41,6 +42,41 @@ export interface BusTrackingLocation {
   timestamp?: string;
 }
 
+const ROUTE_STOPS: Stop[] = [
+  {
+    id: "stop-1",
+    name: "Megenagna",
+    time: "07:00 AM",
+    coords: { x: 8, y: 42 },
+    passengersWaiting: 12,
+    status: "completed",
+  },
+  {
+    id: "stop-2",
+    name: "CMC Michael",
+    time: "07:12 AM",
+    coords: { x: 28, y: 35 },
+    passengersWaiting: 8,
+    status: "current",
+  },
+  {
+    id: "stop-3",
+    name: "Bole Medhanialem",
+    time: "07:20 AM",
+    coords: { x: 52, y: 48 },
+    passengersWaiting: 15,
+    status: "upcoming",
+  },
+  {
+    id: "stop-4",
+    name: "Bole Airport",
+    time: "07:28 AM",
+    coords: { x: 88, y: 38 },
+    passengersWaiting: 6,
+    status: "upcoming",
+  },
+];
+
 export const LiveMapView: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isSimulating, setIsSimulating] = useState(true);
@@ -51,6 +87,7 @@ export const LiveMapView: React.FC = () => {
   // Backend tracking state
   const [liveBusLocations, setLiveBusLocations] = useState<BusTrackingLocation[]>([]);
   const [isLiveConnected, setIsLiveConnected] = useState<boolean>(false);
+  const [isWebSocketActive, setIsWebSocketActive] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   // Step 2: Poll GET /tracking from Swagger API
@@ -72,11 +109,41 @@ export const LiveMapView: React.FC = () => {
     }
   }, []);
 
+  // Real-Time WebSocket stream subscription
   useEffect(() => {
     fetchLiveTracking();
-    // Poll live bus positions every 8 seconds
-    const interval = setInterval(fetchLiveTracking, 8000);
-    return () => clearInterval(interval);
+
+    const unsubscribeSocket = subscribeToAllTracking((update: BusLocationUpdate) => {
+      if (update && update.busId && update.location) {
+        setIsWebSocketActive(true);
+        setIsLiveConnected(true);
+        setLiveBusLocations((prev) => {
+          const index = prev.findIndex((b) => b.busId === update.busId);
+          const updatedItem: BusTrackingLocation = {
+            id: update.busId,
+            busId: update.busId,
+            latitude: update.location.latitude,
+            longitude: update.location.longitude,
+            speed: update.location.speed ?? 40,
+            heading: update.location.heading,
+            timestamp: update.timestamp,
+          };
+          if (index >= 0) {
+            const next = [...prev];
+            next[index] = updatedItem;
+            return next;
+          }
+          return [updatedItem, ...prev];
+        });
+      }
+    });
+
+    // Poll live bus positions every 10 seconds as backup
+    const interval = setInterval(fetchLiveTracking, 10000);
+    return () => {
+      unsubscribeSocket();
+      clearInterval(interval);
+    };
   }, [fetchLiveTracking]);
 
   // Smooth Live GPS movement simulation loop (fallback or demo mode)
@@ -102,8 +169,8 @@ export const LiveMapView: React.FC = () => {
 
   // Determine current active stop based on progress percentage
   const currentStopIndex = Math.min(
-    stops.length - 1,
-    Math.floor((busProgress / 100) * stops.length)
+    ROUTE_STOPS.length - 1,
+    Math.floor((busProgress / 100) * ROUTE_STOPS.length)
   );
 
   return (
@@ -130,12 +197,18 @@ export const LiveMapView: React.FC = () => {
         <div className="flex flex-wrap items-center gap-2">
           {/* Live Server Connection Badge */}
           <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-            isLiveConnected 
+            isWebSocketActive
               ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-              : "bg-sky-500/10 text-sky-600 border-sky-500/20"
+              : isLiveConnected 
+              ? "bg-sky-500/10 text-sky-600 border-sky-500/20"
+              : "bg-slate-500/10 text-slate-600 border-slate-500/20"
           }`}>
             <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-500" />
-            {isLiveConnected ? "API Connected (Live GPS)" : "GPS Simulation Mode"}
+            {isWebSocketActive
+              ? "WebSocket Stream (Real-Time GPS)"
+              : isLiveConnected
+              ? "API Connected (Polling GPS)"
+              : "GPS Simulation Mode"}
           </span>
 
           {/* Refresh API Button */}
@@ -200,7 +273,7 @@ export const LiveMapView: React.FC = () => {
           style={{ transform: `scale(${zoomLevel})` }}
         >
           {/* Subtle topography street grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#cbd5e125_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e125_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#cbd5e125_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e125_1px,transparent_1px)] bg-position-[32px_32px]"></div>
 
           {/* Major Addis Ababa Road Lines Simulation */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
@@ -228,7 +301,7 @@ export const LiveMapView: React.FC = () => {
           </svg>
 
           {/* Interactive Bus Station Map Markers */}
-          {stops.map((stop, index) => {
+          {ROUTE_STOPS.map((stop, index) => {
             const isCurrent = index === currentStopIndex;
             const isPassed = index < currentStopIndex;
 
@@ -382,7 +455,7 @@ export const LiveMapView: React.FC = () => {
       {/* 3. HORIZONTAL REAL-TIME ROUTE STOP TIMELINE */}
       <div className="mt-4 pt-4 border-t border-slate-100 overflow-x-auto scrollbar-none">
         <div className="flex items-center gap-2.5 min-w-max pb-1">
-          {stops.map((stop, index) => {
+          {ROUTE_STOPS.map((stop, index) => {
             const isCurrent = index === currentStopIndex;
             const isPassed = index < currentStopIndex;
 

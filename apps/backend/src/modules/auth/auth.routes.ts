@@ -11,40 +11,171 @@ const router = Router();
 // Rate limiters
 const authLimiter = rateLimit({
     windowMs: config.rateLimit.auth.windowMs,
-    max: config.rateLimit.auth.max,
+    max: process.env.NODE_ENV === 'development' ? 100 : config.rateLimit.auth.max,
     message: 'Too many requests from this IP, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
 });
 
 /**
- * @route POST /auth/register
- * @desc Register a new passenger
- * @access Public
+ * @swagger
+ * /api/v1/auth/register:
+ *   post:
+ *     summary: Register a new passenger
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - fullName
+ *               - phone
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               fullName:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: User registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       400:
+ *         description: Invalid input data
+ *       409:
+ *         description: User already exists
+ *       429:
+ *         description: Too many requests
+ *       500:
+ *         description: Internal server error
  */
 router.post(
     '/register',
-    authLimiter,
+    authLimiter as any,
     validateBody(authValidation.registerSchema),
     authController.register
 );
 
 /**
- * @route POST /auth/login
- * @desc Login user
- * @access Public
+ * @swagger
+ * /api/v1/auth/login:
+ *   post:
+ *     summary: Login user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       type: object
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       400:
+ *         description: Invalid credentials
+ *       401:
+ *         description: Unauthorized - Invalid email or password
+ *       429:
+ *         description: Too many requests
+ *       500:
+ *         description: Internal server error
  */
 router.post(
     '/login',
-    authLimiter,
+    authLimiter as any,
     validateBody(authValidation.loginSchema),
     authController.login
 );
 
 /**
- * @route POST /auth/refresh
- * @desc Refresh access token
- * @access Public
+ * @swagger
+ * /api/v1/auth/refresh:
+ *   post:
+ *     summary: Refresh access token
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Token refreshed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *       400:
+ *         description: Invalid refresh token
+ *       401:
+ *         description: Unauthorized - Token expired or invalid
+ *       500:
+ *         description: Internal server error
  */
 router.post(
     '/refresh',
@@ -53,9 +184,41 @@ router.post(
 );
 
 /**
- * @route GET /auth/me
- * @desc Get current user profile
- * @access Private
+ * @swagger
+ * /api/v1/auth/me:
+ *   get:
+ *     summary: Get current user profile
+ *     tags: [Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       format: uuid
+ *                     email:
+ *                       type: string
+ *                     fullName:
+ *                       type: string
+ *                     phone:
+ *                       type: string
+ *                     role:
+ *                       type: string
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
  */
 router.get(
     '/me',
@@ -64,9 +227,29 @@ router.get(
 );
 
 /**
- * @route POST /auth/logout
- * @desc Logout user
- * @access Private
+ * @swagger
+ * /api/v1/auth/logout:
+ *   post:
+ *     summary: Logout user
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Logout successful
+ *       400:
+ *         description: Invalid refresh token
+ *       500:
+ *         description: Internal server error
  */
 router.post(
     '/logout',

@@ -1,8 +1,6 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { LandingPage } from "@/pages/LandingPage";
-import { LoginPage } from "@/features/auth/LoginPage";
-import { RegisterPage } from "@/features/auth/RegisterPage";
+import { AuthPage } from "@/pages/AuthPage";
 import { ForgotPasswordPage } from "@/features/auth/ForgotPasswordPage";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { LiveTrackingPage } from "@/pages/LiveTrackingPage";
@@ -10,6 +8,7 @@ import { TicketsPage } from "@/pages/TicketsPage";
 import { RoutesPage } from "@/pages/RoutesPage";
 import { HistoryPage } from "@/pages/HistoryPage";
 import { NotificationsPage } from "@/pages/NotificationsPage";
+import { LandingPage } from "@/pages/LandingPage";
 import { AuthProvider, useAuth } from "@/features/auth/AuthContext";
 
 // Route Guard: Protects routes using AuthContext, allowing authenticated users OR guests
@@ -40,8 +39,10 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
 
           {/* Public Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/auth" element={<AuthPage />} />
+          {/* Redirect old auth routes */}
+          <Route path="/login" element={<Navigate to="/auth?mode=login" replace />} />
+          <Route path="/register" element={<Navigate to="/auth?mode=register" replace />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected Passenger Dashboard & App Routes */}

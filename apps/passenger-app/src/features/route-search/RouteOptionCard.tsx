@@ -1,201 +1,198 @@
 // src/features/route-search/RouteOptionCard.tsx
 import React, { useState } from "react";
 import { RouteOption } from "./types";
-import { 
-  Bus, 
-  Navigation, 
-  Clock, 
-  MapPin, 
-  ArrowRight, 
-  GitMerge, 
-  ChevronDown, 
-  ChevronUp,
-  Footprints
+import {
+  Bus,
+  Navigation,
+  Clock,
+  MapPin,
+  ArrowRight,
+  GitMerge,
+  Info,
+  Footprints,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
+import { RouteDetailPopover } from "./RouteDetailPopover";
 
 interface RouteOptionCardProps {
   option: RouteOption;
   destinationName: string;
+  isSelected?: boolean;
   onSelectRoute?: (option: RouteOption) => void;
 }
+
+const crowdColors: Record<string, string> = {
+  Low: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Medium: "bg-sky-50 text-[#12B2E4] border-sky-200",
+  High: "bg-rose-50 text-rose-700 border-rose-200",
+  Moderate: "bg-sky-50 text-[#12B2E4] border-sky-200",
+};
+
+// AI Prediction badge styles
+const aiStatusConfig = {
+  "On Time": {
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    text: "text-emerald-700",
+    icon: <CheckCircle2 className="w-3 h-3 shrink-0" />,
+  },
+  "Likely Delayed": {
+    bg: "bg-sky-50",
+    border: "border-sky-200",
+    text: "text-[#12B2E4]",
+    icon: <AlertTriangle className="w-3 h-3 shrink-0" />,
+  },
+  "Delayed": {
+    bg: "bg-rose-50",
+    border: "border-rose-200",
+    text: "text-rose-700",
+    icon: <AlertTriangle className="w-3 h-3 shrink-0" />,
+  },
+};
 
 export const RouteOptionCard: React.FC<RouteOptionCardProps> = ({
   option,
   destinationName,
+  isSelected = false,
   onSelectRoute,
 }) => {
-  const [showLegs, setShowLegs] = useState<boolean>(false);
+  const [showDetails, setShowDetails] = useState(false);
 
-  const getCrowdBadge = (level: RouteOption["crowdLevel"]) => {
-    switch (level) {
-      case "Low":
-        return "bg-white  text-indigo-600 border-amber";
-      case "Medium":
-        return "bg-white  text-indigo-600 border-amber";
-      case "High":
-        return "bg-white  text-indigo-600 border-amber";
-    }
-  };
+  const isDirect = !option.isMergedRoute || option.transfersCount === 0;
+  const ai = option.aiTrafficPrediction;
+  const aiStyle = ai ? aiStatusConfig[ai.status] : null;
 
   return (
-    <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs hover:border-indigo-300 transition-all flex flex-col justify-between gap-3">
-      
-      {/* Top Header: Route Title, Transfer Badge & Fare */}
-      <div className="flex items-start justify-between gap-2 border-b border-slate-100 pb-2.5">
-        <div className="flex items-start gap-2.5 min-w-0">
-          <div className={`p-2 rounded-xl shrink-0 ${
-            option.isMergedRoute ? "bg-amber-50 text-indigo-600" : "bg-indigo-50 text-indigo-600"
-          }`}>
-            {option.isMergedRoute ? <GitMerge className="w-4 h-4" /> : <Bus className="w-4 h-4" />}
+    <>
+      <div
+        className={`min-w-[310px] max-w-[340px] shrink-0 bg-white border rounded-2xl p-5 shadow-xs transition-all flex flex-col gap-4 ${
+          isSelected
+            ? "border-[#2B4B9E] ring-2 ring-[#2B4B9E]/20 shadow-md"
+            : "border-slate-200/90 hover:border-[#12B2E4] hover:shadow-sm"
+        }`}
+      >
+        {/* ── TOP: Route name + badge + fare ───── */}
+        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
+          <div className="flex items-start gap-2.5 min-w-0">
+            <div className={`p-2.5 rounded-xl shrink-0 ${isDirect ? "bg-indigo-50 text-[#2B4B9E]" : "bg-sky-50 text-[#12B2E4]"}`}>
+              {isDirect ? <Bus className="w-5 h-5" /> : <GitMerge className="w-5 h-5" />}
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-extrabold text-slate-900 text-base truncate leading-tight">{option.busNumber}</h4>
+              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                {isDirect ? (
+                  <span className="text-xs font-extrabold text-white bg-emerald-500 px-2.5 py-0.5 rounded-full">Direct</span>
+                ) : (
+                  <span className="text-xs font-extrabold text-white px-2.5 py-0.5 rounded-full" style={{ backgroundColor: "#12B2E4" }}>
+                    {option.transfersCount} {option.transfersCount === 1 ? "Transfer" : "Transfers"}
+                  </span>
+                )}
+                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${crowdColors[option.crowdLevel] ?? crowdColors.Medium}`}>
+                  {option.crowdLevel} crowd
+                </span>
+              </div>
+            </div>
           </div>
+          <span className="text-base sm:text-lg font-black shrink-0" style={{ color: "#2B4B9E" }}>{option.fare}</span>
+        </div>
 
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <h4 className="font-extrabold text-slate-900 text-xs sm:text-sm truncate">
-                {option.busNumber}
-              </h4>
-              {option.isMergedRoute ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white text-indigo-600 border border-amber shrink-0">
-                  {option.transfersCount} {option.transfersCount === 1 ? "Transfer" : "Transits"} Merged
+        {/* ── AI TRAFFIC PREDICTION BADGE ─────── */}
+        {ai && aiStyle && (
+          <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold ${aiStyle.bg} ${aiStyle.border} ${aiStyle.text}`}>
+            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#2B4B9E" }} />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                <span className="font-extrabold flex items-center gap-1.5 text-xs sm:text-sm">
+                  {aiStyle.icon}
+                  {ai.status}
+                  {ai.delayMinutes && ai.delayMinutes > 0 && (
+                    <span className="font-bold"> (+{ai.delayMinutes} min)</span>
+                  )}
                 </span>
-              ) : (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 shrink-0">
-                  Direct Route
-                </span>
+                <span className="text-xs font-bold text-slate-500 shrink-0">{ai.confidence}% confidence</span>
+              </div>
+              {ai.reason && (
+                <p className="text-xs text-slate-600 truncate mt-1 font-medium">{ai.reason}</p>
               )}
             </div>
-            <p className="text-[10px] text-slate-400 font-medium truncate mt-0.5">{option.routeVia}</p>
+          </div>
+        )}
+
+        {/* ── WALK TO STOP ────────────────────── */}
+        <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-100">
+          <Footprints className="w-5 h-5 text-indigo-600 shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Walk to stop</p>
+            <p className="text-sm font-extrabold text-slate-900 truncate">
+              ~{option.nearestStation.walkTimeMinutes} min
+              <span className="font-bold text-slate-500 ml-1">({option.nearestStation.distanceMeters}m)</span>
+            </p>
+            <p className="text-xs text-slate-600 font-medium truncate">{option.nearestStation.name}</p>
           </div>
         </div>
 
-        <div className="text-right shrink-0">
-          <span className="text-xs font-black text-indigo-900 block leading-tight">{option.fare}</span>
-          <span
-            className={`text-[9px] font-bold px-1.5 py-0.2 rounded-full border ${getCrowdBadge(
-              option.crowdLevel
-            )}`}
-          >
-            {option.crowdLevel} Crowd
-          </span>
-        </div>
-      </div>
-
-      {/* Walking Info to Boarding Station */}
-      <div className="bg-slate-50/80 rounded-lg px-3 py-1.5 flex items-center justify-between gap-2 text-[11px]">
-        <div className="flex items-center gap-2 min-w-0">
-          <Navigation className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-          <div className="truncate">
-            <span className="font-bold text-slate-800">Board at: </span>
-            <span className="text-slate-600 font-medium">{option.nearestStation.name}</span>
-            <span className="text-slate-400 text-[10px] ml-1">
-              ({option.nearestStation.distanceMeters}m)
+        {/* ── TIMING GRID ─────────────────────── */}
+        <div className="grid grid-cols-2 gap-2.5 text-xs">
+          <div className="p-2.5 border border-slate-100 rounded-xl bg-slate-50/60">
+            <span className="text-xs font-extrabold uppercase text-slate-500 block mb-0.5">Bus arrives</span>
+            <span className="text-sm font-black flex items-center gap-1 text-slate-900">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              {option.busEtaMinutes} min
             </span>
+          </div>
+          <div className="p-2.5 border border-slate-100 rounded-xl bg-slate-50/60">
+            <span className="text-xs font-extrabold uppercase text-slate-500 block mb-0.5">Total trip</span>
+            <span className="text-sm font-black text-slate-900">~{option.totalTripMinutes} min</span>
           </div>
         </div>
 
-        <div className="flex items-center gap-1 font-bold text-emerald-600 shrink-0">
-          <Clock className="w-3 h-3" />
-          <span>{option.nearestStation.walkTimeMinutes}m walk</span>
-        </div>
-      </div>
-
-      {/* Arrival & Trip Duration Compact Grid */}
-      <div className="grid grid-cols-2 gap-2 text-[11px]">
-        <div className="p-2 border border-slate-100 rounded-lg bg-white">
-          <span className="text-[9px] font-bold uppercase text-slate-400 block leading-none mb-1">
-            First Bus Arrival
-          </span>
-          <span className="text-xs font-extrabold flex items-center gap-1 leading-none">
-            <Clock className="w-3 h-3" />
-            in {option.busEtaMinutes} mins
-          </span>
+        {/* ── FULL PATH BREADCRUMB: A → B → D ──── */}
+        <div className="rounded-xl border px-3.5 py-3 space-y-1" style={{ background: "#f0f4ff", borderColor: "#2B4B9E22" }}>
+          <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: "#2B4B9E" }}>Route Path</p>
+          <p className="text-xs sm:text-sm font-bold text-slate-900 leading-snug break-words">{option.routeVia}</p>
         </div>
 
-        <div className="p-2 border border-slate-100 rounded-lg bg-white">
-          <span className="text-[9px] font-bold uppercase text-slate-400 block leading-none mb-1">
-            Total Trip Duration
-          </span>
-          <span className="text-xs font-extrabold text-slate-800 leading-none">
-            ~{option.totalTripMinutes} mins
-          </span>
-        </div>
-      </div>
-
-      {/* MERGED ROUTE MULTI-LEG BREAKDOWN (If present) */}
-      {option.isMergedRoute && option.legs && option.legs.length > 0 && (
-        <div className="border text-indigo-900 bg-amber-50/40 rounded-xl overflow-hidden text-xs">
-          <button
-            type="button"
-            onClick={() => setShowLegs(!showLegs)}
-            className="w-full px-3 py-2 flex items-center justify-between text-slate-800 font-bold hover:bg-white transition-colors cursor-pointer"
-          >
-            <span className="flex items-center gap-1.5 text-[11px]">
-              <GitMerge className="w-3.5 h-3.5 text-indigo-900" />
-              {showLegs ? "Hide Transit Leg Details" : `View ${option.legs.length}-Leg Merged Transit Steps`}
-            </span>
-            {showLegs ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-
-          {showLegs && (
-            <div className="p-3 border-t border-indigo-900 bg-white space-y-2.5 animate-in fade-in duration-150">
-              {option.legs.map((leg, index) => (
-                <div key={leg.legIndex} className="space-y-1.5">
-                  
-                  {/* Transfer Wait Banner between legs */}
-                  {index > 0 && (
-                    <div className="my-1.5 px-2.5 py-1 rounded-lg bg-white border text-indigo-900 text-[10px] font-bold text-indigo-900 flex items-center gap-1.5">
-                      <Footprints className="w-3 h-3 text-indigo-900" />
-                      <span>
-                        Transfer at <strong>{leg.fromStation}</strong> (~{leg.transferWaitMinutes || 4} min wait)
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Leg Detail Card */}
-                  <div className="p-2.5 rounded-lg border border-slate-200/80 bg-slate-50/80 flex items-center justify-between gap-2">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
-                        <span className="w-4 h-4 rounded-full bg-indigo-600 text-white text-[9px] flex items-center justify-center font-bold">
-                          {leg.legIndex}
-                        </span>
-                        <span>{leg.busNumber}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">({leg.busType})</span>
-                      </div>
-                      <div className="text-[11px] text-slate-600 flex items-center gap-1">
-                        <span>{leg.fromStation}</span>
-                        <ArrowRight className="w-3 h-3 text-slate-400 inline" />
-                        <span>{leg.toStation}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right shrink-0">
-                      <span className="text-xs font-black text-slate-800 block">{leg.fare}</span>
-                      <span className="text-[10px] font-bold text-emerald-600">~{leg.durationMinutes} min</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Action Footer */}
-      <div className="flex items-center justify-between pt-1">
-        <div className="flex items-center gap-1 text-[10px] font-medium text-slate-400 truncate max-w-[170px]">
-          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+        {/* ── DESTINATION ─────────────────────── */}
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 truncate -mt-1">
+          <MapPin className="w-3.5 h-3.5 shrink-0" />
           <span className="truncate">To: {destinationName}</span>
         </div>
 
-        <button
-          onClick={() => onSelectRoute && onSelectRoute(option)}
-          className="bg-[#1B2A4A] hover:bg-[#283863] text-white text-[11px] font-bold px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shrink-0"
-        >
-          <span>Select Route</span>
-          <ArrowRight className="w-3 h-3" />
-        </button>
+        {/* ── ACTIONS ─────────────────────────── */}
+        <div className="flex items-center justify-between gap-2.5 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => setShowDetails(true)}
+            className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer py-1.5 px-2 hover:bg-slate-100 rounded-lg transition-colors"
+            style={{ color: "#2B4B9E" }}
+          >
+            <Info className="w-4 h-4" />
+            Details
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelectRoute?.(option)}
+            className={`text-xs sm:text-sm font-extrabold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer text-white shadow-2xs ${
+              isSelected ? "bg-emerald-600 hover:bg-emerald-700" : ""
+            }`}
+            style={!isSelected ? { background: "#2B4B9E" } : undefined}
+          >
+            <span>{isSelected ? "Selected ✓" : "Select Route"}</span>
+            {!isSelected && <ArrowRight className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {showDetails && (
+        <RouteDetailPopover
+          option={option}
+          destinationName={destinationName}
+          onClose={() => setShowDetails(false)}
+        />
+      )}
+    </>
   );
 };
 

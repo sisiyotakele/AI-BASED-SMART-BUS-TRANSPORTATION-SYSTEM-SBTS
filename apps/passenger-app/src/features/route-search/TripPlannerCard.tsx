@@ -4,15 +4,22 @@ import { Locate, MapPin, Search, Loader2, Navigation, Info, GitMerge, CheckCircl
 import { RouteOption } from "./types";
 import { RouteOptionCard } from "./RouteOptionCard";
 
-export const TripPlannerCard: React.FC = () => {
+interface TripPlannerCardProps {
+  onRouteSelected?: (option: RouteOption) => void;
+}
+
+const isDirectRoute = (option: RouteOption) =>
+  option.transfersCount === 0 || !option.isMergedRoute;
+
+export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelected }) => {
   const [origin, setOrigin] = useState<string>("");
   const [destination, setDestination] = useState<string>("");
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<RouteOption[] | null>(null);
+  const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
 
-  // HTML5 Geolocation Detection
   const handleDetectLocation = () => {
     setIsLocating(true);
     setLocationStatus(null);
@@ -42,20 +49,18 @@ export const TripPlannerCard: React.FC = () => {
     );
   };
 
-  // Route Search Handler with Direct & Merged Transit Calculations
   const handleSearchTrip = (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim()) return;
 
     setIsSearching(true);
+    setSelectedRouteId(null);
 
-    // Simulate backend route matching query including merged transit routes
     setTimeout(() => {
       const startLoc = origin.trim() || "Location A (Akaki)";
       const endLoc = destination.trim() || "Location D (Megenagna)";
 
       const mockAlternatives: RouteOption[] = [
-        // 1. MERGED 3-LEG TRANSIT ROUTE (A → B → C → D)
         {
           id: "opt-merged-3leg",
           isMergedRoute: true,
@@ -79,7 +84,7 @@ export const TripPlannerCard: React.FC = () => {
               legIndex: 1,
               fromStation: startLoc,
               toStation: "Transfer Stop B (Stadium)",
-              busNumber: "Bus 1 (Route 08 Akaki Express)",
+              busNumber: "Bus 1 (Bus 08 Akaki Express)",
               busType: "Anbessa Euro 5",
               departureEtaMinutes: 4,
               durationMinutes: 14,
@@ -89,7 +94,7 @@ export const TripPlannerCard: React.FC = () => {
               legIndex: 2,
               fromStation: "Transfer Stop B (Stadium)",
               toStation: "Transfer Stop C (Mexico Square)",
-              busNumber: "Bus 2 (Route 04 Rapid)",
+              busNumber: "Bus 2 (Bus 04 Rapid)",
               busType: "Sheger Express",
               departureEtaMinutes: 3,
               durationMinutes: 10,
@@ -100,7 +105,7 @@ export const TripPlannerCard: React.FC = () => {
               legIndex: 3,
               fromStation: "Transfer Stop C (Mexico Square)",
               toStation: endLoc,
-              busNumber: "Bus 3 (Route 12 Direct)",
+              busNumber: "Bus 3 (Bus 12 Direct)",
               busType: "Anbessa Standard",
               departureEtaMinutes: 5,
               durationMinutes: 14,
@@ -109,8 +114,6 @@ export const TripPlannerCard: React.FC = () => {
             },
           ],
         },
-
-        // 2. MERGED 2-LEG TRANSIT ROUTE (A → B → D)
         {
           id: "opt-merged-2leg",
           isMergedRoute: true,
@@ -134,7 +137,7 @@ export const TripPlannerCard: React.FC = () => {
               legIndex: 1,
               fromStation: startLoc,
               toStation: "Transfer Stop B (Bole Atlas)",
-              busNumber: "Bus 1 (Route 34 Line)",
+              busNumber: "Bus 1 (Bus 34 Line)",
               busType: "Sheger Express",
               departureEtaMinutes: 7,
               durationMinutes: 18,
@@ -144,7 +147,7 @@ export const TripPlannerCard: React.FC = () => {
               legIndex: 2,
               fromStation: "Transfer Stop B (Bole Atlas)",
               toStation: endLoc,
-              busNumber: "Bus 2 (Route 12 Express)",
+              busNumber: "Bus 2 (Bus 12 Express)",
               busType: "Anbessa Euro 5",
               departureEtaMinutes: 4,
               durationMinutes: 14,
@@ -153,13 +156,11 @@ export const TripPlannerCard: React.FC = () => {
             },
           ],
         },
-
-        // 3. DIRECT ROUTE OPTION (If available)
         {
           id: "opt-direct",
           isMergedRoute: false,
           transfersCount: 0,
-          busNumber: "Route 12 Express (Direct Line)",
+          busNumber: "Bus 12 Express (Direct Line)",
           busType: "Anbessa Euro 5 Direct",
           nearestStation: {
             id: "st-c",
@@ -181,122 +182,116 @@ export const TripPlannerCard: React.FC = () => {
     }, 600);
   };
 
+  const displayedRoutes = searchResults || [];
+
+  const handleSelectRoute = (option: RouteOption) => {
+    setSelectedRouteId(option.id);
+    onRouteSelected?.(option);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Trip Planner Input Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-          <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-            <Navigation className="w-5 h-5 text-indigo-600" />
-            Trip Planner & Smart Merged Transit Routes
+      <div className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <h3 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2.5">
+            <Navigation className="w-6 h-6 text-indigo-600" />
+            Trip Planner & Transit Routes
           </h3>
-          <span className="bg-white text-indigo-600 border border-indigo-600 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
-            <GitMerge className="w-3.5 h-3.5 text-indigo-600" />
-            Auto-Merged Transfers Active
+          <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs sm:text-sm font-extrabold px-3.5 py-1.5 rounded-full flex items-center gap-1.5">
+            <GitMerge className="w-4 h-4 text-indigo-600" />
+            Direct & Transfer Options
           </span>
         </div>
 
-        <form onSubmit={handleSearchTrip} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            
-            {/* Origin Field */}
-            <div className="space-y-1.5">
+        <form onSubmit={handleSearchTrip} className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-700">Starting Point (Station A)</label>
+                <label className="text-sm font-extrabold text-slate-800">Starting Point</label>
                 <button
                   type="button"
                   onClick={handleDetectLocation}
                   disabled={isLocating}
-                  className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                  className="text-xs sm:text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   {isLocating ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
-                    <Locate className="w-3 h-3" />
+                    <Locate className="w-4 h-4" />
                   )}
                   {isLocating ? "Detecting GPS..." : "Use Current Location"}
                 </button>
               </div>
-
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Enter origin (e.g. Akaki, Station A)..."
+                  placeholder="Enter origin (e.g. Akaki, Mexico, Bole)..."
                   value={origin}
                   onChange={(e) => setOrigin(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 text-sm sm:text-base font-semibold rounded-xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
-                <Locate className="w-4 h-4 text-indigo-500 absolute left-3 top-3" />
+                <Locate className="w-5 h-5 text-indigo-500 absolute left-3.5 top-3.5" />
               </div>
             </div>
 
-            {/* Destination Field */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700">Destination (Station D)</label>
+            <div className="space-y-2">
+              <label className="text-sm font-extrabold text-slate-800">Destination</label>
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Where are you going? (e.g. Megenagna, Station D)..."
+                  placeholder="Where are you going? (e.g. Megenagna, Tor Hailoch)"
                   value={destination}
                   onChange={(e) => setDestination(e.target.value)}
                   required
-                  className="w-full bg-[#F8FAFC] border border-slate-200 text-xs font-semibold rounded-xl pl-9 pr-3 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  className="w-full bg-[#F8FAFC] border border-slate-200 text-sm sm:text-base font-semibold rounded-xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 />
-                <MapPin className="w-4 h-4 text-rose-500 absolute left-3 top-3" />
+                <MapPin className="w-5 h-5 text-rose-500 absolute left-3.5 top-3.5" />
               </div>
             </div>
-
           </div>
 
-          {/* Location Status Message */}
           {locationStatus && (
-            <p className="text-xs text-slate-500 flex items-center gap-1.5 font-medium">
-              <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            <p className="text-xs sm:text-sm text-slate-600 flex items-center gap-2 font-medium">
+              <Info className="w-4 h-4 text-indigo-500 shrink-0" />
               {locationStatus}
             </p>
           )}
 
-          {/* Search Button */}
           <div className="flex justify-end pt-1">
             <button
               type="submit"
               disabled={isSearching || !destination}
-              className="w-full md:w-auto bg-[#1B2A4A] hover:bg-[#283863] text-white text-xs font-bold px-6 py-2.5 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              className="w-full md:w-auto text-white text-sm sm:text-base font-extrabold px-8 py-3 rounded-xl transition-all shadow-xs flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: "#2B4B9E" }}
             >
               {isSearching ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5" />
               )}
-              {isSearching ? "Calculating Merged Routes..." : "Find Direct & Merged Routes"}
+              {isSearching ? "Finding routes..." : "Find Routes"}
             </button>
           </div>
         </form>
       </div>
 
-      {/* Results Section */}
       {searchResults && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              Transit Options to {destination} ({searchResults.length} Routes Calculated)
+        <div className="space-y-4 bg-slate-50/50 p-5 rounded-2xl border border-slate-200/80">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+              Available Route Options ({displayedRoutes.length})
             </h4>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-            {searchResults.map((option) => (
+          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin -mx-1 px-1">
+            {displayedRoutes.map((option) => (
               <RouteOptionCard
                 key={option.id}
                 option={option}
                 destinationName={destination}
-                onSelectRoute={(opt) => {
-                  alert(
-                    opt.isMergedRoute
-                      ? `Selected Merged ${opt.transfersCount}-Transfer Transit Route (${opt.busNumber})!`
-                      : `Selected ${opt.busNumber}!`
-                  );
-                }}
+                isSelected={selectedRouteId === option.id}
+                onSelectRoute={handleSelectRoute}
               />
             ))}
           </div>

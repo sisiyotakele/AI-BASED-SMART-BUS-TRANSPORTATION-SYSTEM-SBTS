@@ -24,7 +24,7 @@ export const testAdminToken = generateTestToken({
     {
       roleId: '00000000-0000-0000-0000-000000000010',
       roleName: 'admin',
-      permissions: ['manage_roles', 'view_roles', 'manage_fleet', 'view_fleet', 'create_trip', 'start_trip', 'end_trip', 'report_incident', 'resolve_incident', 'manage_assignments', 'view_assignments', 'manage_shifts', 'view_shifts', 'manage_routes', 'view_routes', 'manage_drivers', 'view_drivers', 'manage_pricing', 'view_pricing', 'manage_schedules', 'view_schedules', 'manage_terminals', 'view_terminals', 'manage_key_handovers', 'view_key_handovers', 'cancel_trip', 'view_trips', 'view_incidents', 'manage_notifications', 'manage_ai_models', 'view_predictions', 'generate_report', 'view_reports', 'view_audit_logs'],
+      permissions: ['manage_roles', 'view_roles', 'manage_fleet', 'view_fleet', 'create_trip', 'start_trip', 'end_trip', 'report_incident', 'review_incident', 'resolve_incident', 'delete_incident', 'manage_assignments', 'view_assignments', 'manage_shifts', 'view_shifts', 'manage_routes', 'view_routes', 'manage_drivers', 'view_drivers', 'manage_pricing', 'view_pricing', 'manage_schedules', 'view_schedules', 'manage_terminals', 'view_terminals', 'manage_key_handovers', 'view_key_handovers', 'cancel_trip', 'view_trips', 'view_incidents', 'manage_notifications', 'view_notifications', 'manage_ai_models', 'view_predictions', 'generate_report', 'view_reports', 'view_audit_logs'],
     },
   ],
 });
