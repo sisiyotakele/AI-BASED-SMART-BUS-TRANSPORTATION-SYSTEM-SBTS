@@ -1,1 +1,1 @@
-﻿{"name":"sbts","private":true,"version":"0.1.0","workspaces":["apps/*","packages/*"],"scripts":{"dev":"turbo run dev --parallel","build":"turbo run build","lint":"turbo run lint","test":"turbo run test"}}
+{"name":"sbts","private":true,"version":"0.1.0","workspaces":["apps/*","packages/*"],"scripts":{"dev":"turbo run dev --parallel","build":"turbo run build","lint":"turbo run lint","test":"turbo run test"},"devDependencies":{"autoprefixer":"^10.5.4","postcss":"^8.5.25","tailwindcss":"^4.3.3"}}
