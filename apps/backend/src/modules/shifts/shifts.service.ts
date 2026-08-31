@@ -13,10 +13,10 @@ function timeToDate(timeStr: string, baseDate: Date, isEndTime = false, startTim
 
   // If this is an end time and it's earlier than the start time, it means the shift crosses midnight.
   if (isEndTime && startTimeStr) {
-      const [startH] = startTimeStr.split(':').map(Number);
-      if (h < startH) {
-          d.setDate(d.getDate() + 1);
-      }
+    const [startH] = startTimeStr.split(':').map(Number);
+    if (h < startH) {
+      d.setDate(d.getDate() + 1);
+    }
   }
 
   return d;
@@ -67,14 +67,14 @@ export async function updateShift(id: string, data: any) {
   let end = existing.shiftEnd;
 
   if (data.shiftStart || data.shiftEnd || data.shiftDate) {
-      const baseDate = data.shiftDate || existing.shiftDate;
-      const startStr = data.shiftStart || existing.shiftStart.toTimeString().substring(0, 5);
-      const endStr = data.shiftEnd || existing.shiftEnd.toTimeString().substring(0, 5);
+    const baseDate = data.shiftDate || existing.shiftDate;
+    const startStr = data.shiftStart || existing.shiftStart.toTimeString().substring(0, 5);
+    const endStr = data.shiftEnd || existing.shiftEnd.toTimeString().substring(0, 5);
 
-      start = timeToDate(startStr, baseDate);
-      end = timeToDate(endStr, baseDate, true, startStr);
+    start = timeToDate(startStr, baseDate);
+    end = timeToDate(endStr, baseDate, true, startStr);
 
-      if (end <= start) throw new BadRequestError('Shift end must be after shift start');
+    if (end <= start) throw new BadRequestError('Shift end must be after shift start');
   }
 
   const shift = await repository.updateShift(id, {
@@ -95,3 +95,4 @@ export async function deleteShift(id: string, _actorId?: string) {
   logger.info('Shift soft-deleted', { shiftId: id });
   return shift;
 }
+

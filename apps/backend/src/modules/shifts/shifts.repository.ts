@@ -72,3 +72,4 @@ export async function softDeleteShift(id: string) {
         data: { deletedAt: new Date() },
     });
 }
+

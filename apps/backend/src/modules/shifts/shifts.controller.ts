@@ -31,3 +31,4 @@ export const deleteShift = asyncHandler(async (req: AuthenticatedRequest, res: R
   await service.deleteShift(req.params.id, req.user?.userId);
   successResponse(res, null, 'Shift deleted');
 });
+

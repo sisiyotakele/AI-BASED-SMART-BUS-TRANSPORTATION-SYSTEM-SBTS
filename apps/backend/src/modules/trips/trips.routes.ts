@@ -3,13 +3,15 @@ import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createTripSchema, tripIdParamSchema, tripQuerySchema } from './trips.validation';
-import { createTrip, listTrips, getTrip, startTrip, pauseTrip, resumeTrip, endTrip, cancelTrip, deleteTrip } from './trips.controller';
+import { createTrip, previewSchedule, listTrips, getTrip, startTrip, pauseTrip, resumeTrip, endTrip, cancelTrip, deleteTrip } from './trips.controller';
 import { auditMiddleware } from '@/modules/audit';
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+router.get('/preview-schedule', previewSchedule);
+
+// Remove global authenticate to allow public GET access to trips
+// router.use(authenticate);
 
 /**
  * @swagger
@@ -65,6 +67,7 @@ router.use(authenticate);
  */
 router.post(
   '/', 
+  authenticate,
   requirePermission('create_trip'), 
   validateBody(createTripSchema), 
   auditMiddleware({
@@ -112,7 +115,7 @@ router.post(
  *       500:
  *         description: Server error
  */
-router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema), listTrips);
+router.get('/', validateQuery(tripQuerySchema), listTrips);
 
 /**
  * @swagger
@@ -142,7 +145,7 @@ router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema),
  *       500:
  *         description: Server error
  */
-router.get('/:id', requirePermission('view_trips'), validateParams(tripIdParamSchema), getTrip);
+router.get('/:id', validateParams(tripIdParamSchema), getTrip);
 
 /**
  * @swagger
@@ -176,6 +179,7 @@ router.get('/:id', requirePermission('view_trips'), validateParams(tripIdParamSc
  */
 router.patch(
   '/:id/start', 
+  authenticate,
   requirePermission('start_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({
@@ -219,6 +223,7 @@ router.patch(
  */
 router.patch(
   '/:id/pause', 
+  authenticate,
   requirePermission('start_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({
@@ -262,6 +267,7 @@ router.patch(
  */
 router.patch(
   '/:id/resume', 
+  authenticate,
   requirePermission('start_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({
@@ -305,6 +311,7 @@ router.patch(
  */
 router.patch(
   '/:id/end', 
+  authenticate,
   requirePermission('end_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({
@@ -348,6 +355,7 @@ router.patch(
  */
 router.patch(
   '/:id/cancel', 
+  authenticate,
   requirePermission('cancel_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({
@@ -389,6 +397,7 @@ router.patch(
  */
 router.delete(
   '/:id', 
+  authenticate,
   requirePermission('cancel_trip'), 
   validateParams(tripIdParamSchema), 
   auditMiddleware({

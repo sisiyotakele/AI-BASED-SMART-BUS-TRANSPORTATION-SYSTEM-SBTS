@@ -2,13 +2,16 @@ import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
-import { createAssignmentSchema, updateAssignmentSchema, assignmentIdParamSchema, assignmentQuerySchema } from './bus-driver-assignments.validation';
-import { createAssignment, listAssignments, getAssignment, updateAssignment, deleteAssignment } from './bus-driver-assignments.controller';
+import { createAssignmentSchema, createAssignmentWithShiftSchema, updateAssignmentSchema, assignmentIdParamSchema, assignmentQuerySchema } from './bus-driver-assignments.validation';
+import { createAssignment, createAssignmentWithShift, listAssignments, getAssignment, updateAssignment, deleteAssignment } from './bus-driver-assignments.controller';
 
 const router = Router();
 
 // Apply authentication to all routes
 router.use(authenticate);
+
+router.post('/with-shift', requirePermission('manage_assignments'), validateBody(createAssignmentWithShiftSchema), createAssignmentWithShift);
+
 
 /**
  * @swagger

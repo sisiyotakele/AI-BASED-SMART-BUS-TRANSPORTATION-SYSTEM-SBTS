@@ -4,63 +4,39 @@ import { Search, Calendar, Plus, Clock, MapPin, RefreshCw, Edit2, Trash2 } from 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { scheduleService } from '@/services/schedule.service';
 import { routeService } from '@/services/route.service';
-import { ScheduleModal } from '@/features/admin/components/ScheduleModal';
 import { RouteSchedule } from '@/types';
 import toast from 'react-hot-toast';
 import { Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 export function Schedules() {
     const { confirm } = useConfirm();
     const queryClient = useQueryClient();
+    const navigate = useNavigate();
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedDay, setSelectedDay] = useState<string>('Monday');
     const [filterActive, setFilterActive] = useState<'all' | 'active' | 'inactive'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingSchedule, setEditingSchedule] = useState<RouteSchedule | null>(null);
 
     const { data: schedules = [], isLoading, error } = useQuery({
         queryKey: ['schedules'],
         queryFn: () => scheduleService.getAll()
     });
 
-    const { data: routes = [] } = useQuery({
-        queryKey: ['routes'],
-        queryFn: () => routeService.getAll()
-    });
-
-    const createScheduleMutation = useMutation({
-        mutationFn: async (data: any) => {
-            if (Array.isArray(data.dayOfWeek)) {
-                // Loop to create one per day
-                const promises = data.dayOfWeek.map((day: string) => scheduleService.create({ ...data, dayOfWeek: day }));
-                await Promise.all(promises);
-            } else {
-                await scheduleService.create(data);
-            }
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['schedules'] });
-            setIsModalOpen(false);
-            toast.success('Schedule(s) created successfully!');
-        },
-        onError: () => toast.error('Failed to create schedule(s)')
-    });
-
-    const updateScheduleMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: Partial<RouteSchedule> }) => scheduleService.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['schedules'] });
-            setIsModalOpen(false);
-            setEditingSchedule(null);
-        }
-    });
-
     const deleteScheduleMutation = useMutation({
         mutationFn: (id: string) => scheduleService.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['schedules'] });
+            toast.success('Schedule deleted successfully');
+        },
+        onError: () => toast.error('Failed to delete schedule')
+    });
+
+    const toggleActiveScheduleMutation = useMutation({
+        mutationFn: ({ id, isActive }: { id: string, isActive: boolean }) => scheduleService.update(id, { isActive }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['schedules'] });
         }
@@ -92,21 +68,6 @@ export function Schedules() {
         count: schedules.filter(s => s.dayOfWeek?.toLowerCase() === day.toLowerCase()).length
     }));
 
-    const handleCreate = async (data: any) => {
-        createScheduleMutation.mutate(data);
-    };
-
-    const handleUpdate = async (data: any) => {
-        if (editingSchedule) {
-            // Unpack single day for update if it came back as array
-            const finalData = { ...data };
-            if (Array.isArray(finalData.dayOfWeek)) {
-                finalData.dayOfWeek = finalData.dayOfWeek[0];
-            }
-            updateScheduleMutation.mutate({ id: editingSchedule.id, data: finalData });
-        }
-    };
-
     const handleDelete = async (id: string) => {
         const isConfirmed = await confirm({ title: "Confirm Action", message: 'Are you sure you want to delete this schedule?', confirmText: "Confirm", isDanger: true });
         if (isConfirmed) {
@@ -115,7 +76,7 @@ export function Schedules() {
     };
 
     const handleExport = () => {
-        const headers = ['Schedule Name', 'Route', 'Day', 'Departure Time', 'Frequency (min)', 'Status', 'Effective From', 'Effective Until'];
+        const headers = ['Schedule Name', 'Route', 'Day', 'Departure Time', 'Status', 'Effective From', 'Effective Until'];
         let csvContent = headers.join(',');
 
         if (filteredSchedules.length > 0) {
@@ -124,7 +85,6 @@ export function Schedules() {
                 s.route?.routeName || 'N/A',
                 s.dayOfWeek,
                 s.departureTime.includes('T') ? new Date(s.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : s.departureTime,
-                s.frequencyMinutes || 'One-time',
                 s.isActive ? 'Active' : 'Inactive',
                 s.effectiveFrom ? new Date(s.effectiveFrom).toLocaleDateString() : 'N/A',
                 s.effectiveUntil ? new Date(s.effectiveUntil).toLocaleDateString() : 'N/A'
@@ -162,23 +122,13 @@ export function Schedules() {
 
     return (
         <div className="space-y-4">
-            <ScheduleModal
-                isOpen={isModalOpen}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setEditingSchedule(null);
-                }}
-                onSubmit={editingSchedule ? handleUpdate : handleCreate}
-                editData={editingSchedule}
-                routes={routes}
-            />
             {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
-                    
+
                     {/* Left: Title & Inline Compact Stats */}
                     <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Route Schedules</h2>
+                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Route Schedule</h2>
 
                         <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
                             <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
@@ -224,7 +174,7 @@ export function Schedules() {
                             <option value="inactive">Inactive Only</option>
                         </select>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-navy-600 rounded hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium whitespace-nowrap"
                         >
@@ -232,8 +182,8 @@ export function Schedules() {
                             <span>Export</span>
                         </button>
 
-                        <button 
-                            onClick={() => setIsModalOpen(true)}
+                        <button
+                            onClick={() => navigate('/dashboard/schedules/create')}
                             className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
                         >
                             <Plus className="w-3.5 h-3.5" />
@@ -257,16 +207,16 @@ export function Schedules() {
                                     setCurrentPage(1);
                                 }}
                                 className={`flex-1 px-4 py-3 text-sm font-medium transition-colors relative ${selectedDay === day
-                                        ? 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-navy-800'
+                                    ? 'text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-navy-800'
                                     }`}
                             >
                                 <div className="flex flex-col items-center">
                                     <span>{day}</span>
                                     {dayCount > 0 && (
                                         <span className={`text-xs mt-1 px-2 py-0.5 rounded-full ${selectedDay === day
-                                                ? 'bg-cyan-200 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-200'
-                                                : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
+                                            ? 'bg-cyan-200 text-cyan-700 dark:bg-cyan-800 dark:text-cyan-200'
+                                            : 'bg-slate-200 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                                             }`}>
                                             {dayCount}
                                         </span>
@@ -288,7 +238,6 @@ export function Schedules() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Schedule Name</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Route</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Departure Time</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Frequency</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Effective Period</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Actions</th>
@@ -300,11 +249,8 @@ export function Schedules() {
                                     <td colSpan={7} className="px-6 py-12 text-center">
                                         <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
                                         <p className="text-gray-500">No schedules found for {selectedDay}</p>
-                                        <button 
-                                            onClick={() => {
-                                                setEditingSchedule(null);
-                                                setIsModalOpen(true);
-                                            }}
+                                        <button
+                                            onClick={() => navigate('/dashboard/schedules/create')}
                                             className="mt-3 text-sm text-cyan-600 hover:text-cyan-700 font-medium"
                                         >
                                             + Add Schedule for {selectedDay}
@@ -329,30 +275,20 @@ export function Schedules() {
                                         <td className="px-6 py-4">
                                             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{
                                                 // Handle `departureTime` if it's full datetime or just time string
-                                                schedule.departureTime.includes('T') ? 
-                                                    new Date(schedule.departureTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 
+                                                schedule.departureTime.includes('T') ?
+                                                    new Date(schedule.departureTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) :
                                                     schedule.departureTime
                                             }</span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            {schedule.frequencyMinutes ? (
-                                                <div className="flex items-center space-x-1">
-                                                    <RefreshCw className="w-3 h-3 text-slate-400" />
-                                                    <span className="text-sm text-slate-700 dark:text-slate-300">Every {schedule.frequencyMinutes} min</span>
-                                                </div>
-                                            ) : (
-                                                <span className="text-sm text-slate-400 dark:text-slate-500">One-time</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span 
+                                            <span
                                                 onClick={() => {
-                                                    updateScheduleMutation.mutate({ id: schedule.id, data: { isActive: !schedule.isActive } });
+                                                    toggleActiveScheduleMutation.mutate({ id: schedule.id, isActive: !schedule.isActive });
                                                 }}
                                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium cursor-pointer ${schedule.isActive
                                                     ? 'bg-green-100 text-green-700'
                                                     : 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
-                                                }`}>
+                                                    }`}>
                                                 {schedule.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
@@ -371,15 +307,12 @@ export function Schedules() {
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-2">
-                                                <button 
-                                                    onClick={() => {
-                                                        setEditingSchedule(schedule);
-                                                        setIsModalOpen(true);
-                                                    }}
+                                                <button
+                                                    onClick={() => navigate(`/dashboard/schedules/edit?id=${schedule.id}`)}
                                                     className="p-1 hover:bg-slate-100 dark:hover:bg-navy-700 rounded transition-colors" title="Edit">
                                                     <Edit2 className="w-4 h-4 text-slate-500" />
                                                 </button>
-                                                <button 
+                                                <button
                                                     onClick={() => handleDelete(schedule.id)}
                                                     className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors" title="Delete">
                                                     <Trash2 className="w-4 h-4 text-red-500" />
@@ -429,8 +362,8 @@ export function Schedules() {
                                     key={i + 1}
                                     onClick={() => setCurrentPage(i + 1)}
                                     className={`px-3 py-1 text-sm rounded transition-colors ${currentPage === i + 1
-                                            ? 'bg-emerald-500 text-white font-medium'
-                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                                        ? 'bg-emerald-500 text-white font-medium'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
                                         }`}
                                 >
                                     {i + 1}

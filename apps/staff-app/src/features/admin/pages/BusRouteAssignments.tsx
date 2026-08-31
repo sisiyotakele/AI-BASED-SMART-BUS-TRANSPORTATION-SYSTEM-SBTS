@@ -1,9 +1,9 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useState } from 'react';
-import { Search, Download, Plus, XCircle, Calendar, CheckCircle, AlertCircle, Loader2, Edit2 } from 'lucide-react';
-import { BusRouteAssignmentModal } from '@/features/admin/components/BusRouteAssignmentModal';
+import { Search, Download, Plus, XCircle, Calendar, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { busRouteAssignmentService, BusRouteAssignment } from '@/services/bus-route-assignment.service';
+import { BusRouteAssignmentModal } from '@/features/admin/components/BusRouteAssignmentModal';
 import toast from 'react-hot-toast';
 
 const calculateDuration = (start: string, end?: string | null) => {
@@ -44,6 +44,8 @@ export function BusRouteAssignments() {
         routeId: a.routeId,
         busPlate: a.bus?.plateNumber || 'Unknown',
         routeName: a.route?.routeName || 'Unknown',
+        scheduleName: (a as any).schedule?.scheduleName || '-',
+        departureTime: (a as any).schedule?.departureTime ? (a as any).schedule.departureTime.substring(11, 16) : '-',
         assignedDate: a.assignedDate,
         endDate: a.endDate,
         isActive: a.isActive,
@@ -85,7 +87,7 @@ export function BusRouteAssignments() {
             setIsModalOpen(false);
             setEditingAssignment(null);
         },
-        onError: () => toast.error('Failed to create assignment'),
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create assignment'),
     });
 
     const updateMutation = useMutation({
@@ -114,11 +116,6 @@ export function BusRouteAssignments() {
         } else {
             createMutation.mutate(assignmentData);
         }
-    };
-
-    const handleEdit = (assignment: any) => {
-        setEditingAssignment(assignment);
-        setIsModalOpen(true);
     };
 
     const handleDeactivate = async (assignmentId: string) => {
@@ -162,6 +159,7 @@ export function BusRouteAssignments() {
 
     return (
         <div className="space-y-4">
+            {/* Modal */}
             <BusRouteAssignmentModal
                 isOpen={isModalOpen}
                 onClose={() => {
@@ -176,9 +174,9 @@ export function BusRouteAssignments() {
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
 
-                    {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
+                    {/* Left: Title & Inline Compact Stats */}
                     <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Bus-Route Assignments</h2>
+                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Bus-Route Assignment</h2>
 
                         <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
                             <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
@@ -230,7 +228,7 @@ export function BusRouteAssignments() {
                             <option value="inactive">Inactive</option>
                         </select>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-navy-600 rounded hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
                         >
@@ -260,12 +258,12 @@ export function BusRouteAssignments() {
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Route</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Assigned Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">End Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Duration</th>
+                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Schedule</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200">
+                        <tbody className="divide-y divide-gray-200 dark:divide-navy-700">
                             {isLoading ? (
                                 <tr>
                                     <td colSpan={7} className="px-6 py-12 text-center">
@@ -312,14 +310,15 @@ export function BusRouteAssignments() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-sm text-slate-600 dark:text-slate-400">
-                                                {calculateDuration(assignment.assignedDate, assignment.endDate)}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{assignment.scheduleName}</span>
+                                                <span className="text-xs text-slate-500">{assignment.departureTime}</span>
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${assignment.isActive
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-gray-100 text-gray-700'
+                                                ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                                 }`}>
                                                 {assignment.isActive ? 'Active' : 'Inactive'}
                                             </span>
@@ -328,14 +327,8 @@ export function BusRouteAssignments() {
                                             {assignment.isActive && (
                                                 <div className="flex items-center space-x-2">
                                                     <button
-                                                        onClick={() => handleEdit(assignment)}
-                                                        className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
-                                                    >
-                                                        Edit
-                                                    </button>
-                                                    <button
                                                         onClick={() => handleDeactivate(assignment.id)}
-                                                        className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors"
+                                                        className="px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-100 transition-colors"
                                                     >
                                                         Deactivate
                                                     </button>
@@ -385,8 +378,8 @@ export function BusRouteAssignments() {
                                     key={i + 1}
                                     onClick={() => setCurrentPage(i + 1)}
                                     className={`px-3 py-1 text-sm rounded transition-colors ${currentPage === i + 1
-                                            ? 'bg-emerald-500 text-white font-medium'
-                                            : 'text-gray-600 hover:bg-gray-100'
+                                        ? 'bg-emerald-500 text-white font-medium'
+                                        : 'text-gray-600 hover:bg-gray-100'
                                         }`}
                                 >
                                     {i + 1}
@@ -404,6 +397,16 @@ export function BusRouteAssignments() {
                     </div>
                 )}
             </div>
+
+            <BusRouteAssignmentModal
+                isOpen={isModalOpen}
+                onClose={() => {
+                    setIsModalOpen(false);
+                    setEditingAssignment(null);
+                }}
+                onSubmit={handleCreateAssignment}
+                editData={editingAssignment}
+            />
         </div>
     );
 }

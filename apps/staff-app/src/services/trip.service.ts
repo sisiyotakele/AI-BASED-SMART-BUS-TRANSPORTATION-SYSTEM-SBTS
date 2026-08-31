@@ -15,11 +15,18 @@ class TripService {
         return response.data.data;
     }
 
-    async create(data: Partial<Trip>): Promise<Trip> {
+    async create(data: any): Promise<Trip> {
         const response = await api.post<ApiResponse<Trip>>('/trips', data);
         if (!response.data.data) {
             throw new Error('Failed to create trip');
         }
+        return response.data.data;
+    }
+
+    async previewSchedule(scheduleId: string, tripDate: string): Promise<any> {
+        const response = await api.get<ApiResponse<any>>('/trips/preview-schedule', {
+            params: { scheduleId, tripDate }
+        });
         return response.data.data;
     }
 
@@ -50,6 +57,11 @@ class TripService {
 
     async delete(id: string): Promise<void> {
         await api.delete<ApiResponse<void>>(`/trips/${id}`);
+    }
+
+    async generateDispatch(date: string): Promise<{ created: number, skipped: number, failed: number, errors: string[] }> {
+        const response = await api.post('/dispatch/generate', { date });
+        return response.data.data;
     }
 }
 

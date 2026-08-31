@@ -1,6 +1,7 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { config } from './config';
 import toast from 'react-hot-toast';
+import { authStorage, getActivePortal } from './auth-storage';
 
 export const api = axios.create({
     baseURL: config.apiBaseUrl,
@@ -12,7 +13,8 @@ export const api = axios.create({
 // Request interceptor - add auth token
 api.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('accessToken');
+        const scope = getActivePortal();
+        const token = authStorage.getAccessToken(scope);
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -26,18 +28,25 @@ api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError<{ message?: string; error?: string }>) => {
         const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+        const requestUrl = originalRequest?.url || '';
+        const isAuthEndpoint =
+            requestUrl.includes('/auth/login') ||
+            requestUrl.includes('/auth/refresh') ||
+            requestUrl.includes('/auth/refresh-token') ||
+            requestUrl.includes('/auth/logout');
 
         // Handle 401 - Token expired
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isAuthEndpoint) {
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
+                const scope = getActivePortal();
+                const refreshToken = authStorage.getRefreshToken(scope);
                 if (!refreshToken) {
                     throw new Error('No refresh token');
                 }
 
-                const { data } = await axios.post(`${config.apiBaseUrl}/auth/refresh-token`, {
+                const { data } = await axios.post(`${config.apiBaseUrl}/auth/refresh`, {
                     refreshToken,
                 });
 
@@ -49,9 +58,9 @@ api.interceptors.response.use(
                     throw new Error('No access token in refresh response');
                 }
 
-                localStorage.setItem('accessToken', newAccessToken);
+                authStorage.setAccessToken(newAccessToken, scope);
                 if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
+                    authStorage.setRefreshToken(newRefreshToken, scope);
                 }
 
                 if (originalRequest.headers) {
@@ -60,11 +69,9 @@ api.interceptors.response.use(
 
                 return api(originalRequest);
             } catch (refreshError) {
-                // Refresh failed - logout user
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('user');
-                window.location.href = '/login';
+                // Refresh failed - clear auth state to avoid repeated retry loops
+                authStorage.clearScope(getActivePortal());
+                console.error("Refresh failed, but suppressing redirect to avoid loop.", refreshError);
                 return Promise.reject(refreshError);
             }
         }

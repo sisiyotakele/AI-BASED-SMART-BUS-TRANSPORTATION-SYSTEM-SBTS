@@ -2,6 +2,7 @@ import { Server as SocketIOServer } from 'socket.io';
 import { logger } from '@/common/logger';
 import * as trackingService from './tracking.service';
 import { socketUtils, SocketEvent } from '@/common/socket';
+import { prisma } from '@/prisma/client';
 
 /**
  * Initialize tracking-specific Socket.IO handlers
@@ -85,4 +86,50 @@ export function initializeTrackingSocket(io: SocketIOServer) {
     });
 
     logger.info('✅ Tracking Socket.IO handlers initialized');
+
+    // ==========================================
+    // SIMULATE REAL-TIME GPS TRACKING
+    // ==========================================
+    // Randomizes and pushes GPS updates for active locations every 3 seconds
+    setInterval(async () => {
+        try {
+            const locations = await trackingService.getAllActiveBusLocations();
+            if (!locations || locations.length === 0) return;
+
+            for (const loc of locations) {
+                // Determine a slight random movement
+                const randomOffsetLat = (Math.random() - 0.5) * 0.0005; // tiny micro degree
+                const randomOffsetLng = (Math.random() - 0.5) * 0.0005;
+                const newLat = loc.latitude + randomOffsetLat;
+                const newLng = loc.longitude + randomOffsetLng;
+                const newSpeed = Math.floor(Math.random() * 45) + 5; // 5 to 50 km/h
+
+                await prisma.busLiveLocation.update({
+                    where: { id: loc.id },
+                    data: {
+                        latitude: newLat.toFixed(6),
+                        longitude: newLng.toFixed(6),
+                        speed: newSpeed,
+                        recordedAt: new Date(),
+                    }
+                });
+
+                const payload = {
+                    busId: loc.busId,
+                    tripId: loc.tripId,
+                    plateNumber: loc.bus?.plateNumber || '',
+                    latitude: newLat,
+                    longitude: newLng,
+                    speed: newSpeed,
+                    heading: 0,
+                    timestamp: new Date().toISOString(),
+                };
+
+                socketUtils.broadcastBusLocation(loc.busId, payload);
+                io.to('tracking:all').emit(SocketEvent.BUS_LOCATION_UPDATE, payload);
+            }
+        } catch (error) {
+            logger.error('Failed to simulate GPS ping', { error });
+        }
+    }, 3000);
 }

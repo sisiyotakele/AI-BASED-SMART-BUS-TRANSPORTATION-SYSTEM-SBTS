@@ -10,6 +10,7 @@ export async function createAssignment(data: any, _actorId?: string) {
   const assignment = await repository.createAssignment({
     busId: data.busId,
     routeId: data.routeId,
+    scheduleId: data.scheduleId,
     assignedDate: data.assignedDate,
     endDate: data.endDate,
     isActive: true,
@@ -18,9 +19,10 @@ export async function createAssignment(data: any, _actorId?: string) {
   return assignment;
 }
 
-export async function listAssignments(filters: { busId?: string } = {}) {
+export async function listAssignments(filters: { busId?: string; scheduleId?: string } = {}) {
   const where: any = { deletedAt: null };
   if (filters.busId) where.busId = filters.busId;
+  if (filters.scheduleId) where.scheduleId = filters.scheduleId;
   return repository.findAssignments(where);
 }
 
@@ -52,4 +54,8 @@ export async function deleteAssignment(id: string, _actorId?: string) {
   const assignment = await repository.softDeleteAssignment(id);
   logger.info('Bus-route assignment soft-deleted', { assignmentId: id });
   return assignment;
+}
+
+export async function checkScheduleAvailability(scheduleId: string) {
+  return repository.checkScheduleAvailability(scheduleId);
 }

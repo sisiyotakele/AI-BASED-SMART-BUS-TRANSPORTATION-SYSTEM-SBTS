@@ -1,50 +1,34 @@
 import { create } from 'zustand';
 import { User } from '@/types';
+import { authStorage, getActivePortal, PortalScope } from '@/lib/auth-storage';
 
 interface AuthState {
     user: User | null;
     accessToken: string | null;
     refreshToken: string | null;
     isAuthenticated: boolean;
-    setAuth: (user: User, accessToken: string, refreshToken: string) => void;
-    clearAuth: () => void;
+    setAuth: (user: User, accessToken: string, refreshToken: string, scope?: PortalScope) => void;
+    clearAuth: (scope?: PortalScope) => void;
     updateUser: (user: Partial<User>) => void;
 }
 
-// Helper function to safely parse localStorage
-const getStoredUser = (): User | null => {
-    try {
-        const stored = localStorage.getItem('user');
-        if (!stored || stored === 'undefined' || stored === 'null') return null;
-        return JSON.parse(stored);
-    } catch {
-        return null;
-    }
-};
-
-const getStoredToken = (key: string): string | null => {
-    const stored = localStorage.getItem(key);
-    if (!stored || stored === 'undefined' || stored === 'null') return null;
-    return stored;
-};
+const initialScope = getActivePortal();
 
 export const useAuthStore = create<AuthState>((set) => ({
-    user: getStoredUser(),
-    accessToken: getStoredToken('accessToken'),
-    refreshToken: getStoredToken('refreshToken'),
-    isAuthenticated: !!getStoredToken('accessToken'),
+    user: authStorage.getUser(initialScope),
+    accessToken: authStorage.getAccessToken(initialScope),
+    refreshToken: authStorage.getRefreshToken(initialScope),
+    isAuthenticated: !!authStorage.getAccessToken(initialScope),
 
-    setAuth: (user, accessToken, refreshToken) => {
-        localStorage.setItem('user', JSON.stringify(user));
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+    setAuth: (user, accessToken, refreshToken, scope = getActivePortal()) => {
+        authStorage.setUser(user, scope);
+        authStorage.setAccessToken(accessToken, scope);
+        authStorage.setRefreshToken(refreshToken, scope);
         set({ user, accessToken, refreshToken, isAuthenticated: true });
     },
 
-    clearAuth: () => {
-        localStorage.removeItem('user');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+    clearAuth: (scope = getActivePortal()) => {
+        authStorage.clearScope(scope);
         set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
     },
 
@@ -52,7 +36,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set((state) => {
             if (!state.user) return state;
             const updatedUser = { ...state.user, ...updates };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
+            authStorage.setUser(updatedUser, getActivePortal());
             return { user: updatedUser };
         });
     },

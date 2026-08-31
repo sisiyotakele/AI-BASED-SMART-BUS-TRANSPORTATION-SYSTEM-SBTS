@@ -53,3 +53,16 @@ export async function updateHandover(id: string, data: any) {
         data,
     });
 }
+
+export async function finishShiftAndAssignment(shiftId: string) {
+    return prisma.$transaction([
+        prisma.shift.update({
+            where: { id: shiftId },
+            data: { isActive: false }
+        }),
+        prisma.busDriverAssignment.updateMany({
+            where: { shiftId, status: 'active' },
+            data: { status: 'inactive' }
+        })
+    ]);
+}

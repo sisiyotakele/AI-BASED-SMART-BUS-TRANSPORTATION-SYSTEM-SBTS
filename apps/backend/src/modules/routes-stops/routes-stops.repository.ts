@@ -18,8 +18,20 @@ export async function findRoutes(where: any) {
     return prisma.route.findMany({
         where,
         include: {
-            startStop: { select: { id: true, stopName: true, terminalId: true } },
-            endStop: { select: { id: true, stopName: true, terminalId: true } },
+            startTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true
+                }
+            },
+            endTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true
+                }
+            },
             versions: {
                 where: { deletedAt: null },
                 take: 1,
@@ -30,6 +42,10 @@ export async function findRoutes(where: any) {
                         include: { stop: true }
                     }
                 }
+            },
+            busRouteAssignments: {
+                where: { isActive: true, deletedAt: null },
+                include: { bus: true }
             }
         },
         orderBy: { routeName: 'asc' },
@@ -40,8 +56,24 @@ export async function findRouteById(id: string) {
     return prisma.route.findFirst({
         where: { id, deletedAt: null },
         include: {
-            startStop: { select: { id: true, stopName: true, terminalId: true, latitude: true, longitude: true } },
-            endStop: { select: { id: true, stopName: true, terminalId: true, latitude: true, longitude: true } },
+            startTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true,
+                    latitude: true,
+                    longitude: true
+                }
+            },
+            endTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true,
+                    latitude: true,
+                    longitude: true
+                }
+            },
             versions: {
                 where: { deletedAt: null },
                 orderBy: { versionNumber: 'desc' },
@@ -78,12 +110,20 @@ export async function softDeleteRoute(id: string) {
 export async function findRouteVersions(routeId: string) {
     return prisma.routeVersion.findMany({
         where: { routeId, deletedAt: null },
-        orderBy: { versionNumber: 'desc' },
+        orderBy: [
+            { direction: 'asc' },      // forward first, then backward
+            { isPrimary: 'desc' },     // primary routes first
+            { versionNumber: 'asc' }   // then by route number
+        ],
         include: {
             routeStops: {
                 where: { deletedAt: null },
                 orderBy: { sequenceNumber: 'asc' },
                 include: { stop: { select: { id: true, stopName: true, stopCode: true } } },
+            },
+            schedules: {
+                where: { deletedAt: null, isActive: true },
+                orderBy: { departureTime: 'asc' },
             },
         },
     });
@@ -160,6 +200,16 @@ export async function findStopsInBox(
             latitude: { gte: latMin, lte: latMax },
             longitude: { gte: lngMin, lte: lngMax },
         },
+    });
+}
+
+// ============================================================
+// TERMINAL QUERIES
+// ============================================================
+
+export async function findTerminalById(id: string) {
+    return prisma.terminal.findFirst({
+        where: { id, deletedAt: null }
     });
 }
 

@@ -1,6 +1,11 @@
 import api from '@/lib/api';
 import { Route, ApiResponse } from '@/types';
 
+interface RouteVariantsResponse {
+    forward: any[];
+    backward: any[];
+}
+
 export const routeService = {
     getAll: async (search?: string): Promise<Route[]> => {
         const { data } = await api.get<ApiResponse<Route[]>>('/routes-stops/routes', {
@@ -28,13 +33,17 @@ export const routeService = {
         await api.delete(`/routes-stops/routes/${id}`);
     },
 
-    getVersions: async (id: string): Promise<any[]> => {
+    getVersions: async (id: string): Promise<RouteVariantsResponse> => {
         const { data } = await api.get(`/routes-stops/routes/${id}/versions`);
-        return data.data || [];
+        return data.data || { forward: [], backward: [] };
     },
 
-    createVersion: async (id: string, payload?: any): Promise<any> => {
-        const { data } = await api.post(`/routes-stops/routes/${id}/versions`, payload || {});
+    createVersion: async (id: string, payload: {
+        direction: 'forward' | 'backward',
+        routeName?: string,
+        routeStops?: any[]
+    }): Promise<any> => {
+        const { data } = await api.post(`/routes-stops/routes/${id}/versions`, payload);
         return data.data!;
     },
 
@@ -46,5 +55,17 @@ export const routeService = {
     overwriteVersionStops: async (versionId: string, payload: { routeStops: any[] }): Promise<any> => {
         const { data } = await api.put(`/routes-stops/route-versions/${versionId}/stops`, payload);
         return data.data!;
+    },
+
+    deleteVersion: async (versionId: string): Promise<void> => {
+        await api.delete(`/routes-stops/route-versions/${versionId}`);
+    },
+
+    activateVersion: async (versionId: string): Promise<void> => {
+        await api.patch(`/routes-stops/route-versions/${versionId}/activate`);
+    },
+
+    deactivateVersion: async (versionId: string): Promise<void> => {
+        await api.patch(`/routes-stops/route-versions/${versionId}/deactivate`);
     }
 };

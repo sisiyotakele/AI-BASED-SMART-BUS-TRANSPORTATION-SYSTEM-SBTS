@@ -1,5 +1,6 @@
 import api from '@/lib/api';
 import { AuthResponse, ApiResponse } from '@/types';
+import { authStorage, getActivePortal } from '@/lib/auth-storage';
 
 export const authService = {
     login: async (email: string, password: string): Promise<AuthResponse> => {
@@ -8,7 +9,7 @@ export const authService = {
     },
 
     logout: async (): Promise<void> => {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = authStorage.getRefreshToken(getActivePortal());
         await api.post('/auth/logout', { refreshToken });
     },
 
@@ -19,6 +20,29 @@ export const authService = {
 
     getMe: async (): Promise<AuthResponse['user']> => {
         const { data } = await api.get<ApiResponse<AuthResponse['user']>>('/auth/me');
+        return data.data!;
+    },
+
+    changePassword: async (currentPassword: string, newPassword: string): Promise<{ message: string }> => {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/change-password', {
+            currentPassword,
+            newPassword,
+        });
+        return data.data!;
+    },
+
+    forgotPassword: async (email: string): Promise<{ message: string }> => {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/forgot-password', {
+            email,
+        });
+        return data.data!;
+    },
+
+    resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
+        const { data } = await api.post<ApiResponse<{ message: string }>>('/auth/reset-password', {
+            token,
+            newPassword,
+        });
         return data.data!;
     },
 };

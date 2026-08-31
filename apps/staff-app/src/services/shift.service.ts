@@ -28,5 +28,6 @@ export const shiftService = {
 
     delete: async (id: string): Promise<void> => {
         await api.delete(`/shifts/${id}`);
-    }
+    },
+
 };

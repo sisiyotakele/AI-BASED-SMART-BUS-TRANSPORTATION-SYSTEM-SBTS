@@ -15,7 +15,8 @@ describe('Trip Management Flow Integration', () => {
     const driver = await createUser({ licenseNumber: 'LIC001', licenseExpiry: new Date(Date.now() + 86400000) });
     const startStop = await createStop();
     const endStop = await createStop();
-    const route = await createRoute({ startStopId: startStop.id, endStopId: endStop.id });
+    const route = await createRoute({ startTerminalId: terminal.id, endTerminalId: terminal.id });
+
     const version = await createRouteVersion({ routeId: route.id, isActive: true });
     const schedule = await createSchedule({ routeId: route.id, versionId: version.id });
     return { bus, driver, version, schedule };

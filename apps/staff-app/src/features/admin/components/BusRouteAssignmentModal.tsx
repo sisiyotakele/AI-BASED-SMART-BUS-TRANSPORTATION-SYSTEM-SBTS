@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { X, Bus, AlertTriangle, CheckCircle, MapPin, Route as RouteIcon, Info, ChevronRight, Layers } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { busService } from '@/services/bus.service';
 import { routeService } from '@/services/route.service';
+import { busRouteAssignmentService } from '@/services/bus-route-assignment.service';
 
 interface BusRouteAssignmentModalProps {
     isOpen: boolean;
@@ -11,29 +11,78 @@ interface BusRouteAssignmentModalProps {
     editData?: any;
 }
 
-interface AssignmentFormData {
+export interface AssignmentFormData {
     busId: string;
     routeId: string;
+    scheduleId: string;
     versionId: string;
     assignedDate: string;
     endDate?: string;
 }
 
 export function BusRouteAssignmentModal({ isOpen, onClose, onSubmit, editData }: BusRouteAssignmentModalProps) {
-    const [formData, setFormData] = useState<AssignmentFormData>({
+    const [formData, setFormData] = useState<AssignmentFormData & { direction: string }>({
         busId: '',
         routeId: '',
+        direction: 'forward',
         versionId: '',
+        scheduleId: '',
         assignedDate: new Date().toISOString().split('T')[0],
         endDate: '',
     });
+    const [errors, setErrors] = useState<Record<string, string>>({});
+
+    // Fetch routes
+    const { data: routes = [], isLoading: routesLoading } = useQuery({
+        queryKey: ['routes-for-route-assign'],
+        queryFn: () => routeService.getAll(),
+        enabled: isOpen,
+    });
+
+    // Fetch versions for selected route
+    const { data: versionsData, isLoading: versionsLoading } = useQuery({
+        queryKey: ['route-versions-assign', formData.routeId],
+        queryFn: () => routeService.getVersions(formData.routeId),
+        enabled: isOpen && !!formData.routeId,
+    });
+
+    // Fetch schedule availability (isAssigned + availableBuses)
+    const { data: scheduleAvailability, isLoading: availabilityLoading } = useQuery({
+        queryKey: ['schedule-availability', formData.scheduleId],
+        queryFn: () => busRouteAssignmentService.checkScheduleAvailability(formData.scheduleId),
+        enabled: isOpen && !!formData.scheduleId,
+    });
+
+    const allVersions: any[] = useMemo(() => {
+        if (!versionsData) return [];
+        return [
+            ...(versionsData.forward || []).map((v: any) => ({ ...v, direction: 'forward' })),
+            ...(versionsData.backward || []).map((v: any) => ({ ...v, direction: 'backward' }))
+        ];
+    }, [versionsData]);
+
+    const directionalVersions = useMemo(() => {
+        return allVersions.filter(v => v.direction === formData.direction);
+    }, [allVersions, formData.direction]);
+
+    const selectedVersion = useMemo(() => {
+        return allVersions.find(v => v.id === formData.versionId);
+    }, [allVersions, formData.versionId]);
+
+    const schedules: any[] = selectedVersion?.schedules || [];
+
+    const availableBuses: any[] = scheduleAvailability?.availableBuses || [];
+    const scheduleIsBlocked = scheduleAvailability?.isAssigned ?? false;
+    const blockingBus = scheduleAvailability?.assignedBus || null;
 
     useEffect(() => {
         if (editData) {
             setFormData({
                 busId: editData.busId || '',
                 routeId: editData.routeId || '',
+                direction: 'forward',
                 versionId: editData.versionId || '',
+                scheduleId: editData.scheduleId || '',
                 assignedDate: editData.assignedDate ? new Date(editData.assignedDate).toISOString().split('T')[0] : '',
                 endDate: editData.endDate ? new Date(editData.endDate).toISOString().split('T')[0] : '',
             });
@@ -41,253 +90,374 @@ export function BusRouteAssignmentModal({ isOpen, onClose, onSubmit, editData }:
             setFormData({
                 busId: '',
                 routeId: '',
+                direction: 'forward',
                 versionId: '',
+                scheduleId: '',
                 assignedDate: new Date().toISOString().split('T')[0],
-                endDate: '',
+                endDate: ''
             });
         }
         setErrors({});
     }, [editData, isOpen]);
 
-    const { data: buses = [], isLoading: busesLoading } = useQuery({
-        queryKey: ['buses-simple'],
-        queryFn: () => busService.getAll(),
-        enabled: isOpen,
-    });
-
-    const { data: routesData = [], isLoading: routesLoading } = useQuery({
-        queryKey: ['routes-simple'],
-        queryFn: () => routeService.getAll(),
-        enabled: isOpen,
-    });
-
-    const [errors, setErrors] = useState<Record<string, string>>({});
-
-    const validateForm = (): boolean => {
-        const newErrors: Record<string, string> = {};
-
-        if (!formData.busId) {
-            newErrors.busId = 'Bus is required';
-        }
-
-        if (!formData.routeId) {
-            newErrors.routeId = 'Route is required';
-        }
-
-        if (!formData.assignedDate) {
-            newErrors.assignedDate = 'Assigned date is required';
-        }
-
-        // Validate end date is after assigned date
-        if (formData.endDate && formData.assignedDate) {
-            const start = new Date(formData.assignedDate);
-            const end = new Date(formData.endDate);
-            if (end <= start) {
-                newErrors.endDate = 'End date must be after assigned date';
+    const handleChange = (field: string, value: any) => {
+        setFormData((prev: any) => {
+            const next = { ...prev, [field]: value };
+            if (field === 'routeId' || field === 'direction') {
+                next.versionId = '';
+                next.scheduleId = '';
+                next.busId = '';
+            } else if (field === 'versionId') {
+                next.scheduleId = '';
+                next.busId = '';
+            } else if (field === 'scheduleId') {
+                next.busId = '';
             }
-        }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-
-        if (!validateForm()) {
-            return;
-        }
-
-        // Use first route version if available, else pass empty string
-        const routeObj = (routesData as any[]).find((r: any) => r.id === formData.routeId);
-        const versionId = routeObj?.versions?.[0]?.id || formData.versionId || '';
-
-        const submitData: AssignmentFormData = {
-            ...formData,
-            versionId,
-            endDate: formData.endDate || undefined,
-        };
-
-        onSubmit(submitData);
-
-        // Reset form
-        setFormData({
-            busId: '',
-            routeId: '',
-            versionId: '',
-            assignedDate: new Date().toISOString().split('T')[0],
-            endDate: '',
+            return next;
         });
-        setErrors({});
-    };
 
-    const handleChange = (field: keyof AssignmentFormData, value: any) => {
-        setFormData((prev) => ({ ...prev, [field]: value }));
-        // Clear error for this field when user starts typing
         if (errors[field]) {
-            setErrors((prev) => {
-                const newErrors = { ...prev };
-                delete newErrors[field];
-                return newErrors;
+            setErrors(prev => {
+                const n = { ...prev };
+                delete n[field];
+                return n;
             });
         }
     };
 
-    const selectedBus = buses.find((b: any) => b.id === formData.busId);
-    const compatibleRoutes = (routesData as any[]).filter(r => {
-        if (!selectedBus?.terminalId) return false;
-        const startTerminal = r.startStop?.terminalId;
-        const endTerminal = r.endStop?.terminalId;
-        return startTerminal === selectedBus.terminalId || endTerminal === selectedBus.terminalId;
-    });
-    
-    // Sort array by name for cleaner display
-    const sortByName = (a: any, b: any) => (a.routeName || a.name || '').localeCompare(b.routeName || b.name || '');
-    const compatibleSorted = [...compatibleRoutes].sort(sortByName);
-    
-    const otherRoutes = (routesData as any[]).filter(r => !compatibleRoutes.find(cr => cr.id === r.id)).sort(sortByName);
+    const validate = (): boolean => {
+        const e: Record<string, string> = {};
+        if (!formData.routeId) e.routeId = 'Please select a route';
+        if (!formData.versionId) e.versionId = 'Please select a route version';
+        if (!formData.scheduleId) e.scheduleId = 'Please select a schedule';
+        if (!formData.busId) e.busId = 'Please select an available bus';
+        if (!formData.assignedDate) e.assignedDate = 'Effective From date is required';
+        if (formData.endDate && formData.assignedDate && new Date(formData.endDate) <= new Date(formData.assignedDate)) {
+            e.endDate = 'End date must be after start date';
+        }
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validate()) return;
+        if (scheduleIsBlocked) return;
+
+        onSubmit({
+            ...formData,
+            endDate: formData.endDate || undefined
+        });
+    };
 
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-navy-900 rounded-lg shadow-xl w-full max-w-2xl max-h-[95vh] overflow-y-auto">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-navy-700">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                        {editData ? 'Edit Assignment' : 'New Bus-Route Assignment'}
-                    </h2>
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col border border-slate-200 dark:border-navy-700 overflow-hidden">
+
+                {/* Styled Header */}
+                <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#2B4B9E] to-[#1E3678] text-white shrink-0 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner shrink-0">
+                            <Bus className="w-5 h-5 text-cyan-300" />
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold tracking-wide">
+                                {editData ? 'Edit Bus-Route Assignment' : 'Assign Bus to Route'}
+                            </h2>
+                            <p className="text-xs text-cyan-100/80">Configure route version, schedule, and assign available vehicle</p>
+                        </div>
+                    </div>
                     <button
                         onClick={onClose}
-                        className="p-1 hover:bg-gray-100 dark:hover:bg-navy-800 rounded transition-colors"
+                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
                     >
-                        <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                        <X className="w-5 h-5" />
                     </button>
                 </div>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} className="p-4 space-y-2">
-                    <div className="grid grid-cols-2 gap-3">
-                        {/* Bus */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Bus <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={formData.busId}
-                                onChange={(e) => handleChange('busId', e.target.value)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-900 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border ${errors.busId ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-navy-600'}`}
-                                disabled={busesLoading}
-                            >
-                                <option value="">{busesLoading ? 'Loading buses...' : 'Select a bus'}</option>
-                                {buses.map((bus: any) => (
-                                    <option key={bus.id} value={bus.id}>
-                                        {bus.plateNumber}
-                                    </option>
-                                ))}
-                            </select>
-                            {errors.busId && (
-                                <p className="mt-1 text-sm text-red-500">{errors.busId}</p>
-                            )}
-                        </div>
+                {/* Form Body */}
+                <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto flex-1">
 
-                        {/* Route */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Route <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                value={formData.routeId}
-                                onChange={(e) => handleChange('routeId', e.target.value)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-900 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border ${errors.routeId ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-navy-600'}`}
-                                disabled={routesLoading || !formData.busId}
-                            >
-                                <option value="">
-                                    {!formData.busId ? 'Select a bus first...' : (routesLoading ? 'Loading routes...' : 'Select a route')}
+                    {/* 1. Select Route */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
+                            1. Select Route <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.routeId}
+                            onChange={e => handleChange('routeId', e.target.value)}
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.routeId ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            disabled={routesLoading}
+                        >
+                            <option value="">{routesLoading ? 'Loading routes...' : '— Select Route —'}</option>
+                            {(routes as any[]).map((r: any) => (
+                                <option key={r.id} value={r.id}>
+                                    {r.routeName} {r.routeCode ? `(${r.routeCode})` : ''}
                                 </option>
-                                
-                                {formData.busId && compatibleSorted.length > 0 && (
-                                    <optgroup label="Compatible Routes (Matches Bus Terminal)">
-                                        {compatibleSorted.map((route: any) => (
-                                            <option key={route.id} value={route.id}>
-                                                {route.routeName || route.name}
-                                            </option>
-                                        ))}
-                                    </optgroup>
-                                )}
-                                
-                                <optgroup label={formData.busId && compatibleSorted.length > 0 ? "Other Routes (Cross-Terminal Warning)" : "All Routes"}>
-                                    {otherRoutes.map((route: any) => (
-                                        <option key={route.id} value={route.id}>
-                                            {route.routeName || route.name}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                            </select>
-                            {errors.routeId && (
-                                <p className="mt-1 text-sm text-red-500">{errors.routeId}</p>
+                            ))}
+                        </select>
+                        {errors.routeId && <p className="mt-1 text-xs text-red-500">{errors.routeId}</p>}
+                    </div>
+
+                    {/* 2. Direction Switcher */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
+                            2. Direction <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                disabled={!formData.routeId}
+                                onClick={() => handleChange('direction', 'forward')}
+                                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                                    formData.direction === 'forward'
+                                        ? 'border-cyan-500 bg-cyan-500 text-white shadow-md'
+                                        : 'border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300 bg-slate-50 dark:bg-navy-800/60'
+                                }`}
+                            >
+                                <span>Forward ↗</span>
+                            </button>
+                            <button
+                                type="button"
+                                disabled={!formData.routeId}
+                                onClick={() => handleChange('direction', 'backward')}
+                                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border text-sm font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                                    formData.direction === 'backward'
+                                        ? 'border-cyan-500 bg-cyan-500 text-white shadow-md'
+                                        : 'border-slate-200 dark:border-navy-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300 bg-slate-50 dark:bg-navy-800/60'
+                                }`}
+                            >
+                                <span>Backward ↙</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* 3. Interactive Route Version Selection */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                                3. Route Version <span className="text-red-500">*</span>
+                            </label>
+                            {directionalVersions.length > 0 && (
+                                <span className="text-xs text-slate-400 font-medium">
+                                    {directionalVersions.length} {formData.direction} version(s) found
+                                </span>
                             )}
                         </div>
 
-                        {/* Assigned Date */}
+                        {!formData.routeId ? (
+                            <div className="p-4 rounded-xl border border-dashed border-slate-200 dark:border-navy-700 bg-slate-50/50 dark:bg-navy-800/40 text-center">
+                                <RouteIcon className="w-6 h-6 text-slate-400 mx-auto mb-1 opacity-60" />
+                                <p className="text-xs text-slate-500">Select a route first to load versions.</p>
+                            </div>
+                        ) : versionsLoading ? (
+                            <div className="p-4 rounded-xl border border-slate-200 dark:border-navy-700 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
+                                <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                Loading versions...
+                            </div>
+                        ) : directionalVersions.length === 0 ? (
+                            /* Empty State when version doesn't exist */
+                            <div className="p-5 rounded-2xl border border-amber-200 dark:border-amber-900/40 bg-amber-50/60 dark:bg-amber-900/10 text-amber-800 dark:text-amber-300 flex items-start gap-3">
+                                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 shrink-0 mt-0.5">
+                                    <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-200">
+                                        No {formData.direction.toUpperCase()} Version Available
+                                    </h4>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300/80 mt-1">
+                                        This route does not have an active <strong>{formData.direction}</strong> version configured yet.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleChange('direction', formData.direction === 'forward' ? 'backward' : 'forward')}
+                                        className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold transition-colors shadow-sm"
+                                    >
+                                        Switch to {formData.direction === 'forward' ? 'Backward ↙' : 'Forward ↗'} direction
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            /* Visual Version Cards */
+                            <div className="space-y-2.5">
+                                {directionalVersions.map((v: any) => {
+                                    const rs = v.routeStops || [];
+                                    const firstStop = rs[0]?.stop?.stopName;
+                                    const lastStop = rs[rs.length - 1]?.stop?.stopName;
+                                    const pathText = firstStop && lastStop ? `${firstStop} → ${lastStop}` : null;
+                                    const isSelected = formData.versionId === v.id;
+
+                                    return (
+                                        <div
+                                            key={v.id}
+                                            onClick={() => handleChange('versionId', v.id)}
+                                            className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
+                                                isSelected
+                                                    ? 'border-cyan-500 bg-cyan-50/80 dark:bg-cyan-950/40 shadow-sm ring-1 ring-cyan-500'
+                                                    : 'border-slate-200 dark:border-navy-700 bg-white dark:bg-navy-800/80 hover:border-cyan-300'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                                                    isSelected ? 'border-cyan-500 bg-cyan-500 text-white' : 'border-slate-300 dark:border-navy-600'
+                                                }`}>
+                                                    {isSelected && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
+                                                </div>
+                                                <div className="truncate">
+                                                    <p className="font-bold text-xs text-slate-900 dark:text-white truncate">
+                                                        {v.routeName || `Version ${v.routeNumber}`}
+                                                    </p>
+                                                    {pathText && (
+                                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate flex items-center gap-1">
+                                                            <MapPin className="w-3 h-3 text-cyan-500 inline shrink-0" />
+                                                            {pathText}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-navy-700 text-slate-600 dark:text-slate-300">
+                                                    {rs.length} stops
+                                                </span>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 uppercase">
+                                                    V{v.routeNumber || v.versionNumber || '1'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                        {errors.versionId && <p className="mt-1 text-xs text-red-500">{errors.versionId}</p>}
+                    </div>
+
+                    {/* 4. Schedule Dropdown */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
+                            4. Schedule <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.scheduleId}
+                            onChange={e => handleChange('scheduleId', e.target.value)}
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.scheduleId ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            disabled={!formData.versionId}
+                        >
+                            <option value="">
+                                {!formData.versionId
+                                    ? 'Select a version first'
+                                    : schedules.length === 0
+                                    ? 'No active schedules for this version'
+                                    : '— Select Schedule —'}
+                            </option>
+                            {schedules.map((s: any) => (
+                                <option key={s.id} value={s.id}>
+                                    {s.departureTime?.substring(11, 16)} — {s.dayOfWeek?.charAt(0).toUpperCase() + s.dayOfWeek?.slice(1)} ({s.scheduleName})
+                                </option>
+                            ))}
+                        </select>
+                        {errors.scheduleId && <p className="mt-1 text-xs text-red-500">{errors.scheduleId}</p>}
+                    </div>
+
+                    {/* Schedule Availability Check */}
+                    {formData.scheduleId && (
+                        availabilityLoading ? (
+                            <div className="text-xs text-slate-400 py-1 flex items-center gap-2">
+                                <div className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                                Checking schedule availability...
+                            </div>
+                        ) : scheduleIsBlocked && blockingBus ? (
+                            <div className="bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-xl p-4 flex items-start gap-3">
+                                <AlertTriangle className="w-5 h-5 text-red-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-xs font-bold text-red-700 dark:text-red-400">Schedule Already Occupied</p>
+                                    <p className="text-xs text-red-600 dark:text-red-300 mt-0.5">
+                                        Bus <strong>{blockingBus.plateNumber}</strong> is already assigned to this schedule.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400">
+                                <CheckCircle className="w-4 h-4 shrink-0" />
+                                <span>Schedule is available — {availableBuses.length} bus(es) eligible for assignment.</span>
+                            </div>
+                        )
+                    )}
+
+                    {/* 5. Select Bus */}
+                    <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-2">
+                            5. Select Bus <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                            value={formData.busId}
+                            onChange={e => handleChange('busId', e.target.value)}
+                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.busId ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            disabled={!formData.scheduleId || scheduleIsBlocked || availabilityLoading || availableBuses.length === 0}
+                        >
+                            <option value="">
+                                {!formData.scheduleId
+                                    ? 'Select a schedule first'
+                                    : scheduleIsBlocked
+                                    ? 'Schedule unavailable'
+                                    : availableBuses.length === 0
+                                    ? 'No operational buses available'
+                                    : '— Select Available Bus —'}
+                            </option>
+                            {availableBuses.map((b: any) => (
+                                <option key={b.id} value={b.id}>
+                                    {b.plateNumber} — {b.model || 'Bus'} (Capacity: {b.capacity})
+                                </option>
+                            ))}
+                        </select>
+                        {errors.busId && <p className="mt-1 text-xs text-red-500">{errors.busId}</p>}
+                    </div>
+
+                    {/* 6. Effective Dates */}
+                    <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Assigned Date <span className="text-red-500">*</span>
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                                Effective From <span className="text-red-500">*</span>
                             </label>
                             <input
                                 type="date"
                                 value={formData.assignedDate}
-                                onChange={(e) => handleChange('assignedDate', e.target.value)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-900 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border ${errors.assignedDate ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-navy-600'}`}
+                                onChange={e => handleChange('assignedDate', e.target.value)}
+                                className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.assignedDate ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
                             />
-                            {errors.assignedDate && (
-                                <p className="mt-1 text-sm text-red-500">{errors.assignedDate}</p>
-                            )}
+                            {errors.assignedDate && <p className="mt-1 text-xs text-red-500">{errors.assignedDate}</p>}
                         </div>
-
-                        {/* End Date */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                End Date (Optional)
+                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">
+                                Effective To <span className="text-slate-400 font-normal lowercase">(optional)</span>
                             </label>
                             <input
                                 type="date"
                                 value={formData.endDate}
-                                onChange={(e) => handleChange('endDate', e.target.value)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-900 text-gray-900 dark:text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border ${errors.endDate ? 'border-red-500 dark:border-red-500' : 'border-gray-300 dark:border-navy-600'}`}
+                                onChange={e => handleChange('endDate', e.target.value)}
+                                className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.endDate ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
                             />
-                            {errors.endDate && (
-                                <p className="mt-1 text-sm text-red-500">{errors.endDate}</p>
-                            )}
-                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                Leave empty for ongoing assignment
-                            </p>
+                            {errors.endDate && <p className="mt-1 text-xs text-red-500">{errors.endDate}</p>}
                         </div>
                     </div>
 
-                    {/* Info Box */}
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-900/50 rounded-lg p-4">
-                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                            <strong>Note:</strong> This will assign the selected bus to the selected route.
-                            The assignment will be active from the assigned date. If an end date is specified,
-                            the assignment will automatically become inactive after that date.
-                        </p>
-                    </div>
-
                     {/* Actions */}
-                    <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-navy-700 mt-6">
+                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-navy-700">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-navy-800 border border-gray-300 dark:border-navy-600 rounded-lg hover:bg-gray-50 dark:hover:bg-navy-700 transition-colors"
+                            className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 rounded-xl hover:bg-slate-50 transition-colors"
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-emerald-500 rounded-lg hover:bg-emerald-600 transition-colors"
+                            disabled={scheduleIsBlocked}
+                            className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
                         >
-                            {editData ? 'Update Assignment' : 'Create Assignment'}
+                            {editData ? 'Update Assignment' : 'Assign Bus'}
                         </button>
                     </div>
                 </form>

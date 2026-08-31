@@ -47,7 +47,9 @@ export const createStop = asyncHandler(async (req: AuthenticatedRequest, res: Re
 });
 
 export const listStops = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.listStops(req.query.search as string);
+  const search = req.query.search as string;
+  const terminalId = req.query.terminalId as string;
+  const result = await service.listStops(search, terminalId);
   successResponse(res, result, 'Stops retrieved');
 });
 
@@ -86,3 +88,17 @@ export const overwriteVersionStops = asyncHandler(async (req: AuthenticatedReque
   successResponse(res, result, 'Route stops overwritten', 200);
 });
 
+export const deleteRouteVersion = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  await service.deleteRouteVersion(req.params.versionId, req.user?.userId);
+  successResponse(res, null, 'Route version deleted');
+});
+
+export const activateRouteVersion = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  await service.toggleRouteVersionStatus(req.params.versionId, true, req.user?.userId);
+  successResponse(res, null, 'Route version activated');
+});
+
+export const deactivateRouteVersion = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  await service.toggleRouteVersionStatus(req.params.versionId, false, req.user?.userId);
+  successResponse(res, null, 'Route version deactivated');
+});

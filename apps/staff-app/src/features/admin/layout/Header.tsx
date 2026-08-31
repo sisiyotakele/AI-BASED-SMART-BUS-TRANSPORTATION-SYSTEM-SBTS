@@ -91,7 +91,9 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
     const { theme, toggleTheme } = useTheme();
     const [currentTime, setCurrentTime] = useState(new Date());
     const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [isNotificationMenuOpen, setIsNotificationMenuOpen] = useState(false);
     const profileMenuRef = useRef<HTMLDivElement>(null);
+    const notificationMenuRef = useRef<HTMLDivElement>(null);
 
     const queryClient = useQueryClient();
 
@@ -128,16 +130,19 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
             if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
                 setIsProfileMenuOpen(false);
             }
+            if (notificationMenuRef.current && !notificationMenuRef.current.contains(event.target as Node)) {
+                setIsNotificationMenuOpen(false);
+            }
         };
 
-        if (isProfileMenuOpen) {
+        if (isProfileMenuOpen || isNotificationMenuOpen) {
             document.addEventListener('mousedown', handleClickOutside);
         }
 
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [isProfileMenuOpen]);
+    }, [isProfileMenuOpen, isNotificationMenuOpen]);
 
     const handleLogout = async () => {
         try {
@@ -216,23 +221,64 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
                     </div>
 
                     {/* Notification Badge */}
-                    <button
-                        onClick={() => navigate('/dashboard/notifications')}
-                        className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
-                        title="View Notifications"
-                    >
-                        <Bell className="w-5 h-5" />
-                        {unreadCount > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 flex w-5 h-5">
-                                {hasUnreadIncident && (
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                )}
-                                <span className="relative inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full">
-                                    {unreadCount > 9 ? '9+' : unreadCount}
+                    <div className="relative" ref={notificationMenuRef}>
+                        <button
+                            onClick={() => setIsNotificationMenuOpen(!isNotificationMenuOpen)}
+                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                            title="View Notifications"
+                        >
+                            <Bell className="w-5 h-5" />
+                            {unreadCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 flex w-5 h-5">
+                                    {hasUnreadIncident && (
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                    )}
+                                    <span className="relative inline-flex items-center justify-center w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full">
+                                        {unreadCount > 9 ? '9+' : unreadCount}
+                                    </span>
                                 </span>
-                            </span>
+                            )}
+                        </button>
+                        
+                        {isNotificationMenuOpen && (
+                            <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden z-50">
+                                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                                    <h3 className="text-sm font-bold text-gray-900 dark:text-white">Recent Notifications</h3>
+                                    <span className="text-xs font-semibold bg-[#2B4B9E] text-white px-2 py-0.5 rounded-full">{unreadCount} New</span>
+                                </div>
+                                <div className="max-h-80 overflow-y-auto">
+                                    {notificationsData.length === 0 ? (
+                                        <div className="p-6 text-center text-sm text-gray-500">No notifications</div>
+                                    ) : (
+                                        notificationsData.slice(0, 5).map((n: any) => (
+                                            <div 
+                                                key={n.id} 
+                                                className={`px-4 py-3 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!n.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`} 
+                                                onClick={() => { setIsNotificationMenuOpen(false); navigate('/dashboard/notifications'); }}
+                                            >
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <p className="text-sm font-bold text-gray-900 dark:text-white truncate pr-2">{n.notification?.title || 'System Notification'}</p>
+                                                    <span className="text-[10px] text-gray-400 whitespace-nowrap bg-gray-50 dark:bg-gray-700 px-1.5 py-0.5 rounded">
+                                                        {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                </div>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{n.notification?.message || 'New update available.'}</p>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                <div className="p-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                                    <button
+                                        onClick={() => { setIsNotificationMenuOpen(false); navigate('/dashboard/notifications'); }}
+                                        className="w-full flex items-center justify-center space-x-1 text-sm text-[#2B4B9E] dark:text-cyan-400 font-bold py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                    >
+                                        <span>View All Notifications</span>
+                                        <ChevronRight className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
                         )}
-                    </button>
+                    </div>
 
                     {/* Dark Mode Toggle */}
                     <button

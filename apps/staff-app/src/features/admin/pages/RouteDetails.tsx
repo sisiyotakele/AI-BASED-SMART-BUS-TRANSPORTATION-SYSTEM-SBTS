@@ -1,15 +1,12 @@
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { routeService } from '@/services/route.service';
-import { stopService } from '@/services/stop.service';
-import { ArrowLeft, MapPin, Activity, Navigation, Compass, Layers, ListOrdered, Plus, GitBranch } from 'lucide-react';
+import { ArrowLeft, MapPin, ChevronRight, Navigation, Map as MapIcon, ArrowRight, Route as RouteIcon, Info, Bus, Compass } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
 import L from 'leaflet';
-import toast from 'react-hot-toast';
 import 'leaflet/dist/leaflet.css';
 
-// Fix Leaflet icons
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
@@ -38,359 +35,361 @@ const endIcon = new L.Icon({
 export function RouteDetails() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
 
+    const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward'>('forward');
     const [selectedVersionId, setSelectedVersionId] = useState<string>('');
-    const [isAddingStops, setIsAddingStops] = useState(false);
-    const [selectedNewStop, setSelectedNewStop] = useState<string>('');
 
     const { data: route, isLoading, error } = useQuery({
         queryKey: ['route', id],
         queryFn: () => routeService.getById(id!),
         enabled: !!id,
+        refetchInterval: 2000,
     });
 
-    const { data: allStops = [] } = useQuery({
-        queryKey: ['stops'],
-        queryFn: () => stopService.getAll()
+    const { data: routeVariants } = useQuery({
+        queryKey: ['route-variants', id],
+        queryFn: () => routeService.getVersions(id!),
+        enabled: !!id,
+        refetchInterval: 2000,
     });
+
+    const selectedDirectionVariants = selectedDirection === 'forward'
+        ? (routeVariants?.forward || [])
+        : (routeVariants?.backward || []);
 
     useEffect(() => {
-        if (route?.versions?.length && !selectedVersionId) {
-            // default to most recent or active
-            const active = route.versions.find((v: any) => v.isActive);
-            setSelectedVersionId(active?.id || route.versions[0].id);
+        if (selectedDirectionVariants.length > 0 && !selectedVersionId) {
+            setSelectedVersionId(selectedDirectionVariants[0].id);
+        } else if (selectedDirectionVariants.length === 0) {
+            setSelectedVersionId('');
         }
-    }, [route, selectedVersionId]);
+    }, [selectedDirectionVariants, selectedVersionId]);
 
-    const activeVersion = route?.versions?.find((v: any) => v.id === selectedVersionId) || route?.versions?.[0];
-    const routeStops = activeVersion?.routeStops || [];
-    
-    // Sort route stops by sequenceNumber
+    const selectedVersion = selectedDirectionVariants.find((v: any) => v.id === selectedVersionId);
+    const routeStops = selectedVersion?.routeStops || [];
     const sortedStops = [...routeStops].sort((a: any, b: any) => a.sequenceNumber - b.sequenceNumber);
-    const isEditingAllowed = activeVersion && !activeVersion.isActive;
-
-    const createVersionMutation = useMutation({
-        mutationFn: async () => routeService.createVersion(id!),
-        onSuccess: (newVersion) => {
-            queryClient.invalidateQueries({ queryKey: ['route', id] });
-            setSelectedVersionId(newVersion.id);
-            toast.success('New draft version created! You can now add stops.');
-        },
-        onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to create version')
-    });
-
-    const addStopMutation = useMutation({
-        mutationFn: async ({ stopId, sequence }: { stopId: string, sequence: number }) => 
-            routeService.addRouteStop(activeVersion!.id, { stopId, sequenceNumber: sequence, distanceKm: 0 }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['route', id] });
-            setSelectedNewStop('');
-            toast.success('Stop added to sequence.');
-        },
-        onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to add stop')
-    });
-
-    const handleCreateVersion = () => {
-        if (window.confirm('Create a new draft version from this route?')) {
-            createVersionMutation.mutate();
-        }
-    };
-
-    const handleAddStop = () => {
-        if (!selectedNewStop) return;
-        addStopMutation.mutate({ 
-            stopId: selectedNewStop, 
-            sequence: sortedStops.length + 1 
-        });
-    };
 
     if (isLoading) {
         return (
-            <div className="flex h-[80vh] items-center justify-center p-6">
-                <div className="flex flex-col items-center gap-4 text-cyan-600 dark:text-cyan-400">
-                    <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p className="text-sm font-semibold tracking-wider uppercase">Gathering geographic intelligence...</p>
-                </div>
+            <div className="flex h-[80vh] items-center justify-center">
+                <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
             </div>
         );
     }
 
     if (error || !route) {
         return (
-            <div className="flex h-[60vh] flex-col items-center justify-center p-6 text-center">
-                <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-full flex items-center justify-center mb-4">
-                    <Navigation className="w-10 h-10 text-red-500" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Route Not Found</h2>
-                <p className="text-slate-500 dark:text-slate-400 max-w-md mb-6">
-                    The route parameters could not be located in the central database. It may have been deleted or strictly re-mapped.
-                </p>
-                <div className="flex gap-4">
-                    <button onClick={() => navigate('/dashboard/routes')} className="px-6 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors">
-                        Return to Routes
-                    </button>
-                    <button onClick={() => window.location.reload()} className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
-                        Retry Connection
-                    </button>
-                </div>
+            <div className="flex h-[60vh] flex-col items-center justify-center text-center">
+                <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">Route Not Found</h2>
+                <button onClick={() => navigate('/dashboard/routes')} className="px-6 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors">
+                    Back to Routes
+                </button>
             </div>
         );
     }
 
-    const startLat = Number(route.startStop?.latitude) || 9.0054;
-    const startLng = Number(route.startStop?.longitude) || 38.7636;
-    const endLat = Number(route.endStop?.latitude) || 9.0320;
-    const endLng = Number(route.endStop?.longitude) || 38.7469;
+    // Identify dynamic Start and End Terminals based purely on Direction!
+    const activeStartTerminal = selectedDirection === 'forward' ? route.startTerminal : route.endTerminal;
+    const activeEndTerminal = selectedDirection === 'forward' ? route.endTerminal : route.startTerminal;
+
+    // Base default terminals for route desc regardless of direction
+    const baseStart = route.startTerminal?.terminalName;
+    const baseEnd = route.endTerminal?.terminalName;
+
+    const startLat = Number(activeStartTerminal?.latitude) || 9.0054;
+    const startLng = Number(activeStartTerminal?.longitude) || 38.7636;
+    const endLat = Number(activeEndTerminal?.latitude) || 9.0320;
+    const endLng = Number(activeEndTerminal?.longitude) || 38.7469;
 
     const mapCenter: [number, number] = [
-        (startLat + endLat) / 2, 
+        (startLat + endLat) / 2,
         (startLng + endLng) / 2
     ];
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center space-x-3">
-                    <div
-                        onClick={() => navigate('/dashboard/routes')}
-                        className="p-2 bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl cursor-pointer hover:bg-slate-50 dark:hover:bg-navy-700 transition"
-                    >
-                        <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+        <div className="space-y-6 max-w-7xl mx-auto pb-12">
+            
+            {/* Descriptive Header Section */}
+            <div className="bg-white dark:bg-navy-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-navy-700 p-8 md:p-10 relative overflow-hidden">
+                {/* Decorative background element */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-cyan-50 dark:from-navy-800 to-transparent rounded-full translate-x-1/3 -translate-y-1/3 opacity-50 pointer-events-none"></div>
+                
+                <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                    <div className="flex items-start gap-6">
+                        <button
+                            onClick={() => navigate('/dashboard/routes')}
+                            className="mt-1 w-12 h-12 flex items-center justify-center bg-white dark:bg-navy-800 border-2 border-slate-100 dark:border-navy-700 rounded-full hover:bg-slate-50 dark:hover:bg-navy-700 hover:scale-105 transition-all shadow-sm"
+                        >
+                            <ArrowLeft className="w-5 h-5 text-slate-700 dark:text-slate-300" />
+                        </button>
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest ${route.status === 'active'
+                                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50'
+                                    : 'bg-slate-100 text-slate-600 dark:bg-navy-800 dark:text-slate-400 border border-slate-200 dark:border-navy-700'
+                                    }`}>
+                                    {route.status} ROUTE
+                                </span>
+                                <span className="text-sm font-bold text-slate-400 dark:text-slate-500 flex items-center gap-1.5">
+                                    <RouteIcon className="w-4 h-4" />
+                                </span>
+                            </div>
+                            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
                                 {route.routeName}
                             </h1>
-                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide border ${
-                                route.status === 'active' 
-                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' 
-                                    : 'bg-slate-50 text-slate-600 border-slate-200 dark:bg-navy-800 dark:text-slate-400 dark:border-navy-600'
-                            }`}>
-                                {route.status || 'UNKNOWN'}
-                            </span>
+                            <p className="mt-3 text-slate-500 dark:text-slate-400 font-medium max-w-xl text-base flex items-center gap-2">
+                                <Info className="w-5 h-5 text-cyan-500" />
+                                {route.description || `Primary transit corridor connecting ${baseStart} and ${baseEnd}.`}
+                            </p>
                         </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-mono mt-1">UUID: {route.id}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-3">
-                    <Link to="/dashboard/routes" className="flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-sm font-medium">
-                        <ListOrdered className="w-4 h-4" />
-                        Edit Sequence in Routes Grid
-                    </Link>
-                </div>
-            </div>
-
-            {/* Top Stat Row */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-blue-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="flex items-center justify-between relative z-10 w-full mb-3">
-                        <div className="p-2 bg-blue-50 dark:bg-blue-500/10 rounded-lg">
-                            <Navigation className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                    </div>
-                    <h3 className="text-3xl font-bold text-slate-900 dark:text-white relative z-10">{sortedStops.length}</h3>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 relative z-10 mt-1">Total Fixed Stops</p>
-                </div>
-
-                <div className="bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-700 shadow-sm relative overflow-hidden group">
-                    <div className="absolute -right-4 -top-4 w-16 h-16 bg-emerald-500/10 rounded-full group-hover:scale-150 transition-transform duration-500"></div>
-                    <div className="flex items-center justify-between relative z-10 w-full mb-3">
-                        <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg">
-                            <Activity className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                    </div>
-                    <h3 className="text-3xl font-bold text-slate-900 dark:text-white relative z-10">{route.versions?.length || 1}</h3>
-                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 relative z-10 mt-1">Active Mapping Versions</p>
-                </div>
-
-                <div className="md:col-span-2 bg-white dark:bg-navy-900 p-5 rounded-2xl border border-slate-200 dark:border-navy-700 shadow-sm flex flex-col justify-center">
-                    <div className="flex items-center justify-between">
-                        <div className="w-[45%] text-center">
-                            <div className="inline-flex items-center justify-center p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg mb-2">
-                                <MapPin className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                            </div>
-                            <h4 className="text-base font-semibold text-slate-900 dark:text-white truncate" title={route.startStop?.stopName || route.startStopName || 'N/A'}>
-                                {route.startStop?.stopName || route.startStopName || 'Origin Missing'}
-                            </h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">START STOP</p>
-                        </div>
-                        
-                        <div className="w-[10%] flex flex-col justify-center items-center">
-                            <div className="h-0.5 w-full bg-slate-200 dark:bg-navy-600 relative">
-                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-white dark:bg-navy-900 border-2 border-slate-300 dark:border-navy-500 rounded-full"></div>
-                            </div>
-                        </div>
-
-                        <div className="w-[45%] text-center">
-                            <div className="inline-flex items-center justify-center p-2 bg-red-50 dark:bg-red-500/10 rounded-lg mb-2">
-                                <MapPin className="w-5 h-5 text-red-600 dark:text-red-400" />
-                            </div>
-                            <h4 className="text-base font-semibold text-slate-900 dark:text-white truncate" title={route.endStop?.stopName || route.endStopName || 'N/A'}>
-                                {route.endStop?.stopName || route.endStopName || 'Destination Missing'}
-                            </h4>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 font-mono mt-1">END STOP</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Lower Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* Route Sequence Timeline */}
-                <div className="lg:col-span-1 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-700 shadow-sm overflow-hidden flex flex-col h-[650px]">
-                    <div className="p-4 border-b border-slate-200 dark:border-navy-700 flex flex-col gap-3 bg-slate-50 dark:bg-navy-800">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <ListOrdered className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                                <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Versions & Stops</h3>
-                            </div>
-                            <button onClick={handleCreateVersion} className="p-1.5 bg-white dark:bg-navy-700 border border-slate-300 dark:border-navy-600 rounded bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 hover:opacity-80 transition" title="Create Draft Version">
-                                <GitBranch className="w-4 h-4" />
-                            </button>
-                        </div>
-                        
-                        <select 
-                            value={selectedVersionId} 
-                            onChange={(e) => setSelectedVersionId(e.target.value)}
-                            className="w-full text-sm px-3 py-1.5 bg-white dark:bg-navy-900 border border-slate-300 dark:border-navy-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                        >
-                            {route.versions?.map((v: any) => (
-                                <option key={v.id} value={v.id}>
-                                    {v.versionName || `Version ${v.versionNumber}`} {v.isActive ? '(Active)' : '(Draft)'}
-                                </option>
-                            ))}
-                        </select>
                     </div>
                     
-                    <div className="p-5 flex-1 overflow-y-auto">
-                        {sortedStops.length === 0 ? (
-                            <div className="flex flex-col items-center flex-1 justify-center h-full text-center text-slate-500 dark:text-slate-400">
-                                <MapPin className="w-12 h-12 mb-3 text-slate-300 dark:text-navy-600" />
-                                <p className="text-sm">No sequence defined yet.<br />This route is missing intermediate waypoints.</p>
+                    {/* Visual Route Indicator */}
+                    <div className="px-6 py-5 bg-slate-50 dark:bg-navy-800 rounded-2xl border border-slate-100 dark:border-navy-700 shadow-inner flex items-center gap-4">
+                        <div className="text-center">
+                            <div className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">From</div>
+                            <div className="font-bold text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-navy-900 px-3 py-1.5 rounded-lg shadow-sm border border-slate-100 dark:border-navy-700 max-w-[120px] truncate">{baseStart}</div>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                        <div className="text-center">
+                            <div className="text-[10px] uppercase font-black text-slate-400 mb-1 tracking-widest">To</div>
+                            <div className="font-bold text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-navy-900 px-3 py-1.5 rounded-lg shadow-sm border border-slate-100 dark:border-navy-700 max-w-[120px] truncate">{baseEnd}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Travel Path Selection Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Direction Settings */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-navy-700">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <Compass className="w-5 h-5 text-cyan-500" />
+                        1. Select Route Direction
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        <button
+                            onClick={() => { setSelectedDirection('forward'); setSelectedVersionId(''); }}
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${selectedDirection === 'forward'
+                                ? 'border-cyan-500 ring-4 ring-cyan-50 dark:ring-cyan-900/20 bg-cyan-50/50 dark:bg-cyan-900/10'
+                                : 'border-slate-100 dark:border-navy-700 bg-white dark:bg-navy-900 hover:border-cyan-200 dark:hover:border-cyan-700 shadow-sm'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${selectedDirection === 'forward' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`}>Forward Path</span>
                             </div>
-                        ) : (
-                            <div className="relative pl-6 space-y-6 before:absolute before:inset-0 before:ml-8 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 dark:before:via-navy-600 before:to-transparent">
-                                {sortedStops.map((rs: any, idx: number) => {
-                                    const isFirst = idx === 0;
-                                    const isLast = idx === sortedStops.length - 1;
-                                    return (
-                                        <div key={rs.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group select-none">
-                                            <div className="flex items-center justify-center w-6 h-6 rounded-full border-2 border-white dark:border-navy-900 bg-white dark:bg-navy-800 shadow absolute -left-3 md:left-1/2 md:-translate-x-1/2 z-10 text-[10px] font-bold text-slate-500">
-                                                {isFirst ? (
-                                                    <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full"></div>
-                                                ) : isLast ? (
-                                                    <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                                                ) : (
-                                                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="bg-slate-50 dark:bg-navy-800 p-3 rounded border border-slate-200 dark:border-navy-700 ml-4 md:ml-0 md:w-[calc(50%-2rem)] shadow-sm group-hover:border-blue-300 dark:group-hover:border-blue-600 transition-colors w-full">
-                                                <div className="text-xs font-mono text-blue-600 dark:text-blue-400 mb-1">Sequence {rs.sequenceNumber}</div>
-                                                <div className="font-semibold text-sm text-slate-900 dark:text-white truncate">{rs.stop?.stopName || 'Unknown Stop'}</div>
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
+                            <div className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{route.startTerminal?.terminalName}</div>
+                            <div className="text-xs text-slate-400 mt-1 flex items-center gap-1"><ArrowRight className="w-3 h-3 block opacity-50" /> {route.endTerminal?.terminalName}</div>
+                        </button>
                         
-                        {isEditingAllowed && (
-                            <div className="mt-6 pt-6 border-t border-slate-200 dark:border-navy-700">
-                                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Add Intermediate Stop</div>
-                                <div className="flex gap-2">
-                                    <select 
-                                        value={selectedNewStop}
-                                        onChange={(e) => setSelectedNewStop(e.target.value)}
-                                        className="flex-1 px-3 py-2 text-sm bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-lg border border-slate-300 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                                    >
-                                        <option value="">-- Choose Stop --</option>
-                                        {allStops.map(stop => (
-                                            <option key={stop.id} value={stop.id}>{stop.stopName} ({stop.stopCode})</option>
-                                        ))}
-                                    </select>
-                                    <button 
-                                        onClick={handleAddStop}
-                                        disabled={!selectedNewStop || addStopMutation.isPending}
-                                        className="px-3 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition-colors"
-                                    >
-                                        <Plus className="w-4 h-4" />
-                                    </button>
-                                </div>
+                        <button
+                            onClick={() => { setSelectedDirection('backward'); setSelectedVersionId(''); }}
+                            className={`p-4 rounded-xl border-2 text-left transition-all ${selectedDirection === 'backward'
+                                ? 'border-cyan-500 ring-4 ring-cyan-50 dark:ring-cyan-900/20 bg-cyan-50/50 dark:bg-cyan-900/10'
+                                : 'border-slate-100 dark:border-navy-700 bg-white dark:bg-navy-900 hover:border-cyan-200 dark:hover:border-cyan-700 shadow-sm'
+                            }`}
+                        >
+                            <div className="flex items-center justify-between mb-2">
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${selectedDirection === 'backward' ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400 dark:text-slate-500'}`}>Backward Path</span>
                             </div>
-                        )}
-                        
+                            <div className="font-bold text-sm text-slate-800 dark:text-slate-100 line-clamp-1">{route.endTerminal?.terminalName}</div>
+                            <div className="text-xs text-slate-400 mt-1 flex items-center gap-1"><ArrowRight className="w-3 h-3 block opacity-50" /> {route.startTerminal?.terminalName}</div>
+                        </button>
                     </div>
                 </div>
 
-                {/* Main Interactive Map Viewer */}
-                <div className="lg:col-span-2 bg-white dark:bg-navy-900 rounded-2xl border border-slate-200 dark:border-navy-700 shadow-sm overflow-hidden flex flex-col h-[650px]">
-                    <div className="p-4 border-b border-slate-200 dark:border-navy-700 flex items-center justify-between bg-slate-50 dark:bg-navy-800">
-                        <div className="flex items-center gap-2">
-                            <Compass className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                            <h3 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Geospatial Overview</h3>
+                {/* Variant Configuration Settings */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-navy-700">
+                    <h3 className="text-sm font-black text-slate-800 dark:text-slate-200 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <RouteIcon className="w-5 h-5 text-indigo-500" />
+                        2. Select Route Variant 
+                    </h3>
+                    
+                    {selectedDirectionVariants.length === 0 ? (
+                        <div className="h-[84px] bg-slate-50 dark:bg-navy-800 rounded-xl border border-dashed border-slate-200 dark:border-navy-600 flex items-center justify-center text-sm font-semibold text-slate-400 italic">
+                            No variant configurations exist for this direction.
                         </div>
-                        <span className="text-xs font-mono text-slate-500 flex items-center gap-2">
-                            <Layers className="w-4 h-4" /> OSM Hybrid Topology
-                        </span>
+                    ) : (
+                        <div className="flex overflow-x-auto gap-3 custom-scrollbar pb-2">
+                            {selectedDirectionVariants.map((variant: any) => (
+                                <button
+                                    key={variant.id}
+                                    onClick={() => setSelectedVersionId(variant.id)}
+                                    className={`min-w-[180px] p-4 rounded-xl border-2 text-left transition-all shadow-sm ${selectedVersionId === variant.id
+                                        ? 'border-indigo-500 ring-4 ring-indigo-50 dark:ring-indigo-900/20 bg-indigo-50/50 dark:bg-indigo-900/10'
+                                        : 'border-slate-100 dark:border-navy-700 bg-white dark:bg-navy-900 hover:border-indigo-200 dark:hover:border-indigo-700'
+                                    }`}
+                                >
+                                    <div className="font-bold text-[13px] text-slate-800 dark:text-slate-100 line-clamp-1">{variant.routeName}</div>
+                                    <div className={`mt-2 text-[11px] font-bold px-2.5 py-1 rounded-md inline-flex items-center gap-1 ${
+                                        selectedVersionId === variant.id ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300' : 'bg-slate-100 text-slate-500 dark:bg-navy-800'
+                                    }`}>
+                                        <MapPin className="w-3 h-3" /> {variant.stopCount || 0} Scheduled Stops
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Stop Sequence Visualization */}
+            {selectedVersionId && (
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
+                    <div className="px-6 py-4 border-b border-slate-100 dark:border-navy-800 bg-slate-50/80 dark:bg-navy-800/80 flex justify-between items-center">
+                        <h3 className="text-[13px] font-black text-slate-800 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <Navigation className="w-4 h-4 text-emerald-500" />
+                            Comprehensive Stop Sequence
+                        </h3>
+                        <div className="flex items-center gap-3">
+                            <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest px-3 py-1 bg-white dark:bg-navy-900 rounded-md border border-slate-200 dark:border-navy-700 shadow-sm">
+                                {sortedStops.length + 2} TOUCHPOINTS
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div className="overflow-x-auto relative min-h-[190px] custom-scrollbar py-8">
+                        <div className="flex items-start justify-between min-w-full w-max px-8 pt-4 relative z-10 text-center">
+                            
+                            {/* START TERMINAL - Dynamically reflects Forward/Backward selection */}
+                            <div className="flex flex-col items-center flex-1 min-w-[130px] max-w-[200px] shrink-0 relative group">
+                                <div className="absolute top-[28px] -translate-y-1/2 left-[50%] right-[calc(-50%+30px)] flex items-center z-0">
+                                    <div className="h-[3px] bg-slate-200 dark:bg-navy-700 flex-1"></div>
+                                    <ChevronRight className="w-5 h-5 text-slate-200 dark:text-navy-700 -ml-2" strokeWidth={3} />
+                                </div>
+
+                                <div className="relative z-10 w-14 h-14 rounded-full border-[4px] border-white dark:border-navy-800 bg-emerald-500 shadow-lg flex items-center justify-center mb-4">
+                                    <MapPin className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="px-2 w-full flex flex-col items-center">
+                                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-2">Depart</span>
+                                    <div className="font-bold text-[13px] text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight">
+                                        {activeStartTerminal?.terminalName}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* STOPS */}
+                            {sortedStops.length === 0 ? (
+                                <div className="min-w-[250px] flex-1 flex items-center justify-center">
+                                    <div className="px-6 py-3 border-2 border-dashed border-slate-300 dark:border-navy-700 rounded-xl bg-slate-50 dark:bg-navy-800/50">
+                                        <p className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">EXPRESS DIRECT CORRIDOR</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                sortedStops.map((rs: any) => (
+                                    <div key={rs.id} className="flex flex-col items-center flex-1 min-w-[130px] max-w-[200px] shrink-0 relative group">
+                                        <div className="absolute top-[28px] -translate-y-1/2 left-[50%] right-[calc(-50%+30px)] flex items-center z-0">
+                                            <div className="h-[3px] bg-slate-200 dark:bg-navy-700 flex-1"></div>
+                                            <ChevronRight className="w-5 h-5 text-slate-200 dark:text-navy-700 -ml-2" strokeWidth={3} />
+                                        </div>
+
+                                        <div className="relative z-10 w-10 h-10 mt-2 mb-4 rounded-full border-[3px] border-white dark:border-navy-800 bg-cyan-500 shadow-md flex items-center justify-center text-white font-extrabold text-sm hover:scale-110 transition-transform">
+                                            {rs.sequenceNumber}
+                                        </div>
+                                        <div className="px-2 w-full flex flex-col items-center">
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm border border-slate-100 dark:border-navy-700 rounded bg-slate-50 dark:bg-navy-800 px-1">{rs.stop?.stopCode}</span>
+                                            <div className="font-bold text-[13px] text-slate-800 dark:text-slate-200 line-clamp-2 leading-tight w-full max-w-[140px] mx-auto">
+                                                {rs.stop?.stopName}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+
+                            {/* END TERMINAL - Dynamically reflects Forward/Backward selection */}
+                            <div className="flex flex-col items-center flex-1 min-w-[130px] max-w-[200px] shrink-0 relative group">
+                                <div className="relative z-10 w-14 h-14 rounded-full border-[4px] border-white dark:border-navy-800 bg-red-500 shadow-lg flex items-center justify-center mb-4">
+                                    <MapPin className="w-6 h-6 text-white" />
+                                </div>
+                                <div className="px-2 w-full flex flex-col items-center">
+                                    <span className="bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full mb-2">Arrive</span>
+                                    <div className="font-bold text-[13px] text-slate-900 dark:text-slate-100 line-clamp-2 leading-tight">
+                                        {activeEndTerminal?.terminalName}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Live Geography Plotting Container */}
+            {selectedVersionId && (
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden flex flex-col h-[600px] relative">
+                    <div className="absolute top-4 left-4 z-[1000] bg-white/90 dark:bg-navy-900/90 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/50 dark:border-navy-700/50 flex items-center gap-3">
+                        <MapIcon className="w-5 h-5 text-cyan-500" />
+                        <div>
+                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest line-clamp-1">Geographic Overview</div>
+                            <div className="text-sm font-bold text-slate-800 dark:text-white leading-none mt-1">Real-World Polyline</div>
+                        </div>
                     </div>
                     
                     <div className="flex-1 w-full relative z-0">
                         <MapContainer
+                            key={`${selectedDirection}-${selectedVersionId}`}
                             center={mapCenter}
-                            zoom={12}
-                            style={{ height: '100%', width: '100%', zIndex: 0 }}
+                            zoom={13}
+                            style={{ height: '100%', width: '100%' }}
                             zoomControl={true}
                         >
                             <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+                                attribution='&copy; OpenStreetMap'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
-                            
-                            {/* Start Coordinate */}
-                            {route.startStopName && (
+
+                            {activeStartTerminal && (
                                 <Marker position={[startLat, startLng]} icon={startIcon}>
                                     <Popup>
-                                        <div className="text-sm font-bold">{route.startStop?.stopName || route.startStopName}</div>
-                                        <div className="text-xs text-slate-500">Origin Stop</div>
+                                        <div className="font-bold text-emerald-600 uppercase text-xs tracking-wider mb-1">Origin Terminal</div>
+                                        <div className="font-bold text-slate-800">{activeStartTerminal.terminalName}</div>
                                     </Popup>
                                 </Marker>
                             )}
 
-                            {/* End Coordinate */}
-                            {route.endStopName && (
+                            {activeEndTerminal && (
                                 <Marker position={[endLat, endLng]} icon={endIcon}>
                                     <Popup>
-                                        <div className="text-sm font-bold">{route.endStop?.stopName || route.endStopName}</div>
-                                        <div className="text-xs text-slate-500">Terminal Destination</div>
+                                        <div className="font-bold text-red-500 uppercase text-xs tracking-wider mb-1">Destination Terminal</div>
+                                        <div className="font-bold text-slate-800">{activeEndTerminal.terminalName}</div>
                                     </Popup>
                                 </Marker>
                             )}
-                            
-                            {/* Trajectory */}
-                            {route.startStopName && route.endStopName && (
+
+                            {sortedStops.map((rs: any) => {
+                                if (!rs.stop?.latitude || !rs.stop?.longitude) return null;
+                                return (
+                                    <Marker
+                                        key={rs.id}
+                                        position={[Number(rs.stop.latitude), Number(rs.stop.longitude)]}
+                                    >
+                                        <Popup>
+                                            <div className="bg-cyan-100 text-cyan-700 text-[10px] px-2 py-0.5 rounded font-black inline-block mb-1">STOP #{rs.sequenceNumber}</div>
+                                            <div className="font-bold text-slate-800 leading-tight">{rs.stop.stopName}</div>
+                                        </Popup>
+                                    </Marker>
+                                );
+                            })}
+
+                            {activeStartTerminal && activeEndTerminal && (
                                 <Polyline
                                     positions={[
                                         [startLat, startLng],
-                                        // insert intermediate GPS points if they exist
-                                        ...sortedStops.map((rs: any) => [Number(rs.stop?.latitude), Number(rs.stop?.longitude)]),
+                                        ...sortedStops
+                                            .filter((rs: any) => rs.stop?.latitude && rs.stop?.longitude)
+                                            .map((rs: any) => [Number(rs.stop.latitude), Number(rs.stop.longitude)]),
                                         [endLat, endLng]
-                                    ].filter(p => !isNaN(p[0]) && !isNaN(p[1])) as [number, number][]}
-                                    color="#10B981"
-                                    weight={4}
-                                    opacity={0.6}
-                                    dashArray="10, 10"
+                                    ] as [number, number][]}
+                                    color="#0ea5e9" // Tailwind sky-500
+                                    weight={5}
+                                    opacity={0.8}
                                 />
                             )}
                         </MapContainer>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }

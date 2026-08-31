@@ -32,8 +32,9 @@ const router = Router();
  */
 router.get('/health', healthCheck);
 
-// Apply authentication to all protected routes
-router.use(authenticate);
+// Note: We removed router.use(authenticate) from the global router scope.
+// Why? Passengers need to see real-time AI predictions (traffic, ETA) without
+// logging in. This matches the behavior of routes, stops, and pricing endpoints.
 
 /**
  * @swagger
@@ -93,7 +94,6 @@ router.use(authenticate);
  */
 router.post(
     '/predict/traffic',
-    requirePermission('view_predictions'),
     validateBody(trafficPredictionSchema),
     predictTraffic
 );
@@ -150,7 +150,6 @@ router.post(
  */
 router.post(
     '/predict/eta',
-    requirePermission('view_predictions'),
     validateBody(etaPredictionSchema),
     predictETA
 );
@@ -207,7 +206,6 @@ router.post(
  */
 router.post(
     '/predict/combined',
-    requirePermission('view_predictions'),
     validateBody(combinedPredictionSchema),
     predictCombined
 );
@@ -272,7 +270,6 @@ router.post(
  */
 router.post(
     '/predict/batch',
-    requirePermission('view_predictions'),
     validateBody(batchPredictionSchema),
     predictBatch
 );

@@ -95,6 +95,39 @@ export async function findUserById(userId: string) {
     });
 }
 
+export async function findUserByResetToken(token: string) {
+    return prisma.user.findFirst({
+        where: {
+            passwordResetToken: token,
+            passwordResetExpiry: { gt: new Date() },
+            deletedAt: null,
+        },
+    });
+}
+
+export async function updateUserPassword(userId: string, passwordHash: string) {
+    return prisma.user.update({
+        where: { id: userId },
+        data: {
+            passwordHash,
+            mustChangePassword: false,
+            passwordResetToken: null,
+            passwordResetExpiry: null,
+        },
+    });
+}
+
+export async function setPasswordResetToken(userId: string, token: string, expiry: Date) {
+    return prisma.user.update({
+        where: { id: userId },
+        data: {
+            passwordResetToken: token,
+            passwordResetExpiry: expiry,
+            mustChangePassword: true,
+        },
+    });
+}
+
 // ============================================================
 // LOGIN HISTORY QUERIES
 // ============================================================

@@ -106,13 +106,13 @@ const navigationSections: NavSection[] = [
             },
         ],
     },
-    // PHASE 3: Planning & Assignments
+    // PHASE 3: Daily Dispatch & Planning
     {
-        title: 'PLANNING & ASSIGNMENTS',
+        title: 'DAILY DISPATCH FLOW',
         collapsible: true,
         items: [
             {
-                name: 'Schedules',
+                name: 'Route Schedule',
                 href: '/dashboard/schedules',
                 icon: Calendar,
             },
@@ -122,27 +122,22 @@ const navigationSections: NavSection[] = [
                 icon: Map,
             },
             {
-                name: 'Shifts',
-                href: '/dashboard/shifts',
-                icon: Clock,
-            },
-            {
-                name: 'Driver Assignment',
+                name: 'Driver Shift Assignment',
                 href: '/dashboard/bus-driver-assignments',
                 icon: UserCircle,
             },
-        ],
-    },
-    // PHASE 4: Daily Operations
-    {
-        title: 'DAILY OPERATIONS',
-        collapsible: true,
-        items: [
             {
                 name: 'Trip Management',
                 href: '/dashboard/trips',
                 icon: Route,
             },
+        ],
+    },
+    // PHASE 4: Live Operations
+    {
+        title: 'LIVE OPERATIONS',
+        collapsible: true,
+        items: [
             {
                 name: 'Key Handovers',
                 href: '/dashboard/key-handovers',

@@ -203,7 +203,10 @@ describe('Key Handovers Service', () => {
             if (handover.fromShift) {
                 expect(handover.fromShift.driver).toBeDefined();
             }
-            expect(handover.toShift.driver).toBeDefined();
+            if (handover.toShift) {
+                expect(handover.toShift.driver).toBeDefined();
+            }
+
         });
 
         it('should throw NotFoundError for non-existent handover', async () => {

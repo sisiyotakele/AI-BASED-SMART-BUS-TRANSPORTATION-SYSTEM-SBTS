@@ -3,7 +3,7 @@ import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createAssignmentSchema, deactivateSchema, assignmentIdParamSchema, assignmentQuerySchema, updateAssignmentSchema } from './bus-route-assignments.validation';
-import { createAssignment, listAssignments, getAssignment, updateAssignment, deactivateAssignment, deleteAssignment } from './bus-route-assignments.controller';
+import { createAssignment, listAssignments, getAssignment, updateAssignment, deactivateAssignment, deleteAssignment, scheduleAvailabilityCheck } from './bus-route-assignments.controller';
 
 const router = Router();
 
@@ -96,6 +96,9 @@ router.post('/', requirePermission('manage_assignments'), validateBody(createAss
  *         description: Server error
  */
 router.get('/', requirePermission('view_assignments'), validateQuery(assignmentQuerySchema), listAssignments);
+
+// Schedule availability check — must be BEFORE /:id routes
+router.get('/schedule-check', requirePermission('view_assignments'), scheduleAvailabilityCheck);
 
 /**
  * @swagger

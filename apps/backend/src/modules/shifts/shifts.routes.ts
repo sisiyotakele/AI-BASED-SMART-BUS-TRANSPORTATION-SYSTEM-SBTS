@@ -184,4 +184,5 @@ router.patch('/:id', requirePermission('manage_shifts'), validateParams(shiftIdP
  */
 router.delete('/:id', requirePermission('manage_shifts'), validateParams(shiftIdParamSchema), deleteShift);
 
+
 export default router;

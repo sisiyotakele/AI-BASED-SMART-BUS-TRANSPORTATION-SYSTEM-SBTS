@@ -57,6 +57,7 @@ export interface Role {
 export interface AuthResponse {
     accessToken: string;
     refreshToken: string;
+    mustChangePassword?: boolean;
     user: User;
 }
 
@@ -77,12 +78,10 @@ export interface Route {
     id: string;
     routeName: string;
     description?: string;
-    startStopId: string;
-    startStop?: Stop;
-    startStopName?: string;
-    endStopId: string;
-    endStop?: Stop;
-    endStopName?: string;
+    startTerminalId: string;
+    startTerminal?: Terminal;
+    endTerminalId: string;
+    endTerminal?: Terminal;
     versions?: RouteVersion[];
     stopCount?: number;
     status?: 'active' | 'inactive';
@@ -93,10 +92,23 @@ export interface Route {
 export interface RouteVersion {
     id: string;
     routeId: string;
-    versionNumber: number;
+    routeNumber: number;  // Changed from versionNumber
+    routeName: string;    // Changed from versionName
+    direction: 'forward' | 'backward';  // NEW
+    isPrimary: boolean;   // NEW
     isActive: boolean;
+    effectiveFrom?: string;
+    effectiveUntil?: string;
+    stopCount?: number;
     route?: Route;
     routeStops?: RouteStop[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface RouteVariantsResponse {
+    forward: RouteVersion[];
+    backward: RouteVersion[];
 }
 
 export interface RouteStop {
@@ -113,6 +125,7 @@ export interface Stop {
     stopName: string;
     stopCode: string;
     terminalId?: string;
+    terminal?: Terminal;
     terminalName?: string;
     latitude: number;
     longitude: number;

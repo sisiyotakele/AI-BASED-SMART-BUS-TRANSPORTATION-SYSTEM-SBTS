@@ -1,5 +1,23 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, MapPin, Loader2, Search, User } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
+
+// Fetch all managers from backend - only active ones
+const fetchManagers = async () => {
+    const { data } = await api.get('/users', {
+        params: {
+            role: 'MANAGER',
+            isActive: 'true'  // Request only active managers from backend
+        },
+    });
+    const allManagers = data.data || [];
+    // Double-check: Filter only active managers on frontend as well
+    const activeManagers = allManagers.filter((manager: any) => manager.isActive === true);
+    console.log('All managers:', allManagers.length, 'Active managers:', activeManagers.length);
+    return activeManagers;
+};
 
 interface TerminalModalProps {
     isOpen: boolean;
@@ -36,6 +54,157 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
     });
 
     const [errors, setErrors] = useState<Record<string, string>>({});
+    const [isGeocoding, setIsGeocoding] = useState(false);
+    const [geocodeSuggestions, setGeocodeSuggestions] = useState<any[]>([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [existingTerminals, setExistingTerminals] = useState<any[]>([]);
+
+    // Fetch managers
+    const { data: managers = [] } = useQuery({
+        queryKey: ['managers'],
+        queryFn: fetchManagers,
+        staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+    });
+
+    // Fetch existing terminals for prioritization
+    useEffect(() => {
+        const fetchTerminals = async () => {
+            try {
+                const { data } = await api.get('/terminals');
+                setExistingTerminals(data.data || []);
+            } catch (error) {
+                console.error('Failed to fetch terminals:', error);
+            }
+        };
+        if (isOpen) {
+            fetchTerminals();
+        }
+    }, [isOpen]);
+
+    // Geocode function using Nominatim OpenStreetMap API
+    const geocodeLocation = async (query: string) => {
+        if (!query || query.length < 3) {
+            setGeocodeSuggestions([]);
+            return;
+        }
+
+        setIsGeocoding(true);
+        try {
+            // First, check if query matches existing terminals
+            const matchingTerminals = existingTerminals.filter(terminal =>
+                terminal.terminalName?.toLowerCase().includes(query.toLowerCase()) ||
+                terminal.address?.toLowerCase().includes(query.toLowerCase())
+            ).filter(terminal => terminal.latitude && terminal.longitude);
+
+            // Clean up the query - extract key location terms
+            // Remove common words like "Bus Terminal", "Station" etc to get the core location name
+            const cleanQuery = query
+                .replace(/\b(bus|terminal|station|stop|depot)\b/gi, '')
+                .trim();
+
+            // Use the clean query if it's not too short, otherwise use original
+            const searchQuery = cleanQuery.length >= 3 ? cleanQuery : query;
+
+            // Then fetch from OpenStreetMap with multiple strategies
+            const searchParams = new URLSearchParams({
+                q: `${searchQuery}, Addis Ababa, Ethiopia`,
+                format: 'json',
+                limit: '8',
+                addressdetails: '1',
+                'accept-language': 'en',
+            });
+
+            const response = await fetch(
+                `https://nominatim.openstreetmap.org/search?${searchParams}`,
+                {
+                    headers: {
+                        'User-Agent': 'SBTS-Staff-App/1.0',
+                    },
+                }
+            );
+
+            if (response.ok) {
+                const osmData = await response.json();
+
+                // If no results with cleaned query, try with original query
+                let finalOsmData = osmData;
+                if (osmData.length === 0 && cleanQuery !== query) {
+                    const fallbackParams = new URLSearchParams({
+                        q: `${query}, Addis Ababa`,
+                        format: 'json',
+                        limit: '8',
+                        addressdetails: '1',
+                        'accept-language': 'en',
+                    });
+                    const fallbackResponse = await fetch(
+                        `https://nominatim.openstreetmap.org/search?${fallbackParams}`,
+                        {
+                            headers: {
+                                'User-Agent': 'SBTS-Staff-App/1.0',
+                            },
+                        }
+                    );
+                    if (fallbackResponse.ok) {
+                        finalOsmData = await fallbackResponse.json();
+                    }
+                }
+
+                // Combine: Existing terminals first, then OSM results
+                const terminalSuggestions = matchingTerminals.map(terminal => ({
+                    display_name: `🏢 ${terminal.terminalName} (Existing Terminal)`,
+                    lat: terminal.latitude,
+                    lon: terminal.longitude,
+                    isExistingTerminal: true,
+                    address: terminal.address,
+                }));
+
+                const osmSuggestions = finalOsmData.map((item: any) => ({
+                    ...item,
+                    isExistingTerminal: false,
+                }));
+
+                const combined = [...terminalSuggestions, ...osmSuggestions];
+                setGeocodeSuggestions(combined);
+                setShowSuggestions(combined.length > 0);
+            } else {
+                toast.error('Failed to fetch location suggestions');
+            }
+        } catch (error) {
+            console.error('Geocoding error:', error);
+            toast.error('Could not connect to geocoding service');
+        } finally {
+            setIsGeocoding(false);
+        }
+    };
+
+    // Debounced geocoding
+    useEffect(() => {
+        const searchQuery = formData.address || formData.terminalName;
+        if (!searchQuery || searchQuery.length < 3) {
+            setGeocodeSuggestions([]);
+            setShowSuggestions(false);
+            return;
+        }
+
+        const timeoutId = setTimeout(() => {
+            geocodeLocation(searchQuery);
+        }, 800); // Wait 800ms after user stops typing
+
+        return () => clearTimeout(timeoutId);
+    }, [formData.address, formData.terminalName]);
+
+    const handleSelectLocation = (suggestion: any) => {
+        setFormData((prev) => ({
+            ...prev,
+            latitude: parseFloat(suggestion.lat),
+            longitude: parseFloat(suggestion.lon),
+            address: suggestion.isExistingTerminal
+                ? suggestion.address
+                : (suggestion.display_name || prev.address),
+        }));
+        setShowSuggestions(false);
+        setGeocodeSuggestions([]);
+    };
 
     useEffect(() => {
         if (editData) {
@@ -195,25 +364,73 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                         )}
                     </div>
 
-                    {/* Address */}
-                    <div>
+                    {/* Address with Geocoding */}
+                    <div className="relative">
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                             Address (Optional)
                         </label>
-                        <input
-                            type="text"
-                            value={formData.address}
-                            onChange={(e) => handleChange('address', e.target.value)}
-                            placeholder="e.g., Meskel Square, Addis Ababa"
-                            className="w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-navy-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
-                        />
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={formData.address}
+                                onChange={(e) => handleChange('address', e.target.value)}
+                                placeholder="e.g., Meskel Square, Addis Ababa"
+                                className="w-full px-3 py-1.5 pr-10 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-navy-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                            />
+                            {isGeocoding && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <Loader2 className="w-4 h-4 text-cyan-500 animate-spin" />
+                                </div>
+                            )}
+                            {!isGeocoding && geocodeSuggestions.length > 0 && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <Search className="w-4 h-4 text-cyan-500" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Geocoding Suggestions Dropdown */}
+                        {showSuggestions && geocodeSuggestions.length > 0 && (
+                            <div className="absolute z-10 w-full mt-1 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                {geocodeSuggestions.map((suggestion, idx) => (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => handleSelectLocation(suggestion)}
+                                        className={`w-full px-3 py-2 text-left transition-colors border-b border-slate-100 dark:border-navy-700 last:border-b-0 ${suggestion.isExistingTerminal
+                                            ? 'bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100 dark:hover:bg-emerald-900/20'
+                                            : 'hover:bg-cyan-50 dark:hover:bg-cyan-900/20'
+                                            }`}
+                                    >
+                                        <div className="flex items-start gap-2">
+                                            {suggestion.isExistingTerminal ? (
+                                                <div className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0">🏢</div>
+                                            ) : (
+                                                <MapPin className="w-4 h-4 text-cyan-500 mt-0.5 flex-shrink-0" />
+                                            )}
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-medium truncate ${suggestion.isExistingTerminal
+                                                    ? 'text-emerald-900 dark:text-emerald-300'
+                                                    : 'text-slate-900 dark:text-white'
+                                                    }`}>
+                                                    {suggestion.display_name}
+                                                </p>
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                                    📍 {parseFloat(suggestion.lat).toFixed(4)}, {parseFloat(suggestion.lon).toFixed(4)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                         {/* Latitude */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Latitude (Optional)
+                                Latitude (Auto-filled)
                             </label>
                             <input
                                 type="number"
@@ -221,7 +438,8 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                                 value={formData.latitude ?? ''}
                                 onChange={(e) => handleChange('latitude', e.target.value ? parseFloat(e.target.value) : undefined)}
                                 placeholder="e.g., 9.0106"
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.latitude ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                className={`w-full px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.latitude ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                readOnly
                             />
                             {errors.latitude && (
                                 <p className="mt-1 text-sm text-red-500">{errors.latitude}</p>
@@ -231,7 +449,7 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                         {/* Longitude */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Longitude (Optional)
+                                Longitude (Auto-filled)
                             </label>
                             <input
                                 type="number"
@@ -239,13 +457,20 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                                 value={formData.longitude ?? ''}
                                 onChange={(e) => handleChange('longitude', e.target.value ? parseFloat(e.target.value) : undefined)}
                                 placeholder="e.g., 38.7641"
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.longitude ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                className={`w-full px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.longitude ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                readOnly
                             />
                             {errors.longitude && (
                                 <p className="mt-1 text-sm text-red-500">{errors.longitude}</p>
                             )}
                         </div>
                     </div>
+
+                    {formData.latitude && formData.longitude && (
+                        <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-900/30 rounded-lg p-3 flex items-start gap-2">
+                            <MapPin className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 flex-shrink-0" />
+                        </div>
+                    )}
 
                     {errors.coordinates && (
                         <p className="text-sm text-red-500">{errors.coordinates}</p>
@@ -267,7 +492,6 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                         {errors.capacity && (
                             <p className="mt-1 text-sm text-red-500">{errors.capacity}</p>
                         )}
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Maximum number of buses this terminal can accommodate</p>
                     </div>
 
                     {/* Facilities */}
@@ -282,7 +506,6 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                             rows={3}
                             className="w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-navy-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
                         />
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">List available facilities separated by commas</p>
                     </div>
 
                     {/* Status */}
@@ -299,6 +522,48 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                             <option value="inactive">Inactive</option>
                             <option value="maintenance">Under Maintenance</option>
                         </select>
+                    </div>
+
+                    {/* Manager Name - Dropdown (moved to top) */}
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                            Terminal Manager (Optional)
+                        </label>
+                        <div className="relative">
+                            <select
+                                value={formData.managerName}
+                                onChange={(e) => {
+                                    const selectedManager = managers.find((m: any) => m.fullName === e.target.value);
+                                    handleChange('managerName', e.target.value);
+                                    // Auto-fill email and phone if available
+                                    if (selectedManager) {
+                                        if (selectedManager.email) {
+                                            setFormData(prev => ({ ...prev, email: selectedManager.email }));
+                                        }
+                                        if (selectedManager.phone) {
+                                            setFormData(prev => ({ ...prev, phoneNumber: selectedManager.phone }));
+                                        }
+                                    }
+                                }}
+                                className={`w-full px-3 py-1.5 pl-9 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm appearance-none cursor-pointer ${errors.managerName ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                            >
+                                <option value="">-- Select Manager --</option>
+                                {managers.map((manager: any) => (
+                                    <option key={manager.id} value={manager.fullName}>
+                                        {manager.fullName} ({manager.email})
+                                    </option>
+                                ))}
+                            </select>
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                        </div>
+                        {managers.length === 0 && (
+                            <p className="mt-1 text-xs text-amber-600 dark:text-amber-400">
+                                ⚠️ No managers found. Create a user with MANAGER role first.
+                            </p>
+                        )}
+                        {errors.managerName && (
+                            <p className="mt-1 text-sm text-red-500">{errors.managerName}</p>
+                        )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -319,39 +584,22 @@ export function TerminalModal({ isOpen, onClose, onSubmit, editData }: TerminalM
                             )}
                         </div>
 
-                        {/* Manager Name */}
+                        {/* Email */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Manager Name (Optional)
+                                Email (Optional)
                             </label>
                             <input
-                                type="text"
-                                value={formData.managerName}
-                                onChange={(e) => handleChange('managerName', e.target.value)}
-                                placeholder="e.g., John Doe"
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.managerName ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) => handleChange('email', e.target.value)}
+                                placeholder="e.g., terminal@sbts.com"
+                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.email ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
                             />
-                            {errors.managerName && (
-                                <p className="mt-1 text-sm text-red-500">{errors.managerName}</p>
+                            {errors.email && (
+                                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
                             )}
                         </div>
-                    </div>
-
-                    {/* Email */}
-                    <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Email (Optional)
-                        </label>
-                        <input
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => handleChange('email', e.target.value)}
-                            placeholder="e.g., terminal@sbts.com"
-                            className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.email ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
-                        />
-                        {errors.email && (
-                            <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-                        )}
                     </div>
 
                     {/* Info Box */}

@@ -48,15 +48,21 @@ export async function findActivePrice(
     return prisma.price.findFirst({
         where: {
             routeId,
-            fromStopId,
-            toStopId,
             deletedAt: null,
-            effectiveFrom: { lte: now },
             OR: [
-                { effectiveUntil: null },
-                { effectiveUntil: { gte: now } }
+                { fromStopId: fromStopId, toStopId: toStopId },
+                { fromStopId: toStopId, toStopId: fromStopId }
+            ],
+            AND: [
+                {
+                    OR: [
+                        { effectiveUntil: null },
+                        { effectiveUntil: { gte: now } }
+                    ]
+                }
             ]
         },
+        orderBy: { createdAt: 'desc' },
         include: priceInclude
     });
 }

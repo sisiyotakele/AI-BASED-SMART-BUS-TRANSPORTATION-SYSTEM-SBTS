@@ -20,7 +20,6 @@ export async function createSchedule(data: any, _actorId?: string) {
     scheduleName: data.scheduleName,
     dayOfWeek: data.dayOfWeek,
     departureTime: timeToDate(data.departureTime),
-    frequencyMinutes: data.frequencyMinutes,
     isActive: data.isActive,
     effectiveFrom: data.effectiveFrom,
     effectiveUntil: data.effectiveUntil,
@@ -48,7 +47,6 @@ export async function updateSchedule(id: string, data: any) {
   if (data.scheduleName) updateData.scheduleName = data.scheduleName;
   if (data.dayOfWeek) updateData.dayOfWeek = data.dayOfWeek;
   if (data.departureTime) updateData.departureTime = timeToDate(data.departureTime);
-  if (data.frequencyMinutes !== undefined) updateData.frequencyMinutes = data.frequencyMinutes;
   if (data.isActive !== undefined) updateData.isActive = data.isActive;
   if (data.effectiveUntil) updateData.effectiveUntil = data.effectiveUntil;
 

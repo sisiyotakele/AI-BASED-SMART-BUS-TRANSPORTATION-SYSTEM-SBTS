@@ -14,23 +14,20 @@ describe('Schedules Service', () => {
 
         adminUser = await createUser({ email: `admin-schedules-${Date.now()}@test.com` });
 
-        // Create stops first
-        const startStop = await prisma.stop.create({
-            data: { stopName: 'Start Stop', stopCode: `START-${Date.now()}` },
-        });
-
-        const endStop = await prisma.stop.create({
-            data: { stopName: 'End Stop', stopCode: `END-${Date.now()}` },
+        // Create terminals first
+        const terminal = await prisma.terminal.create({
+            data: { terminalName: `Test Terminal ${Date.now()}` },
         });
 
         // Create route with required fields
         route = await prisma.route.create({
             data: {
                 routeName: 'Test Route',
-                startStopId: startStop.id,
-                endStopId: endStop.id,
+                startTerminalId: terminal.id,
+                endTerminalId: terminal.id,
             },
         });
+
 
         // Create route version with correct fields
         version = await prisma.routeVersion.create({
@@ -50,7 +47,6 @@ describe('Schedules Service', () => {
                 scheduleName: 'Morning Schedule',
                 dayOfWeek: 'monday',
                 departureTime: '06:00',
-                frequencyMinutes: 30,
                 isActive: true,
                 effectiveFrom: new Date('2026-08-01'),
             };
@@ -63,7 +59,6 @@ describe('Schedules Service', () => {
             expect(schedule.departureTime).toBeInstanceOf(Date);
             expect(schedule.departureTime.getHours()).toBe(6);
             expect(schedule.departureTime.getMinutes()).toBe(0);
-            expect(schedule.frequencyMinutes).toBe(30);
             expect(schedule.isActive).toBe(true);
         });
 
@@ -80,9 +75,9 @@ describe('Schedules Service', () => {
 
             expect(schedule).toBeDefined();
             expect(schedule.scheduleName).toBe('Basic Schedule');
-            expect(schedule.frequencyMinutes).toBeNull();
             expect(schedule.effectiveFrom).toBeNull();
         });
+
 
         it('should create schedules for different days of week', async () => {
             const monday = await scheduleService.createSchedule({
@@ -244,20 +239,18 @@ describe('Schedules Service', () => {
                 scheduleName: 'Original Name',
                 dayOfWeek: 'monday',
                 departureTime: '08:00',
-                frequencyMinutes: 30,
                 isActive: true,
             }, adminUser.id);
 
             const updated = await scheduleService.updateSchedule(schedule.id, {
                 scheduleName: 'Updated Name',
-                frequencyMinutes: 45,
                 isActive: false,
             });
 
             expect(updated.scheduleName).toBe('Updated Name');
-            expect(updated.frequencyMinutes).toBe(45);
             expect(updated.isActive).toBe(false);
             expect(updated.dayOfWeek).toBe('monday'); // Unchanged
+
         });
 
         it('should update departure time', async () => {

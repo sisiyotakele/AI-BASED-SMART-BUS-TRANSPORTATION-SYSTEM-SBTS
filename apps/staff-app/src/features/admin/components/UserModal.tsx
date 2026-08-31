@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Loader2 } from 'lucide-react';
+import { X, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { rbacService } from '@/services/rbac.service';
 import { User } from '@/services/user.service';
@@ -22,6 +22,8 @@ export function UserModal({ isOpen, onClose, onSubmit, user, isLoading = false }
         department: '',
         roles: [] as string[],
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const { data: dbRoles = [] } = useQuery({
         queryKey: ['roles'],
@@ -149,14 +151,33 @@ export function UserModal({ isOpen, onClose, onSubmit, user, isLoading = false }
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                 Password {user && <span className="text-slate-400 font-normal">(Leave blank to keep current)</span>} {!user && <span className="text-red-500">*</span>}
                             </label>
-                            <input
-                                type="password"
-                                required={!user}
-                                minLength={8}
-                                value={formData.password}
-                                onChange={e => setFormData({ ...formData, password: e.target.value })}
-                                className="w-full px-3 py-1.5 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-900 dark:text-slate-100"
-                            />
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required={!user}
+                                    minLength={8}
+                                    value={formData.password}
+                                    onChange={e => setFormData({ ...formData, password: e.target.value })}
+                                    className="w-full px-3 py-1.5 pr-10 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 text-slate-900 dark:text-slate-100"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                            {formData.password && (
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    Password length: {formData.password.length} characters
+                                </p>
+                            )}
                         </div>
 
                         <div>

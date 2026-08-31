@@ -4,6 +4,7 @@ import { Search, Download, Plus, Calendar, CheckCircle, XCircle, Users, Loader2 
 import { BusDriverAssignmentModal } from '@/features/admin/components/BusDriverAssignmentModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { busDriverAssignmentService, BusDriverAssignment } from '@/services/bus-driver-assignment.service';
+import { shiftService } from '@/services/shift.service';
 import toast from 'react-hot-toast';
 
 const formatTime = (timeStr: string) => {
@@ -68,21 +69,40 @@ export function BusDriverAssignments() {
     }).length;
 
     const createMutation = useMutation({
-        mutationFn: (data: any) => busDriverAssignmentService.createAssignment(data),
+        mutationFn: (data: any) => busDriverAssignmentService.createAssignmentWithShift(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['bus-driver-assignments'] });
-            toast.success('Assignment created successfully');
+            toast.success('Shift created and bus assigned successfully');
             setIsModalOpen(false);
             setEditingAssignment(null);
         },
-        onError: () => toast.error('Failed to create assignment'),
+        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create shift & assign bus. Please check for overlap.'),
     });
 
+
     const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string, data: any }) => busDriverAssignmentService.updateAssignment(id, data),
+        mutationFn: async ({ id, data }: { id: string, data: any }) => {
+            if (data.shiftId) {
+                // Update existing shift
+                await shiftService.update(data.shiftId, {
+                    driverId: data.driverId,
+                    shiftName: data.shiftName,
+                    shiftStart: data.shiftStart,
+                    shiftEnd: data.shiftEnd,
+                    shiftDate: data.assignedDate,
+                });
+
+                // Update assignment
+                return busDriverAssignmentService.updateAssignment(id, {
+                    busId: data.busId,
+                    assignedDate: data.assignedDate,
+                    status: data.status
+                });
+            }
+        },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['bus-driver-assignments'] });
-            toast.success('Assignment updated successfully');
+            toast.success('Unified assignment updated successfully');
             setIsModalOpen(false);
             setEditingAssignment(null);
         },
@@ -160,10 +180,10 @@ export function BusDriverAssignments() {
             {/* Strict Single-Line Non-Scrollable Header */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
-                    
+
                     {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
                     <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Driver Assignments</h2>
+                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Driver Shift Assignment</h2>
 
                         <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
                             <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
@@ -222,7 +242,7 @@ export function BusDriverAssignments() {
                             <option value="cancelled">Cancelled</option>
                         </select>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-navy-600 rounded hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
                         >
@@ -297,11 +317,10 @@ export function BusDriverAssignments() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                assignment.status === 'active'
+                                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${assignment.status === 'active'
                                                     ? 'bg-green-100 text-green-700'
                                                     : 'bg-red-100 text-red-700'
-                                            }`}>
+                                                }`}>
                                                 {assignment.status === 'active' ? 'Active' : 'Cancelled'}
                                             </span>
                                         </td>
@@ -374,11 +393,10 @@ export function BusDriverAssignments() {
                                 <button
                                     key={i + 1}
                                     onClick={() => setCurrentPage(i + 1)}
-                                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                                        currentPage === i + 1
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${currentPage === i + 1
                                             ? 'bg-emerald-500 text-white font-medium'
                                             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                    }`}
+                                        }`}
                                 >
                                     {i + 1}
                                 </button>

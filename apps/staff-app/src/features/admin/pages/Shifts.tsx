@@ -4,7 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Download, Plus, Edit2, Trash2, Clock, CheckCircle, XCircle, Calendar, Power } from 'lucide-react';
 import { ShiftModal } from '@/features/admin/components/ShiftModal';
 import { shiftService } from '@/services/shift.service';
-import { driverService } from '@/services/driver.service';
 import { Shift } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -61,12 +60,6 @@ export function Shifts() {
         shiftEnd: formatTime(s.shiftEnd),
         shiftDate: formatDate(s.shiftDate),
     }));
-
-    // Fetch Drivers for Modal
-    const { data: drivers = [] } = useQuery({
-        queryKey: ['drivers'],
-        queryFn: () => driverService.getAll(undefined, 'all', true), // only active drivers
-    });
 
     // Mutations
     const createMutation = useMutation({
@@ -218,13 +211,12 @@ export function Shifts() {
                 }}
                 onSubmit={handleSubmitShift}
                 shift={editingShift}
-                drivers={drivers}
             />
 
             {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
-                    
+
                     {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
                     <div className="flex items-center gap-3 shrink-0">
                         <h2 className="text-white font-semibold text-base whitespace-nowrap"> Shifts</h2>
@@ -286,7 +278,7 @@ export function Shifts() {
                             <option value="inactive">Inactive</option>
                         </select>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
                         >
@@ -329,7 +321,7 @@ export function Shifts() {
                             >
                                 {/* Decorative top gradient border */}
                                 <div className={`h-1.5 w-full ${shift.isActive ? 'bg-gradient-to-r from-emerald-400 to-cyan-500' : 'bg-slate-300 dark:bg-slate-700'}`} />
-                                
+
                                 <div className="p-4 flex-1 flex flex-col">
                                     {/* Header & Status */}
                                     <div className="flex justify-between items-start mb-4">
@@ -346,11 +338,10 @@ export function Shifts() {
                                         </div>
                                         <button
                                             onClick={() => handleToggleStatus(shift.id, shift.isActive)}
-                                            className={`group shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all duration-200 shadow-sm hover:shadow-md ${
-                                                shift.isActive 
-                                                ? 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600 ring-2 ring-emerald-500/20' 
+                                            className={`group shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider border transition-all duration-200 shadow-sm hover:shadow-md ${shift.isActive
+                                                ? 'bg-emerald-500 border-emerald-500 text-white hover:bg-emerald-600 hover:border-emerald-600 ring-2 ring-emerald-500/20'
                                                 : 'bg-slate-100 border-slate-300 text-slate-600 hover:bg-slate-200 dark:bg-navy-800 dark:border-navy-600 dark:text-slate-300 dark:hover:bg-navy-700'
-                                            }`}
+                                                }`}
                                         >
                                             <Power className={`w-3.5 h-3.5 transition-transform ${shift.isActive ? 'text-white' : 'text-slate-400'}`} />
                                             {shift.isActive ? 'Active' : 'Inactive'}
@@ -444,11 +435,10 @@ export function Shifts() {
                             <button
                                 key={i + 1}
                                 onClick={() => setCurrentPage(i + 1)}
-                                className={`px-3 py-1.5 text-sm rounded font-semibold transition-colors ${
-                                    currentPage === i + 1
-                                        ? 'bg-emerald-500 text-white shadow-sm'
-                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                }`}
+                                className={`px-3 py-1.5 text-sm rounded font-semibold transition-colors ${currentPage === i + 1
+                                    ? 'bg-emerald-500 text-white shadow-sm'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                                    }`}
                             >
                                 {i + 1}
                             </button>

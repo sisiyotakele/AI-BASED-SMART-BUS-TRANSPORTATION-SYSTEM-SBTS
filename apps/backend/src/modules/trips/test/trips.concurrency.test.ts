@@ -46,22 +46,15 @@ describe('Trip Creation - Concurrency & Race Conditions', () => {
             },
         });
 
-        // Create stops
-        const startStop = await prismaTest.stop.create({
-            data: { stopName: 'Start Stop', stopCode: `START-${Date.now()}` },
-        });
-        const endStop = await prismaTest.stop.create({
-            data: { stopName: 'End Stop', stopCode: `END-${Date.now()}` },
-        });
-
         // Create route
         const route = await prismaTest.route.create({
             data: {
                 routeName: 'Route 1',
-                startStopId: startStop.id,
-                endStopId: endStop.id,
+                startTerminalId: terminal.id,
+                endTerminalId: terminal.id,
             },
         });
+
 
         // Create route version
         const version = await prismaTest.routeVersion.create({

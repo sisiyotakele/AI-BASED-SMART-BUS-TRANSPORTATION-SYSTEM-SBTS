@@ -32,9 +32,12 @@ export async function generateTripsForToday() {
     for (const schedule of schedules) {
       try {
         // Calculate expected start time
-        let timeString = schedule.departureTime as unknown as string;
-        if (timeString instanceof Date) {
-             timeString = (timeString as Date).toISOString();
+        let timeVal = schedule.departureTime as unknown;
+        let timeString = '';
+        if (timeVal instanceof Date) {
+             timeString = timeVal.toISOString();
+        } else {
+             timeString = String(timeVal);
         }
 
         let hours = 8;
@@ -55,9 +58,10 @@ export async function generateTripsForToday() {
         const scheduledStart = new Date(today);
         scheduledStart.setHours(hours, mins, 0, 0);
 
-        // Estimate duration (2 hours if frequency not provided)
-        const durationMins = schedule.frequencyMinutes || 120;
+        // Estimate duration (120 minutes default)
+        const durationMins = 120;
         const scheduledEnd = new Date(scheduledStart.getTime() + durationMins * 60000);
+
 
         // 2. Find an eligible Shift & Bus that covers this time
         // The driver must have a shift covering that time, and must have a bus assigned.

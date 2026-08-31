@@ -13,8 +13,6 @@ interface PricingFormData {
     fromStopId: string;
     toStopId: string;
     basePrice: number;
-    peakPrice?: number;
-    offPeakPrice?: number;
     effectiveFrom: string;
     effectiveUntil?: string;
 }
@@ -29,8 +27,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
         fromStopId: '',
         toStopId: '',
         basePrice: 0,
-        peakPrice: undefined,
-        offPeakPrice: undefined,
         effectiveFrom: new Date().toISOString().split('T')[0],
         effectiveUntil: '',
     });
@@ -54,9 +50,9 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
     
     if (selectedRoute) {
         const stopsMap = new Map();
-        if (selectedRoute.startStop) stopsMap.set(selectedRoute.startStop.id, selectedRoute.startStop);
-        if (selectedRoute.endStop) stopsMap.set(selectedRoute.endStop.id, selectedRoute.endStop);
-        selectedRoute.versions?.[0]?.routeStops?.forEach((rs: any) => {
+        if ((selectedRoute as any).startStop) stopsMap.set((selectedRoute as any).startStop.id, (selectedRoute as any).startStop);
+        if ((selectedRoute as any).endStop) stopsMap.set((selectedRoute as any).endStop.id, (selectedRoute as any).endStop);
+        (selectedRoute as any).versions?.[0]?.routeStops?.forEach((rs: any) => {
             if (rs.stop) stopsMap.set(rs.stop.id, rs.stop);
         });
         availableStops = Array.from(stopsMap.values());
@@ -71,8 +67,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                 fromStopId: editData.fromStopId || '',
                 toStopId: editData.toStopId || '',
                 basePrice: editData.basePrice || 0,
-                peakPrice: editData.peakPrice || undefined,
-                offPeakPrice: editData.offPeakPrice || undefined,
                 effectiveFrom: editData.effectiveFrom?.split('T')[0] || new Date().toISOString().split('T')[0],
                 effectiveUntil: editData.effectiveUntil?.split('T')[0] || '',
             });
@@ -82,8 +76,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                 fromStopId: '',
                 toStopId: '',
                 basePrice: 0,
-                peakPrice: undefined,
-                offPeakPrice: undefined,
                 effectiveFrom: new Date().toISOString().split('T')[0],
                 effectiveUntil: '',
             });
@@ -114,14 +106,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
             newErrors.basePrice = 'Base price must be greater than 0';
         }
 
-        if (formData.peakPrice !== undefined && formData.peakPrice < formData.basePrice) {
-            newErrors.peakPrice = 'Peak price must be greater than or equal to base price';
-        }
-
-        if (formData.offPeakPrice !== undefined && formData.offPeakPrice > formData.basePrice) {
-            newErrors.offPeakPrice = 'Off-peak price must be less than or equal to base price';
-        }
-
         if (!formData.effectiveFrom) {
             newErrors.effectiveFrom = 'Effective from date is required';
         }
@@ -149,8 +133,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
             fromStopId: '',
             toStopId: '',
             basePrice: 0,
-            peakPrice: undefined,
-            offPeakPrice: undefined,
             effectiveFrom: new Date().toISOString().split('T')[0],
             effectiveUntil: '',
         });
@@ -263,7 +245,7 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                     </div>
 
                     {/* Price Fields */}
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-1 gap-3">
                         {/* Base Price */}
                         <div>
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
@@ -279,42 +261,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                             />
                             {errors.basePrice && (
                                 <p className="mt-1 text-sm text-red-500">{errors.basePrice}</p>
-                            )}
-                        </div>
-
-                        {/* Peak Price */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Peak Price (Optional)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={formData.peakPrice ?? ''}
-                                onChange={(e) => handleChange('peakPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.peakPrice ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
-                            />
-                            {errors.peakPrice && (
-                                <p className="mt-1 text-sm text-red-500">{errors.peakPrice}</p>
-                            )}
-                        </div>
-
-                        {/* Off-Peak Price */}
-                        <div>
-                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                                Off-Peak (Optional)
-                            </label>
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                value={formData.offPeakPrice ?? ''}
-                                onChange={(e) => handleChange('offPeakPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
-                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.offPeakPrice ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
-                            />
-                            {errors.offPeakPrice && (
-                                <p className="mt-1 text-sm text-red-500">{errors.offPeakPrice}</p>
                             )}
                         </div>
                     </div>
@@ -362,8 +308,6 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                             <div className="text-sm text-yellow-900 dark:text-yellow-500/90">
                                 <p className="font-medium mb-1">Pricing Rules:</p>
                                 <ul className="list-disc list-inside space-y-0.5 text-xs opacity-90">
-                                    <li>Peak price must be ≥ base price</li>
-                                    <li>Off-peak price must be ≤ base price</li>
                                     <li>Effective until date is optional</li>
                                 </ul>
                             </div>

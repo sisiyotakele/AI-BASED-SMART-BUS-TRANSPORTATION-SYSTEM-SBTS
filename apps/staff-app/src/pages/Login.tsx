@@ -7,6 +7,7 @@ import { Eye, EyeOff, Mail, Lock, Loader2, Copy, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store/auth.store';
+import { getActivePortal, setPortalHint } from '@/lib/auth-storage';
 import shegerBusImage from '@/assets/sheger.jpeg';
 import logoImage from '@/assets/logo.png';
 
@@ -39,10 +40,49 @@ export function Login() {
     setIsLoading(true);
     try {
       const response = await authService.login(data.email, data.password);
-      setAuth(response.user, response.accessToken, response.refreshToken);
-      toast.success('Welcome back!');
+      let from = location.state?.from?.pathname || '/';
+
+      const roleNames = (response.user.roles || [])
+        .map((r: any) => {
+          if (typeof r === 'string') return r.toUpperCase();
+          return (r.roleName || r.name || '').toUpperCase();
+        })
+        .filter(Boolean);
+      const hasDriverRole = roleNames.includes('DRIVER');
+      const hasAdminAccess = roleNames.some((role) => role !== 'DRIVER' && role !== 'PASSENGER');
+      const canAccessDriver = hasDriverRole;
+      const canAccessAdmin = hasAdminAccess;
+
+      if (from.startsWith('/driver') && canAccessDriver) {
+        // Keep requested driver path.
+      } else if (from.startsWith('/dashboard') && canAccessAdmin) {
+        // Keep requested admin path.
+      } else if (canAccessAdmin) {
+        from = '/dashboard';
+      } else if (canAccessDriver) {
+        from = '/driver';
+      } else {
+        from = '/';
+      }
+
+        const targetPortal = from.startsWith('/driver')
+        ? 'driver'
+        : from.startsWith('/dashboard')
+          ? 'admin'
+          : getActivePortal();
+
+        setPortalHint(targetPortal);
+        setAuth(response.user, response.accessToken, response.refreshToken, targetPortal);
+
+      // If admin assigned this password, force the user to change it first
+      if (response.mustChangePassword) {
+        toast('Please set a new password before continuing.', { icon: '🔒' });
+        navigate('/change-password', { replace: true });
+        return;
+      }
+
+        toast.success('Welcome back!');
       
-      const from = location.state?.from?.pathname || '/dashboard';
       navigate(from, { replace: true });
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Login failed');
@@ -188,6 +228,7 @@ export function Login() {
 
               <button
                 type="button"
+                onClick={() => navigate('/forgot-password')}
                 className="text-xs font-semibold text-[#2B4B9E] dark:text-cyan-400 hover:text-[#1e3a80] dark:hover:text-cyan-300 transition-colors"
               >
                 Forgot password?

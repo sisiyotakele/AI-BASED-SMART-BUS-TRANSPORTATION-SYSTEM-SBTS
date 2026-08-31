@@ -1,7 +1,7 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, MapPin, Edit2, Trash2, Navigation, GitBranch, X, Eye, Download, ListOrdered } from 'lucide-react';
+import { Search, Plus, MapPin, Edit2, Trash2, Navigation, GitBranch, X, Eye, Download, ListOrdered, Power, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { RouteModal } from '@/features/admin/components/RouteModal';
 
@@ -35,6 +35,7 @@ export function Routes() {
 
     const [showMapEditor, setShowMapEditor] = useState(false);
     const [selectedRouteForMap, setSelectedRouteForMap] = useState<Route | null>(null);
+    const [selectedDirection, setSelectedDirection] = useState<'forward' | 'backward'>('forward');
 
     // Version/Stop editor state
     const [editingStops, setEditingStops] = useState<MapPoint[]>([]);
@@ -54,8 +55,8 @@ export function Routes() {
         queryFn: () => stopService.getAll()
     });
 
-    const { data: versions = [], refetch: refetchVersions } = useQuery({
-        queryKey: ['route-versions', selectedRouteForMap?.id],
+    const { data: routeVariants, refetch: refetchRouteVariants } = useQuery({
+        queryKey: ['route-variants', selectedRouteForMap?.id],
         queryFn: () => routeService.getVersions(selectedRouteForMap!.id),
         enabled: !!selectedRouteForMap,
     });
@@ -129,76 +130,38 @@ export function Routes() {
         setEditingStops(prev => prev.filter(s => s.id !== stopId));
     };
 
-
-
-    const handleVersionSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const val = e.target.value;
-        setSelectedVersionId(val);
-        if (val === 'new') {
-            setEditingStops([]);
-        } else if (val) {
-            const v = versions.find((ver: any) => ver.id === val);
-            if (v && v.routeStops) {
-                setEditingStops(v.routeStops.map((rs: any) => ({
-                    id: rs.stop.id,
-                    name: rs.stop.stopName,
-                    lat: 0,
-                    lon: 0
-                })));
-            } else {
-                setEditingStops([]);
-            }
-        } else {
-            setEditingStops([]);
-        }
-    };
-
     const handleSaveRoute = async () => {
         if (!selectedRouteForMap || editingStops.length === 0) return;
-        
+
         try {
-            let targetVersionId = selectedVersionId;
-            const mappedStops = [];
-            
-            for (let i = 0; i < editingStops.length; i++) {
-                mappedStops.push({
-                    stopId: editingStops[i].id,
-                    sequenceNumber: i + 1,
-                    distanceKm: 0
-                });
+            const targetVersionId = selectedVersionId;
+
+            if (!targetVersionId) {
+                toast.error('Please select a route first or click "Add Route" to create a new one');
+                return;
             }
 
-            if (targetVersionId === 'new') {
-                await routeService.createVersion(selectedRouteForMap.id, { 
-                    routeStops: mappedStops,
-                    versionName: newVersionName.trim() || undefined
-                });
-                toast.success('New route version & stops created successfully!');
-                setNewVersionName('');
-            } else if (!targetVersionId) {
-                toast.error('Please select a version to save to');
-                return;
-            } else {
-                // Try to overwrite the existing draft/inactive version.
-                // The backend automatically throws a 400 error (toast intercepted) if it's an ACTIVE/LOCKED version.
-                await routeService.overwriteVersionStops(targetVersionId, { routeStops: mappedStops });
-                toast.success('Modifications applied. Draft version sequence updated.');
-            }
-            
+            const mappedStops = editingStops.map((stop, index) => ({
+                stopId: stop.id,
+                sequenceNumber: index + 1,
+                distanceKm: 0
+            }));
+
+            // Update existing route's stops
+            await routeService.overwriteVersionStops(targetVersionId, { routeStops: mappedStops });
+            toast.success('Route stops updated successfully!');
+
             queryClient.invalidateQueries({ queryKey: ['route', selectedRouteForMap.id] });
-            refetchVersions();
-            setShowMapEditor(false);
+            refetchRouteVariants();
             setEditingStops([]);
-            setSelectedVersionId('');
-            setNewVersionName('');
         } catch (e: any) {
-             toast.error(e.response?.data?.message || 'Failed to save route stops');
+            toast.error(e.response?.data?.message || 'Failed to save route stops');
         }
     };
 
     const handleAddStopToList = () => {
         if (!selectedNewStopId) return;
-        
+
         const stopObj = stops.find(s => s.id === selectedNewStopId);
         if (stopObj) {
             setEditingStops(prev => [...prev, {
@@ -213,6 +176,7 @@ export function Routes() {
 
     const handleOpenMapEditor = async (route: Route) => {
         setSelectedRouteForMap(route);
+        setSelectedDirection('forward'); // Default to forward
         setShowMapEditor(true);
         setEditingStops([]);
         setSelectedVersionId('');
@@ -231,8 +195,8 @@ export function Routes() {
         const csvData = filteredRoutes.map(r => [
             r.routeName,
             r.id,
-            r.startStop?.stopName || r.startStopName || 'N/A',
-            r.endStop?.stopName || r.endStopName || 'N/A',
+            r.startTerminal?.terminalName || 'N/A',
+            r.endTerminal?.terminalName || 'N/A',
             (r.stopCount || 0).toString(),
             r.status || 'unknown'
         ]);
@@ -271,7 +235,6 @@ export function Routes() {
                 onClose={handleModalClose}
                 onSubmit={editingRoute ? handleUpdateRoute : handleCreateRoute}
                 editData={editingRoute}
-                stops={stops}
             />
 
             {/* Header */}
@@ -318,8 +281,8 @@ export function Routes() {
                             <option value="active">Active</option>
                             <option value="inactive">Inactive</option>
                         </select>
-                        
-                        <button 
+
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
                         >
@@ -327,7 +290,7 @@ export function Routes() {
                             <span>Export</span>
                         </button>
 
-                        
+
                         <button
                             onClick={() => setIsModalOpen(true)}
                             className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
@@ -339,17 +302,16 @@ export function Routes() {
                 </div>
             </div>
 
-        {/* Table */}
+            {/* Table */}
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap text-left border-collapse min-w-max">
                         <thead className="bg-slate-50 dark:bg-navy-800 border-b border-slate-200 dark:border-navy-700">
                             <tr>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Name</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Info & Stops</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route ID</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Start Stop</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">End Stop</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Total Stops</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Start</th>
+                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">End</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                             </tr>
@@ -357,9 +319,13 @@ export function Routes() {
                         <tbody className="divide-y divide-slate-100 dark:divide-navy-700/50">
                             {filteredRoutes.map((route) => (
                                 <tr key={route.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
-                                    <td className="px-6 py-4">
-                                        <div>
-                                            <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{route.routeName}</div>
+                                    <td className="px-6 py-4 w-[250px]">
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="text-base font-bold text-slate-900 dark:text-slate-100 leading-none">{route.routeName}</div>
+                                            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-800 w-max shadow-sm">
+                                                <ListOrdered className="w-3.5 h-3.5" />
+                                                <span>{route.versions?.find((v: any) => v.isPrimary)?.stopCount || route.stopCount || 0} Total Active Stops</span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">
@@ -368,17 +334,18 @@ export function Routes() {
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5 text-sm text-slate-900 dark:text-slate-300">
                                             <MapPin className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                            <span>{route.startStop?.stopName || route.startStopName || 'N/A'}</span>
+                                            <span className="font-medium">
+                                                {route.startTerminal?.terminalName || 'N/A'}
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-1.5 text-sm text-slate-900 dark:text-slate-300">
                                             <MapPin className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                                            <span>{route.endStop?.stopName || route.endStopName || 'N/A'}</span>
+                                            <span className="font-medium">
+                                                {route.endTerminal?.terminalName || 'N/A'}
+                                            </span>
                                         </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-900 dark:text-slate-300">
-                                        <span className="bg-slate-100 dark:bg-navy-800 px-2 py-0.5 rounded font-mono border border-slate-200 dark:border-navy-600">{route.stopCount || 0}</span>
                                     </td>
                                     <td className="px-6 py-4 text-sm">
                                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer ${route.status === 'active' ? 'bg-green-100/50 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300'}`}
@@ -406,13 +373,13 @@ export function Routes() {
                                             <button
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleOpenMapEditor(route);
+                                                    navigate(`/dashboard/routes/${route.id}/manage-stops`);
                                                 }}
                                                 className="flex items-center space-x-1 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 px-2 py-1.5 rounded transition-colors font-medium border border-emerald-200 dark:border-emerald-800"
-                                                title="Manage Versions & Stops"
+                                                title="Manage Routes & Stops"
                                             >
                                                 <ListOrdered className="w-3.5 h-3.5" />
-                                                <span>Versions</span>
+                                                <span>Routes</span>
                                             </button>
                                             <button
                                                 onClick={(e) => {
@@ -450,14 +417,14 @@ export function Routes() {
                 </div>
             </div>
 
-            {/* Add Stops & Versions Modal */}
+            {/* Add Stops & Routes Modal */}
             {showMapEditor && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
                     <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200 dark:border-navy-700">
-                        
+
                         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-800">
                             <div>
-                                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Route Versions & Stops Manager</h2>
+                                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Route Configuration & Stops Manager</h2>
                                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Configuring Stops for: {selectedRouteForMap?.routeName}</p>
                             </div>
                             <button
@@ -474,37 +441,216 @@ export function Routes() {
                         <div className="flex-1 flex overflow-hidden flex-col md:flex-row">
                             {/* Left Side: Version selector & Stop Sequence */}
                             <div className="flex-1 flex flex-col bg-white dark:bg-navy-900 border-r border-slate-200 dark:border-navy-700 h-[60vh] overflow-y-auto">
-                                
+
+                                {/* Direction Toggle */}
+                                <div className="p-6 border-b border-slate-200 dark:border-navy-700 bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20">
+                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-3 block">Select Direction</label>
+                                    <div className="flex gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedDirection('forward');
+                                                setSelectedVersionId('');
+                                                setEditingStops([]);
+                                            }}
+                                            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${selectedDirection === 'forward'
+                                                ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                                                : 'bg-white dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 border border-slate-200 dark:border-navy-600'
+                                                }`}
+                                        >
+                                            <span className="block text-xs opacity-75 mb-0.5">Forward</span>
+                                            <span className="block font-bold">
+                                                {selectedRouteForMap?.startTerminal?.terminalName || 'Start'} → {selectedRouteForMap?.endTerminal?.terminalName || 'End'}
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setSelectedDirection('backward');
+                                                setSelectedVersionId('');
+                                                setEditingStops([]);
+                                            }}
+                                            className={`flex-1 px-4 py-3 rounded-xl font-medium transition-all text-sm ${selectedDirection === 'backward'
+                                                ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30'
+                                                : 'bg-white dark:bg-navy-800 text-slate-600 dark:text-slate-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 border border-slate-200 dark:border-navy-600'
+                                                }`}
+                                        >
+                                            <span className="block text-xs opacity-75 mb-0.5">Backward</span>
+                                            <span className="block font-bold">
+                                                {selectedRouteForMap?.endTerminal?.terminalName || 'End'} → {selectedRouteForMap?.startTerminal?.terminalName || 'Start'}
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
                                 <div className="p-6 border-b border-slate-200 dark:border-navy-700 bg-slate-50 dark:bg-navy-800/50">
-                                    <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2 block">Target Version</label>
-                                    <select
-                                        value={selectedVersionId}
-                                        onChange={handleVersionSelect}
-                                        className="w-full px-4 py-2.5 bg-white dark:bg-navy-900 text-slate-900 dark:text-white rounded-xl border border-slate-300 dark:border-navy-600 focus:outline-none focus:ring-1 focus:border-cyan-500 shadow-sm font-medium"
-                                    >
-                                        <option value="">Select a version...</option>
-                                        {versions.map((v: any) => (
-                                            <option key={v.id} value={v.id}>
-                                                {v.versionName || `Version ${v.versionNumber}`} {v.isActive ? '[LOCKED - Active]' : '[DRAFT]'}
-                                            </option>
+                                    <div className="flex items-center justify-between mb-3">
+                                        <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Available Routes</label>
+                                        <button
+                                            type="button"
+                                            onClick={async () => {
+                                                if (!selectedRouteForMap) return;
+                                                try {
+                                                    const currentRoutes = selectedDirection === 'forward'
+                                                        ? (routeVariants?.forward || [])
+                                                        : (routeVariants?.backward || []);
+                                                    const nextNumber = currentRoutes.length + 1;
+
+                                                    await routeService.createVersion(selectedRouteForMap.id, {
+                                                        direction: selectedDirection,
+                                                        routeName: `Route ${nextNumber}`,
+                                                        routeStops: []
+                                                    });
+
+                                                    toast.success(`Route ${nextNumber} created successfully! Add stops below.`);
+                                                    refetchRouteVariants();
+                                                } catch (error: any) {
+                                                    toast.error(error.response?.data?.message || 'Failed to create route');
+                                                }
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-medium transition-colors shadow-sm"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            <span>Add Route</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Routes List */}
+                                    <div className="space-y-2">
+                                        {(selectedDirection === 'forward' ? (routeVariants?.forward || []) : (routeVariants?.backward || [])).map((route: any) => (
+                                            <div
+                                                key={route.id}
+                                                className={`relative rounded-lg border-2 transition-all ${selectedVersionId === route.id
+                                                    ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20'
+                                                    : 'border-slate-200 dark:border-navy-600 hover:border-cyan-300 dark:hover:border-cyan-700 bg-white dark:bg-navy-800'
+                                                    }`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedVersionId(route.id);
+                                                        if (route.routeStops) {
+                                                            setEditingStops(route.routeStops.map((rs: any) => ({
+                                                                id: rs.stop.id,
+                                                                name: rs.stop.stopName,
+                                                                lat: 0,
+                                                                lon: 0
+                                                            })));
+                                                        } else {
+                                                            setEditingStops([]);
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-4 py-3"
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-2">
+                                                            {route.isPrimary && <span className="text-yellow-500">⭐</span>}
+                                                            <span className="font-semibold text-slate-900 dark:text-white">
+                                                                {route.routeName || `Route ${route.routeNumber}`}
+                                                            </span>
+                                                            {route.isPrimary && (
+                                                                <span className="text-xs px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded-full font-medium">
+                                                                    PRIMARY
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${route.isActive
+                                                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+                                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                                                            }`}>
+                                                            {route.isActive ? 'ACTIVE' : 'INACTIVE'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                        {route.stopCount || 0} stops
+                                                    </div>
+                                                </button>
+
+                                                {/* Action Buttons */}
+                                                <div className="flex items-center gap-1 px-4 pb-3 pt-0">
+                                                    {/* Activate/Deactivate Button */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            try {
+                                                                if (route.isActive) {
+                                                                    await routeService.deactivateVersion(route.id);
+                                                                    toast.success('Route deactivated');
+                                                                } else {
+                                                                    await routeService.activateVersion(route.id);
+                                                                    toast.success('Route activated');
+                                                                }
+                                                                refetchRouteVariants();
+                                                            } catch (error: any) {
+                                                                toast.error(error.response?.data?.message || 'Failed to update route status');
+                                                            }
+                                                        }}
+                                                        className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${route.isActive
+                                                            ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                                                            : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                                                            }`}
+                                                        title={route.isActive ? 'Deactivate route' : 'Activate route'}
+                                                    >
+                                                        {route.isActive ? (
+                                                            <>
+                                                                <XCircle className="w-3 h-3" />
+                                                                <span>Deactivate</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <CheckCircle className="w-3 h-3" />
+                                                                <span>Activate</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+
+                                                    {/* Delete Button - Only for non-primary routes */}
+                                                    {!route.isPrimary && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={async (e) => {
+                                                                e.stopPropagation();
+                                                                const confirmed = await confirm({
+                                                                    title: `Delete ${route.routeName || `Route ${route.routeNumber}`}?`,
+                                                                    message: route.isActive
+                                                                        ? 'This route is currently ACTIVE. Please deactivate it first before deleting.'
+                                                                        : 'This action cannot be undone. All stops associated with this route will be removed.',
+                                                                    confirmText: 'Delete',
+                                                                    isDanger: true
+                                                                });
+
+                                                                if (confirmed) {
+                                                                    try {
+                                                                        await routeService.deleteVersion(route.id);
+                                                                        toast.success('Route deleted');
+                                                                        refetchRouteVariants();
+                                                                        if (selectedVersionId === route.id) {
+                                                                            setSelectedVersionId('');
+                                                                            setEditingStops([]);
+                                                                        }
+                                                                    } catch (error: any) {
+                                                                        toast.error(error.response?.data?.message || 'Failed to delete route');
+                                                                    }
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+                                                            title="Delete route"
+                                                        >
+                                                            <Trash2 className="w-3 h-3" />
+                                                            <span>Delete</span>
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
                                         ))}
-                                        <option value="new" className="font-bold text-emerald-600">+ Create Entirely New Version</option>
-                                    </select>
-                                    {selectedVersionId === 'new' && (
-                                        <div className="mt-3">
-                                            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1 block">New Version Name</label>
-                                            <input 
-                                                type="text" 
-                                                value={newVersionName}
-                                                onChange={(e) => setNewVersionName(e.target.value)}
-                                                placeholder="e.g. Detour Route, Express Variant" 
-                                                className="w-full px-3 py-2 bg-white dark:bg-navy-900 text-slate-900 dark:text-white rounded-lg border border-slate-300 dark:border-navy-600 focus:outline-none focus:ring-1 focus:border-cyan-500 shadow-sm text-sm"
-                                            />
-                                        </div>
-                                    )}
-                                    <p className="text-xs text-slate-500 mt-2">
-                                        Note: Added stops will not apply directly to Active versions (locked). Select [+ Create Entirely New Version] to branch off.
-                                    </p>
+
+                                        {(selectedDirection === 'forward' ? (routeVariants?.forward || []) : (routeVariants?.backward || [])).length === 0 && (
+                                            <div className="text-center py-8 text-slate-500 dark:text-slate-400 text-sm">
+                                                No routes yet. Click "Add Route" to create Route 1.
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="p-6 flex-1 flex flex-col">
@@ -519,7 +665,7 @@ export function Routes() {
                                             </button>
                                         )}
                                     </div>
-                                    
+
                                     <div className="flex-1 overflow-y-auto pr-2 space-y-3 pb-6">
                                         {editingStops.length === 0 ? (
                                             <div className="text-center p-8 bg-slate-50 dark:bg-navy-800/50 rounded-xl border border-dashed border-slate-300 dark:border-navy-600">
@@ -531,7 +677,7 @@ export function Routes() {
                                             editingStops.map((stop, index) => {
                                                 const isStart = index === 0;
                                                 const isEnd = index === editingStops.length - 1;
-                                                
+
                                                 return (
                                                     <div key={stop.id} className="group flex items-start gap-3 p-3 bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-xl shadow-sm hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors relative">
                                                         <div className={`mt-0.5 flex items-center justify-center w-7 h-7 rounded-lg text-white text-xs font-bold shadow-sm shrink-0
@@ -561,7 +707,7 @@ export function Routes() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Right Side: Stop Picker */}
                             <div className="w-full md:w-[380px] bg-slate-50 dark:bg-navy-800 p-6 flex flex-col shrink-0 border-t md:border-t-0 md:border-l border-slate-200 dark:border-navy-700 h-[30vh] md:h-auto">
                                 <div className="mb-4">
@@ -571,11 +717,11 @@ export function Routes() {
 
                                 <div className="bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl p-4 shadow-sm flex flex-col flex-1">
                                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest mb-2">DB Directory</label>
-                                    
+
                                     <div className="space-y-4 flex-1 flex flex-col mt-2">
                                         <div className="relative">
                                             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                                            <input 
+                                            <input
                                                 type="text"
                                                 placeholder="Search stops..."
                                                 value={stopSearchTerm}
@@ -583,7 +729,7 @@ export function Routes() {
                                                 className="w-full pl-8 pr-3 py-1.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-lg border border-slate-300 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 text-sm"
                                             />
                                         </div>
-                                        <select 
+                                        <select
                                             value={selectedNewStopId}
                                             onChange={(e) => setSelectedNewStopId(e.target.value)}
                                             size={10}
@@ -596,7 +742,7 @@ export function Routes() {
                                             ))}
                                         </select>
 
-                                        <button 
+                                        <button
                                             onClick={handleAddStopToList}
                                             disabled={!selectedNewStopId}
                                             className="w-full py-2.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-colors shadow-sm flex items-center justify-center gap-2 shrink-0"

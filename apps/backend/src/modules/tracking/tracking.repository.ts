@@ -58,8 +58,8 @@ export async function findAllLiveLocations() {
             }
         },
         orderBy: { recordedAt: 'desc' },
-        // Ideally we want distinct by busId, but Prisma doesn't support distinct well with relations.
-        // We can just rely on the DB having only 1 row per bus if it's an upsert table, or handle it in service.
-        distinct: ['busId'],
+        // For the presentation, we want distinct by tripId so all active trips show up on the map
+        // even if mock data assigned the same physical bus to multiple trips at once.
+        distinct: ['tripId'],
     });
 }

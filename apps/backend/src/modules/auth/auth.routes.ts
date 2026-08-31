@@ -8,14 +8,45 @@ import { config } from '@/config';
 
 const router = Router();
 
-// Rate limiters
+// ============================================================
+// RATE LIMITERS
+// ============================================================
+
+/**
+ * Auth rate limiter — 5 attempts per 15 minutes (supervisor requirement).
+ * Disabled in development to avoid lockouts during testing.
+ */
 const authLimiter = rateLimit({
-    windowMs: config.rateLimit.auth.windowMs,
-    max: config.rateLimit.auth.max,
-    message: 'Too many requests from this IP, please try again later',
+    windowMs: config.rateLimit.auth.windowMs,          // 15 minutes
+    max: config.env === 'development' ? 1000 : 5,       // 5 in production
+    message: {
+        success: false,
+        message: 'Too many login attempts. Please try again in 15 minutes.',
+    },
     standardHeaders: true,
     legacyHeaders: false,
+    skipSuccessfulRequests: config.env === 'development',
 });
+
+/**
+ * Forgot-password rate limiter — 5 attempts per 15 minutes (supervisor requirement).
+ * Same limit as login to prevent password-reset abuse.
+ */
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,                          // 15 minutes
+    max: config.env === 'development' ? 1000 : 5,       // 5 in production
+    message: {
+        success: false,
+        message: 'Too many password reset requests. Please try again in 15 minutes.',
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false,
+});
+
+// ============================================================
+// ROUTES
+// ============================================================
 
 /**
  * @swagger
@@ -23,55 +54,6 @@ const authLimiter = rateLimit({
  *   post:
  *     summary: Register a new passenger
  *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *               - fullName
- *               - phone
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *                 minLength: 6
- *               fullName:
- *                 type: string
- *               phone:
- *                 type: string
- *     responses:
- *       201:
- *         description: User registered successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       type: object
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
- *       400:
- *         description: Invalid input data
- *       409:
- *         description: User already exists
- *       429:
- *         description: Too many requests
- *       500:
- *         description: Internal server error
  */
 router.post(
     '/register',
@@ -85,49 +67,8 @@ router.post(
  * /api/v1/auth/login:
  *   post:
  *     summary: Login user
+ *     description: Returns mustChangePassword flag — if true, redirect user to /change-password.
  *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - email
- *               - password
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *               password:
- *                 type: string
- *     responses:
- *       200:
- *         description: Login successful
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     user:
- *                       type: object
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
- *       400:
- *         description: Invalid credentials
- *       401:
- *         description: Unauthorized - Invalid email or password
- *       429:
- *         description: Too many requests
- *       500:
- *         description: Internal server error
  */
 router.post(
     '/login',
@@ -142,40 +83,6 @@ router.post(
  *   post:
  *     summary: Refresh access token
  *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: Token refreshed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     accessToken:
- *                       type: string
- *                     refreshToken:
- *                       type: string
- *       400:
- *         description: Invalid refresh token
- *       401:
- *         description: Unauthorized - Token expired or invalid
- *       500:
- *         description: Internal server error
  */
 router.post(
     '/refresh',
@@ -189,36 +96,6 @@ router.post(
  *   get:
  *     summary: Get current user profile
  *     tags: [Authentication]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: User profile retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                       format: uuid
- *                     email:
- *                       type: string
- *                     fullName:
- *                       type: string
- *                     phone:
- *                       type: string
- *                     role:
- *                       type: string
- *       401:
- *         description: Unauthorized - Invalid or missing token
- *       500:
- *         description: Internal server error
  */
 router.get(
     '/me',
@@ -232,29 +109,58 @@ router.get(
  *   post:
  *     summary: Logout user
  *     tags: [Authentication]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - refreshToken
- *             properties:
- *               refreshToken:
- *                 type: string
- *     responses:
- *       200:
- *         description: Logout successful
- *       400:
- *         description: Invalid refresh token
- *       500:
- *         description: Internal server error
  */
 router.post(
     '/logout',
     validateBody(authValidation.logoutSchema),
     authController.logout
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/change-password:
+ *   post:
+ *     summary: Change password (authenticated)
+ *     description: >
+ *       Used in two cases:
+ *       1. Admin-assigned password forced change (mustChangePassword = true)
+ *       2. Voluntary password change by logged-in user
+ *       On success, mustChangePassword is reset to false.
+ *     tags: [Authentication]
+ */
+router.post(
+    '/change-password',
+    authenticate,
+    validateBody(authValidation.changePasswordSchema),
+    authController.changePassword
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/forgot-password:
+ *   post:
+ *     summary: Request a password reset token (rate limited to 5/15min)
+ *     tags: [Authentication]
+ */
+router.post(
+    '/forgot-password',
+    forgotPasswordLimiter,
+    validateBody(authValidation.forgotPasswordSchema),
+    authController.forgotPassword
+);
+
+/**
+ * @swagger
+ * /api/v1/auth/reset-password:
+ *   post:
+ *     summary: Reset password using token from forgot-password
+ *     tags: [Authentication]
+ */
+router.post(
+    '/reset-password',
+    forgotPasswordLimiter,
+    validateBody(authValidation.resetPasswordSchema),
+    authController.resetPassword
 );
 
 export default router;

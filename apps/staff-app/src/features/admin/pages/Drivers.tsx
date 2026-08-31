@@ -1,9 +1,12 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Download, Plus, Edit2, Trash2, UserCheck, UserX, Calendar } from 'lucide-react';
+import { Search, Download, Plus, Edit2, Trash2, UserCheck, UserX, Calendar, Bus as BusIcon } from 'lucide-react';
 import { DriverModal } from '@/features/admin/components/DriverModal';
+import { BusDriverAssignmentModal } from '@/features/admin/components/BusDriverAssignmentModal';
 import { driverService } from '@/services/driver.service';
+import { shiftService } from '@/services/shift.service';
+import { busDriverAssignmentService } from '@/services/bus-driver-assignment.service';
 import { terminalsApi } from '@/services/api/terminals.api';
 import { Driver } from '@/types';
 import toast from 'react-hot-toast';
@@ -31,6 +34,8 @@ export function Drivers() {
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDriver, setEditingDriver] = useState<Driver | null>(null);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+    const [assigningDriver, setAssigningDriver] = useState<Driver | null>(null);
 
     // Fetch Drivers
     const { data: drivers = [], isLoading, error } = useQuery({
@@ -84,6 +89,38 @@ export function Drivers() {
         }
     });
 
+    const assignShiftBusMutation = useMutation({
+        mutationFn: async (data: any) => {
+            // 1. Create Shift first
+            const shift = await shiftService.create({
+                driverId: data.driverId,
+                shiftName: data.shiftName,
+                shiftStart: data.shiftStart,
+                shiftEnd: data.shiftEnd,
+                shiftDate: data.assignedDate,
+                isActive: true
+            });
+            // 2. Create the Bus-Driver Assignment using the new shift ID
+            return busDriverAssignmentService.createAssignment({
+                busId: data.busId,
+                shiftId: shift.id,
+                assignedDate: data.assignedDate,
+                status: data.status || 'active'
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['drivers'] });
+            queryClient.invalidateQueries({ queryKey: ['shifts'] });
+            queryClient.invalidateQueries({ queryKey: ['bus-driver-assignments'] });
+            toast.success('Shift and bus assigned successfully');
+            setIsAssignModalOpen(false);
+            setAssigningDriver(null);
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.message || 'Failed to assign shift and bus. Check for overlapping shifts.');
+        }
+    });
+
     // Filtering (Frontend-side pagination)
     const filteredDrivers = drivers;
     const totalPages = Math.ceil(filteredDrivers.length / itemsPerPage);
@@ -126,6 +163,19 @@ export function Drivers() {
         if (isConfirmed) {
             updateMutation.mutate({ id: driverId, data: { isActive: !currentStatus } });
         }
+    };
+
+    const handleAssignShiftBus = (driver: Driver) => {
+        setAssigningDriver(driver);
+        setIsAssignModalOpen(true);
+    };
+
+    const handleAssignSubmit = (data: any) => {
+        if (!assigningDriver) return;
+        assignShiftBusMutation.mutate({
+            ...data,
+            driverId: assigningDriver.id,
+        });
     };
 
     const handleExport = () => {
@@ -188,10 +238,21 @@ export function Drivers() {
                 terminals={terminals}
             />
 
+            <BusDriverAssignmentModal
+                isOpen={isAssignModalOpen}
+                onClose={() => {
+                    setIsAssignModalOpen(false);
+                    setAssigningDriver(null);
+                }}
+                onSubmit={handleAssignSubmit}
+                editData={null}
+                defaultDriverId={assigningDriver?.id}
+            />
+
             {/* Strict Single-Line Non-Scrollable Header */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
-                    
+
                     {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
                     <div className="flex items-center gap-3 shrink-0">
                         <h2 className="text-white font-semibold text-base whitespace-nowrap">Drivers</h2>
@@ -246,7 +307,7 @@ export function Drivers() {
                             <option value="inactive">Inactive</option>
                         </select>
 
-                        <button 
+                        <button
                             onClick={handleExport}
                             className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-navy-600 rounded hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium whitespace-nowrap"
                         >
@@ -308,13 +369,12 @@ export function Drivers() {
                                         <td className="px-6 py-4">
                                             <div>
                                                 <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{driver.licenseNumber}</p>
-                                                <p className={`text-xs ${
-                                                    isLicenseExpired(driver.licenseExpiry)
-                                                        ? 'text-red-600 dark:text-red-400 font-semibold'
-                                                        : isLicenseExpiringSoon(driver.licenseExpiry)
-                                                            ? 'text-orange-600 dark:text-orange-400'
-                                                            : 'text-slate-500 dark:text-slate-400'
-                                                }`}>
+                                                <p className={`text-xs ${isLicenseExpired(driver.licenseExpiry)
+                                                    ? 'text-red-600 dark:text-red-400 font-semibold'
+                                                    : isLicenseExpiringSoon(driver.licenseExpiry)
+                                                        ? 'text-orange-600 dark:text-orange-400'
+                                                        : 'text-slate-500 dark:text-slate-400'
+                                                    }`}>
                                                     Exp: {new Date(driver.licenseExpiry).toLocaleDateString()}
                                                     {isLicenseExpired(driver.licenseExpiry) && ' (Expired)'}
                                                     {isLicenseExpiringSoon(driver.licenseExpiry) && !isLicenseExpired(driver.licenseExpiry) && ' (Expiring Soon)'}
@@ -329,17 +389,23 @@ export function Drivers() {
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => handleToggleStatus(driver.id, driver.isActive)}
-                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    driver.isActive
-                                                        ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                                                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
-                                                } transition-colors cursor-pointer`}
+                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${driver.isActive
+                                                    ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                                    : 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600'
+                                                    } transition-colors cursor-pointer`}
                                             >
                                                 {driver.isActive ? 'Active' : 'Inactive'}
                                             </button>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => handleAssignShiftBus(driver)}
+                                                    className="p-1 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded transition-colors"
+                                                    title="Assign Shift & Bus"
+                                                >
+                                                    <BusIcon className="w-4 h-4 text-cyan-600" />
+                                                </button>
                                                 <button
                                                     onClick={() => handleEditDriver(driver)}
                                                     className="p-1 hover:bg-slate-100 dark:hover:bg-navy-800 rounded transition-colors"
@@ -398,11 +464,10 @@ export function Drivers() {
                                 <button
                                     key={i + 1}
                                     onClick={() => setCurrentPage(i + 1)}
-                                    className={`px-3 py-1 text-sm rounded transition-colors ${
-                                        currentPage === i + 1
-                                            ? 'bg-emerald-500 text-white font-medium'
-                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                    }`}
+                                    className={`px-3 py-1 text-sm rounded transition-colors ${currentPage === i + 1
+                                        ? 'bg-emerald-500 text-white font-medium'
+                                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                                        }`}
                                 >
                                     {i + 1}
                                 </button>

@@ -18,8 +18,9 @@ export function requirePermission(permissionName: string) {
       const roles = req.user.roles ?? [];
 
       // Fast path: if permissions are already cached in the token payload
+      // Use optional chaining to avoid TypeError if role.permissions is undefined
       const hasPermissionFromToken = roles.some((role) =>
-        role.permissions.includes(permissionName)
+        Array.isArray(role.permissions) && role.permissions.includes(permissionName)
       );
 
       if (hasPermissionFromToken) {

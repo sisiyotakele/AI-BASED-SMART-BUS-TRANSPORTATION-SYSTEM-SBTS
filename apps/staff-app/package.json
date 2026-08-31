@@ -5,6 +5,7 @@
     "type": "module",
     "scripts": {
         "dev": "vite",
+        "dev:driver": "vite --port 3001 --open /driver.html",
         "build": "tsc && vite build",
         "preview": "vite preview",
         "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
@@ -23,6 +24,7 @@
         "react-dom": "^18.2.0",
         "react-hook-form": "^7.50.0",
         "react-hot-toast": "^2.4.1",
+        "react-icons": "^5.7.0",
         "react-leaflet": "^4.2.1",
         "react-router-dom": "^6.22.0",
         "recharts": "^2.12.0",

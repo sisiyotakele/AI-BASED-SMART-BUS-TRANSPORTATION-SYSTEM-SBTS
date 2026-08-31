@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth.store';
 import { authService } from '@/services/auth.service';
+import { setPortalHint } from '@/lib/auth-storage';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     const { isAuthenticated, clearAuth } = useAuthStore();
@@ -40,7 +41,31 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     }
 
     if (!isAuthenticated) {
+        setPortalHint(location.pathname.startsWith('/driver') ? 'driver' : 'admin');
         return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    // Role-based boundary checks
+    const userRoles = useAuthStore.getState().user?.roles || [];
+    const roleNames = userRoles
+        .map((r: any) => {
+            if (typeof r === 'string') return r.toUpperCase();
+            return (r.roleName || r.name || '').toUpperCase();
+        })
+        .filter(Boolean);
+    const hasDriverRole = roleNames.includes('DRIVER');
+    const hasAdminAccess = roleNames.some((role: string) => role !== 'DRIVER' && role !== 'PASSENGER');
+    const canAccessDriver = hasDriverRole;
+    const canAccessAdmin = hasAdminAccess;
+    
+    // If they cannot access admin pages, route them to driver page when possible.
+    if (!canAccessAdmin && canAccessDriver && location.pathname.startsWith('/dashboard')) {
+         return <Navigate to="/driver" replace />;
+    }
+    
+    // If they cannot access driver pages, keep them on admin pages.
+    if (!canAccessDriver && canAccessAdmin && location.pathname.startsWith('/driver')) {
+        return <Navigate to="/dashboard" replace />;
     }
 
     return <>{children}</>;

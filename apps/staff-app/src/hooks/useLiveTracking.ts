@@ -18,7 +18,8 @@ export function useLiveTracking() {
         if (initialLocations.length > 0) {
             const locationMap: Record<string, Tracking> = {};
             initialLocations.forEach(loc => {
-                locationMap[loc.busId] = loc;
+                const key = loc.tripId || loc.busId;
+                locationMap[key] = loc;
             });
             setLiveLocations(prev => ({ ...locationMap, ...prev }));
         }
@@ -31,10 +32,11 @@ export function useLiveTracking() {
         socketService.subscribe('tracking');
 
         const handleLocationUpdate = (data: any) => {
+            const key = data.tripId || data.busId;
             setLiveLocations(prev => ({
                 ...prev,
-                [data.busId]: {
-                    ...prev[data.busId],
+                [key]: {
+                    ...(prev[key] || {}),
                     ...data,
                     timestamp: new Date().toISOString()
                 }

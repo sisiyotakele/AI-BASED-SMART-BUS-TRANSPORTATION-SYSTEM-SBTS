@@ -42,12 +42,26 @@ class BusDriverAssignmentService {
         busId: string;
         shiftId: string;
         assignedDate: string;
+        status?: string;
     }): Promise<BusDriverAssignment> {
         const response = await api.post('/bus-driver-assignments', data);
         return response.data;
     }
 
-    async updateAssignment(id: string, data: { shiftId?: string; assignedDate?: string }): Promise<BusDriverAssignment> {
+    async createAssignmentWithShift(data: {
+        driverId: string;
+        busId: string;
+        assignedDate: string;
+        shiftStart: string;
+        shiftEnd: string;
+        shiftName?: string;
+    }): Promise<BusDriverAssignment> {
+        const response = await api.post('/bus-driver-assignments/with-shift', data);
+        return response.data;
+    }
+
+
+    async updateAssignment(id: string, data: { busId?: string, shiftId?: string; assignedDate?: string, status?: string }): Promise<BusDriverAssignment> {
         const response = await api.patch(`/bus-driver-assignments/${id}`, data);
         return response.data;
     }

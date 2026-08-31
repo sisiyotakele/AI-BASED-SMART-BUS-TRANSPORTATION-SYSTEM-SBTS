@@ -41,3 +41,25 @@ export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Respons
     const user = await authService.getMe(req.user!.userId);
     return successResponse(res, user, 'User profile retrieved');
 });
+
+export const changePassword = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changePassword(
+        req.user!.userId,
+        currentPassword,
+        newPassword
+    );
+    return successResponse(res, result, 'Password changed successfully');
+});
+
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+    return successResponse(res, result, 'Forgot password request processed');
+});
+
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { token, newPassword } = req.body;
+    const result = await authService.resetPassword(token, newPassword);
+    return successResponse(res, result, 'Password reset successful');
+});

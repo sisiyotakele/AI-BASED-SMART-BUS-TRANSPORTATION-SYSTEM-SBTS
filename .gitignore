@@ -29,3 +29,6 @@ postman/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Local review folder - delete after done
+_to_review/

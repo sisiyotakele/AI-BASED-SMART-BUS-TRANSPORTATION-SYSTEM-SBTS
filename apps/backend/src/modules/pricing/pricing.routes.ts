@@ -1,4 +1,4 @@
-﻿// src/modules/pricing/pricing.routes.ts
+// src/modules/pricing/pricing.routes.ts
 
 import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '@/common/validate';
@@ -25,8 +25,6 @@ import {
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
 
 /**
  * @swagger
@@ -34,8 +32,6 @@ router.use(authenticate);
  *   get:
  *     summary: Get all prices with pagination and filters
  *     tags: [Pricing]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: routeId
@@ -86,7 +82,6 @@ router.use(authenticate);
  */
 router.get(
   '/',
-  requirePermission('view_pricing'),
   validateQuery(priceFiltersQuerySchema),
   getAllPrices
 );
@@ -97,21 +92,14 @@ router.get(
  *   get:
  *     summary: Get price statistics
  *     tags: [Pricing]
- *     security:
- *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Statistics retrieved successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       500:
  *         description: Server error
  */
 router.get(
   '/stats',
-  requirePermission('view_pricing'),
   getPriceStats
 );
 
@@ -121,8 +109,6 @@ router.get(
  *   get:
  *     summary: Calculate price between two stops
  *     tags: [Pricing]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: routeId
@@ -156,10 +142,6 @@ router.get(
  *         description: Price calculated successfully
  *       400:
  *         description: Validation error
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       404:
  *         description: No active price found
  *       500:
@@ -167,7 +149,6 @@ router.get(
  */
 router.get(
   '/calculate',
-  requirePermission('view_pricing'),
   validateQuery(calculatePriceQuerySchema),
   calculatePrice
 );
@@ -178,8 +159,6 @@ router.get(
  *   get:
  *     summary: Get all prices for a specific route
  *     tags: [Pricing]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: routeId
@@ -191,16 +170,11 @@ router.get(
  *     responses:
  *       200:
  *         description: Route prices retrieved successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       500:
  *         description: Server error
  */
 router.get(
   '/route/:routeId',
-  requirePermission('view_pricing'),
   validateParams(routeIdParamSchema),
   getPricesByRoute
 );
@@ -211,8 +185,6 @@ router.get(
  *   get:
  *     summary: Get price by ID
  *     tags: [Pricing]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -224,10 +196,6 @@ router.get(
  *     responses:
  *       200:
  *         description: Price retrieved successfully
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       404:
  *         description: Price not found
  *       500:
@@ -235,7 +203,6 @@ router.get(
  */
 router.get(
   '/:id',
-  requirePermission('view_pricing'),
   validateParams(priceIdParamSchema),
   getPriceById
 );
@@ -303,6 +270,7 @@ router.get(
  */
 router.post(
   '/',
+  authenticate,
   requirePermission('manage_pricing'),
   validateBody(createPriceSchema),
   createPrice
@@ -374,6 +342,7 @@ router.post(
  */
 router.patch(
   '/:id',
+  authenticate,
   requirePermission('manage_pricing'),
   validateParams(priceIdParamSchema),
   validateBody(updatePriceSchema),
@@ -410,6 +379,7 @@ router.patch(
  */
 router.delete(
   '/:id',
+  authenticate,
   requirePermission('manage_pricing'),
   validateParams(priceIdParamSchema),
   deletePrice

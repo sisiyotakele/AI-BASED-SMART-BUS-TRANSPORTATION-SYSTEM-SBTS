@@ -14,10 +14,11 @@ export interface User {
 }
 
 class UserService {
-    async getUsers(params: { search?: string, isActive?: boolean, page?: number, limit?: number }) {
+    async getUsers(params: { search?: string, isActive?: boolean, role?: string, page?: number, limit?: number }) {
         const query = new URLSearchParams();
         if (params.search) query.append('search', params.search);
         if (params.isActive !== undefined) query.append('isActive', params.isActive.toString());
+        if (params.role) query.append('role', params.role);
         if (params.page) query.append('page', params.page.toString());
         if (params.limit) query.append('limit', params.limit.toString());
         

@@ -91,7 +91,7 @@ export function BusMap({ locations = [] }: BusMapProps) {
                                         </p>
                                         <div className="flex items-center space-x-1">
                                             <Navigation className="w-4 h-4 text-gray-500" />
-                                            <span className="text-gray-600">Heading: {bus.heading || 0}°</span>
+                                            <span className="text-gray-600">Heading: {bus.direction || 0}°</span>
                                         </div>
                                         <div className="mt-2 pt-2 border-t">
                                             <span

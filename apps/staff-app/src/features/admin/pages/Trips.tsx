@@ -7,7 +7,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tripService } from '@/services/trip.service';
 import { busService } from '@/services/bus.service';
 import { driverService } from '@/services/driver.service';
-import { scheduleService } from '@/services/schedule.service';
 import { Trip } from '@/types';
 
 export function Trips() {
@@ -33,11 +32,6 @@ export function Trips() {
     const { data: drivers = [] } = useQuery({
         queryKey: ['drivers'],
         queryFn: () => driverService.getAll()
-    });
-
-    const { data: schedules = [] } = useQuery({
-        queryKey: ['schedules'],
-        queryFn: () => scheduleService.getAll()
     });
 
     const createTripMutation = useMutation({
@@ -71,8 +65,8 @@ export function Trips() {
 
     // Filtering
     const filteredTrips = trips.filter(trip => {
-        const matchesSearch = 
-            trip.bus?.plateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        const matchesSearch =
+            trip.bus?.plateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             trip.driver?.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = filterStatus === 'All' || trip.status === filterStatus.toLowerCase();
         return matchesSearch && matchesStatus;
@@ -83,14 +77,8 @@ export function Trips() {
     const endIndex = startIndex + itemsPerPage;
     const currentTrips = filteredTrips.slice(startIndex, endIndex);
 
-    const handleCreateTrip = async (tripData: any) => {
-        // Construct standard ISO string payload 
-        const payload: Partial<Trip> = {
-            ...tripData,
-            scheduledStart: new Date(tripData.scheduledStart).toISOString(),
-            scheduledEnd: new Date(tripData.scheduledEnd).toISOString(),
-        };
-        createTripMutation.mutate(payload);
+    const handleCreateTrip = async (tripData: { scheduleId: string; tripDate: string }) => {
+        createTripMutation.mutate(tripData as any);
     };
 
     const handleExport = () => {
@@ -106,7 +94,7 @@ export function Trips() {
                 `"${trip.status}"`
             ].join(','))
         ].join('\n');
-        
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
@@ -137,7 +125,6 @@ export function Trips() {
                 onSubmit={handleCreateTrip}
                 buses={buses}
                 drivers={drivers}
-                schedules={schedules}
             />
 
             {/* Header Section */}
@@ -161,7 +148,7 @@ export function Trips() {
                             className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
                         />
                     </div>
-                    <select 
+                    <select
                         value={filterStatus}
                         onChange={e => setFilterStatus(e.target.value)}
                         className="px-4 py-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors">
@@ -173,7 +160,7 @@ export function Trips() {
                     </select>
                 </div>
                 <div className="flex items-center gap-3 w-full md:w-auto">
-                    <button 
+                    <button
                         onClick={handleExport}
                         className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-xl hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium">
                         <Download className="w-4 h-4" />
@@ -208,7 +195,7 @@ export function Trips() {
                                     <td colSpan={5} className="px-6 py-16 text-center">
                                         <div className="flex flex-col items-center justify-center">
                                             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100">
-                                              <Search className="w-6 h-6 text-gray-400" />
+                                                <Search className="w-6 h-6 text-gray-400" />
                                             </div>
                                             <p className="text-gray-500 font-medium">No active trips found.</p>
                                         </div>
@@ -231,30 +218,29 @@ export function Trips() {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center">
-                                           <div className="flex -space-x-2">
-                                              <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
-                                                  <User className="w-4 h-4 text-slate-500" />
-                                              </div>
-                                           </div>
-                                           <div className="ml-3">
-                                               <p className="text-sm font-bold text-gray-800 leading-tight">{trip.driver?.fullName || 'N/A'}</p>
-                                               <p className="text-[11px] text-gray-400 font-semibold mt-0.5 font-mono uppercase">BUS: {trip.bus?.plateNumber?.substring(0,7) || 'N/A'}</p>
-                                           </div>
+                                            <div className="flex -space-x-2">
+                                                <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    <User className="w-4 h-4 text-slate-500" />
+                                                </div>
+                                            </div>
+                                            <div className="ml-3">
+                                                <p className="text-sm font-bold text-gray-800 leading-tight">{trip.driver?.fullName || 'N/A'}</p>
+                                                <p className="text-[11px] text-gray-400 font-semibold mt-0.5 font-mono uppercase">BUS: {trip.bus?.plateNumber?.substring(0, 7) || 'N/A'}</p>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex items-center text-sm font-bold text-gray-700">
                                             <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                                            {trip.scheduledStart ? new Date(trip.scheduledStart).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric'}) : 'N/A'}
+                                            {trip.scheduledStart ? new Date(trip.scheduledStart).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'N/A'}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className={`inline-flex items-center px-3 py-1.5 rounded text-[11px] font-bold uppercase tracking-wide border ${
-                                            trip.status === 'completed' ? 'bg-[#ECFDF5] text-[#10B981] border-[#D1FAE5]' :
+                                        <span className={`inline-flex items-center px-3 py-1.5 rounded text-[11px] font-bold uppercase tracking-wide border ${trip.status === 'completed' ? 'bg-[#ECFDF5] text-[#10B981] border-[#D1FAE5]' :
                                             trip.status === 'in_progress' ? 'bg-[#EFF6FF] text-[#3B82F6] border-[#DBEAFE]' :
-                                            trip.status === 'scheduled' ? 'bg-gray-50 text-gray-600 border-gray-200' :
-                                            'bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]'
-                                        }`}>
+                                                trip.status === 'scheduled' ? 'bg-gray-50 text-gray-600 border-gray-200' :
+                                                    'bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2]'
+                                            }`}>
                                             {trip.status.replace('_', ' ')}
                                         </span>
                                     </td>
@@ -304,7 +290,7 @@ export function Trips() {
                                             >
                                                 <Eye className="w-4 h-4" />
                                             </button>
-                                            <button 
+                                            <button
                                                 onClick={async (e) => {
                                                     e.stopPropagation();
                                                     const isConfirmed = await confirm({ title: "Delete Trip", message: 'Are you sure?', confirmText: "Delete", cancelText: "Keep", isDanger: true });

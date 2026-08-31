@@ -6,11 +6,11 @@ import { parsePaginationParams, createPaginatedResponse } from '@/common/paginat
 
 export class UsersService {
   async findAll(query: any = {}) {
-    const { search, isActive } = query;
+    const { search, isActive, role } = query;
     const { page, limit, skip, take } = parsePaginationParams(query);
-    
+
     let where: any = { deletedAt: null };
-    
+
     if (search) {
       where.OR = [
         { fullName: { contains: search, mode: 'insensitive' } },
@@ -18,9 +18,20 @@ export class UsersService {
         { phone: { contains: search, mode: 'insensitive' } },
       ];
     }
-    
+
     if (isActive !== undefined) {
       where.isActive = isActive === 'true';
+    }
+
+    // Filter by role if provided
+    if (role) {
+      where.userRoles = {
+        some: {
+          role: {
+            roleName: role
+          }
+        }
+      };
     }
 
     const [data, total] = await Promise.all([
@@ -53,7 +64,7 @@ export class UsersService {
   async findById(id: string) {
     const user = await usersRepository.findById(id);
     if (!user || user.deletedAt) throw new AppError('User not found', 404);
-    
+
     const { passwordHash, ...safeUser } = user;
     return {
       ...safeUser,
@@ -84,7 +95,7 @@ export class UsersService {
       // Separate UUIDs and Names to prevent Prisma throwing on invalid UUID
       const uuids = data.roles.filter((r: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r));
       const names = data.roles.filter((r: string) => !uuids.includes(r));
-      
+
       const rolesToAssign = await prisma.role.findMany({
         where: {
           OR: [
@@ -105,6 +116,8 @@ export class UsersService {
       phone: data.phone,
       passwordHash,
       isActive: data.isActive ?? true,
+      // Force password change on first login when admin sets the password
+      mustChangePassword: true,
       department: data.department,
       createdBy: createdById ? { connect: { id: createdById } } : undefined,
       userRoles: userRolesCreate ? { create: userRolesCreate } : undefined
@@ -145,7 +158,7 @@ export class UsersService {
     if (data.roles && Array.isArray(data.roles)) {
       const uuids = data.roles.filter((r: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(r));
       const names = data.roles.filter((r: string) => !uuids.includes(r));
-      
+
       const rolesToAssign = await prisma.role.findMany({
         where: {
           OR: [
@@ -155,10 +168,10 @@ export class UsersService {
         }
       });
       const newRoleIds = rolesToAssign.map(r => r.id);
-      
+
       // Update by wiping old and setting new (simplified)
       await prisma.userRole.deleteMany({ where: { userId: id } });
-      
+
       if (newRoleIds.length > 0) {
         await prisma.userRole.createMany({
           data: newRoleIds.map(roleId => ({
@@ -172,7 +185,7 @@ export class UsersService {
     delete updateData.roles;
 
     const updated = await usersRepository.update(id, updateData);
-    
+
     const { passwordHash: _, ...safeUser } = updated;
     return safeUser;
   }
@@ -183,10 +196,10 @@ export class UsersService {
 
     await usersRepository.delete(id);
     if (deletedById) {
-       await prisma.user.update({
-         where: { id },
-         data: { deletedById }
-       });
+      await prisma.user.update({
+        where: { id },
+        data: { deletedById }
+      });
     }
     return true;
   }

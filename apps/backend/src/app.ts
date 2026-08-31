@@ -37,6 +37,7 @@ import { aiIntegrationRoutes } from '@/modules/ai-integration';
 import auditRoutes from '@/modules/audit/audit.routes';
 import { dashboardRoutes } from '@/modules/dashboard';
 import { reportingRoutes } from '@/modules/reporting';
+import dispatchRoutes from '@/modules/dispatch/dispatch.routes';
 
 // Optional dev routes (only if folder exists locally)
 let devRoutes: any = null;
@@ -97,6 +98,7 @@ app.get('/', (_req: Request, res: Response) => {
       aiIntegration: `${config.apiPrefix}/ai-integration`,
       audit: `${config.apiPrefix}/audit`,
       dashboard: `${config.apiPrefix}/dashboard`,
+      dispatch: `${config.apiPrefix}/dispatch`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -207,6 +209,12 @@ app.use(
 app.use(
   `${apiPrefix}/reports`,
   reportingRoutes
+);
+
+// Dispatch
+app.use(
+  `${apiPrefix}/dispatch`,
+  dispatchRoutes
 );
 
 // Development helpers (only loaded if dev folder exists locally)

@@ -9,11 +9,18 @@ export const createAssignment = asyncHandler(async (req: AuthenticatedRequest, r
   successResponse(res, result, 'Assignment created', 201);
 });
 
+export const createAssignmentWithShift = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await service.createAssignmentWithShift(req.body, req.user?.userId);
+  successResponse(res, result, 'Shift and Bus-Driver Assignment created', 201);
+});
+
+
 export const listAssignments = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.listAssignments({
     date: req.query.date ? new Date(req.query.date as string) : undefined,
     busId: req.query.busId as string,
     shiftId: req.query.shiftId as string,
+    driverId: req.query.driverId as string,
   });
   successResponse(res, result, 'Assignments retrieved');
 });

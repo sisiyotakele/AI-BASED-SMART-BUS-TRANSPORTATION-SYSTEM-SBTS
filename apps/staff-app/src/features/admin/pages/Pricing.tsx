@@ -153,7 +153,7 @@ export function Pricing() {
             return;
         }
 
-        const headers = ['Route', 'From Stop', 'To Stop', 'Base Price', 'Peak Price', 'Off-Peak Price', 'Effective From', 'Effective Until', 'Status'];
+        const headers = ['Route', 'From Stop', 'To Stop', 'Base Price', 'Effective From', 'Effective Until', 'Status'];
         let csvContent = headers.join(',');
 
         const csvData = prices.map((p: any) => [
@@ -161,8 +161,6 @@ export function Pricing() {
             p.fromStopName,
             p.toStopName,
             p.basePrice,
-            p.peakPrice || 'N/A',
-            p.offPeakPrice || 'N/A',
             new Date(p.effectiveFrom).toLocaleDateString(),
             p.effectiveUntil ? new Date(p.effectiveUntil).toLocaleDateString() : 'Ongoing',
             p.isActive ? 'Active' : 'Inactive'
@@ -297,15 +295,15 @@ export function Pricing() {
             </div>
 
             {/* Price Calculator */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-emerald-900/20 dark:to-green-900/5 rounded-2xl shadow-sm p-6 border border-green-200 dark:border-emerald-800/50">
+            <div className="bg-gradient-to-br from-blue-50 to-[#2B4B9E]/10 dark:from-navy-900/50 dark:to-blue-900/10 rounded-2xl shadow-sm p-6 border border-blue-200/50 dark:border-blue-800/30">
                 <div className="flex items-center space-x-3 mb-5">
-                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                    <div className="w-10 h-10 bg-gradient-to-br from-[#2B4B9E] to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
                         <Calculator className="w-5 h-5 text-white" />
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Price Calculator</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <select value={calcRouteId} onChange={(e) => { setCalcRouteId(e.target.value); setCalcFromStopId(''); setCalcToStopId(''); }} className="px-3 py-2 border border-green-300 dark:border-emerald-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm transition-colors cursor-pointer">
+                    <select value={calcRouteId} onChange={(e) => { setCalcRouteId(e.target.value); setCalcFromStopId(''); setCalcToStopId(''); }} className="px-3 py-2 border border-blue-300/50 dark:border-blue-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2B4B9E] bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm transition-colors cursor-pointer">
                         <option value="">Select Route</option>
                         {(routesData as any[]).map((r: any) => (
                             <option key={r.id} value={r.id}>{r.routeName || r.name}</option>
@@ -315,7 +313,7 @@ export function Pricing() {
                     <select
                         value={calcFromStopId}
                         onChange={(e) => setCalcFromStopId(e.target.value)}
-                        className="px-3 py-2 border border-green-300 dark:border-emerald-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm cursor-pointer"
+                        className="px-3 py-2 border border-blue-300/50 dark:border-blue-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2B4B9E] bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm cursor-pointer"
                     >
                         <option value="">Select Origin</option>
                         {calcAvailableStops.map((stop: any) => (
@@ -328,7 +326,7 @@ export function Pricing() {
                     <select
                         value={calcToStopId}
                         onChange={(e) => setCalcToStopId(e.target.value)}
-                        className="px-3 py-2 border border-green-300 dark:border-emerald-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm cursor-pointer"
+                        className="px-3 py-2 border border-blue-300/50 dark:border-blue-700/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#2B4B9E] bg-white dark:bg-navy-800 text-slate-800 dark:text-slate-100 text-sm cursor-pointer"
                     >
                         <option value="">Select Destination</option>
                         {calcAvailableStops.map((stop: any) => (
@@ -342,19 +340,19 @@ export function Pricing() {
                         ))}
                     </select>
 
-                    <button onClick={handleCalculate} disabled={calcLoading} className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors font-medium text-sm shadow-sm flex items-center justify-center gap-2">
+                    <button onClick={handleCalculate} disabled={calcLoading} className="px-4 py-2 bg-[#2B4B9E] text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm flex items-center justify-center gap-2">
                         {calcLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
                         Calculate
                     </button>
                 </div>
                 {calcResult && (
-                    <div className="mt-5 p-5 bg-white/60 dark:bg-navy-800/60 rounded-xl border border-green-200 dark:border-emerald-800/50 backdrop-blur-sm transition-all duration-300">
+                    <div className="mt-5 p-5 bg-white/60 dark:bg-navy-800/60 rounded-xl border border-blue-200/50 dark:border-blue-800/30 backdrop-blur-sm transition-all duration-300">
                         <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1">Calculated Price ({calcResult.type})</p>
-                                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{Number(calcResult.price).toFixed(2)} <span className="text-xl font-bold opacity-75">ETB</span></p>
+                                <p className="text-3xl font-black text-[#2B4B9E] dark:text-blue-400">{Number(calcResult.price).toFixed(2)} <span className="text-xl font-bold opacity-75">ETB</span></p>
                             </div>
-                            <DollarSign className="w-16 h-16 text-emerald-600 dark:text-emerald-500 opacity-10 dark:opacity-20" />
+                            <DollarSign className="w-16 h-16 text-[#2B4B9E] opacity-10 dark:opacity-20" />
                         </div>
                     </div>
                 )}
@@ -421,33 +419,7 @@ export function Pricing() {
                                             </p>
                                         </div>
 
-                                        {/* Peak/Off-Peak Prices */}
-                                        {(price.peakPrice || price.offPeakPrice) && (
-                                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                                {price.peakPrice && (
-                                                    <div className="border border-slate-100 dark:border-navy-700 rounded-xl p-2.5 bg-white dark:bg-navy-800/30 flex flex-col items-center">
-                                                        <div className="flex items-center space-x-1.5 mb-1">
-                                                            <TrendingUp className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
-                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Peak</p>
-                                                        </div>
-                                                        <p className="text-[13px] font-bold text-slate-900 dark:text-slate-200">
-                                                            {Number(price.peakPrice).toFixed(2)} ETB
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                {price.offPeakPrice && (
-                                                    <div className="border border-slate-100 dark:border-navy-700 rounded-xl p-2.5 bg-white dark:bg-navy-800/30 flex flex-col items-center">
-                                                        <div className="flex items-center space-x-1.5 mb-1">
-                                                            <TrendingDown className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
-                                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Off-Peak</p>
-                                                        </div>
-                                                        <p className="text-[13px] font-bold text-slate-900 dark:text-slate-200">
-                                                            {Number(price.offPeakPrice).toFixed(2)} ETB
-                                                        </p>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        )}
+
 
                                         {/* Effective Period */}
                                         <div className="mt-auto border-t border-slate-100 dark:border-navy-700 pt-4 pb-1">
