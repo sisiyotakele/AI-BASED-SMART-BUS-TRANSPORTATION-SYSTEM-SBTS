@@ -297,22 +297,12 @@ export function PricingModal({ isOpen, onClose, onSubmit, editData }: PricingMod
                             {errors.effectiveUntil && (
                                 <p className="mt-1 text-sm text-red-500">{errors.effectiveUntil}</p>
                             )}
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Leave empty for indefinite</p>
+                            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Leave empty for indefinite</p>
                         </div>
                     </div>
 
                     {/* Info Box */}
-                    <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/30 rounded-lg p-4">
-                        <div className="flex items-start space-x-2">
-                            <AlertCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-                            <div className="text-sm text-yellow-900 dark:text-yellow-500/90">
-                                <p className="font-medium mb-1">Pricing Rules:</p>
-                                <ul className="list-disc list-inside space-y-0.5 text-xs opacity-90">
-                                    <li>Effective until date is optional</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+                    
                 </form>
 
                 <div className="p-4 border-t border-slate-200 dark:border-navy-700 flex justify-end gap-3 bg-slate-50 dark:bg-navy-800/50">

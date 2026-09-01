@@ -2,7 +2,7 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const getStats = async () => {
+export const getStats = async (userId: string = '') => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -81,18 +81,20 @@ export const getStats = async () => {
     ];
 
     // Critical Alerts
-    const criticalIncidents = await prisma.incident.findMany({
-        where: { deletedAt: null, status: 'reported', severity: { in: ['critical', 'high'] } },
-        include: { bus: true, trip: { include: { version: { include: { route: true } } } } },
+    // Critical Alerts - Now fetched dynamically per-admin from UNREAD high/urgent notifications
+    const unreadCriticalNotifications = await (userId ? prisma.notificationUser.findMany({
+        where: { userId, isRead: false, notification: { priority: { in: ['high', 'urgent'] } } },
+        include: { notification: true },
+        orderBy: { notification: { createdAt: 'desc' } },
         take: 3
-    });
+    }) : Promise.resolve([]));
     
-    const criticalAlerts = criticalIncidents.map(inc => ({
-        type: inc.severity === 'critical' ? 'critical' : 'warning',
-        icon: 'AlertTriangle', 
-        message: `${inc.bus?.plateNumber ? `Bus ${inc.bus.plateNumber}` : `Route ${inc.trip?.version?.route?.routeName || ''}`} - ${inc.incidentType || 'Incident'}`,
-        time: inc.createdAt.toISOString(),
-        color: inc.severity === 'critical' ? 'red' : 'orange'
+    const criticalAlerts = unreadCriticalNotifications.map(nu => ({
+        type: nu.notification.priority === 'urgent' ? 'critical' : 'warning',
+        icon: 'AlertTriangle',
+        message: nu.notification.title.split('\n')[0] || nu.notification.title, // Use title for the dashboard short box
+        time: nu.notification.createdAt.toISOString(),
+        color: nu.notification.priority === 'urgent' ? 'red' : 'orange'
     }));
 
     const activeDrivers = activeTrips;

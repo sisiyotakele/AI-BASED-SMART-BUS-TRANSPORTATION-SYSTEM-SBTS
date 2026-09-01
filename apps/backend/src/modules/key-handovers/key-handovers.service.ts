@@ -1,6 +1,7 @@
 import { NotFoundError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
 import * as repository from './key-handovers.repository';
+import * as notificationsService from '../notifications/notifications.service';
 import { prisma } from '@/prisma/client';
 
 export function setPrismaClient(client: any) {
@@ -22,10 +23,27 @@ export async function createHandover(data: any, actorId?: string) {
     throw new BadRequestError('Could not determine terminal for this handover', 'TERMINAL_REQUIRED');
   }
 
+  // Auto-resolve fromShiftId if not provided (e.g., from driver app)
+  let finalFromShiftId = data.fromShiftId;
+  if (!finalFromShiftId && actorId && data.busId) {
+    const activeAssignment = await prisma.busDriverAssignment.findFirst({
+      where: {
+        busId: data.busId,
+        status: 'active',
+        shift: { driverId: actorId },
+        deletedAt: null
+      },
+      orderBy: { assignedDate: 'desc' }
+    });
+    if (activeAssignment) {
+      finalFromShiftId = activeAssignment.shiftId;
+    }
+  }
+
   const handover = await repository.createHandover({
     busId: data.busId,
     terminalId: finalTerminalId,
-    fromShiftId: data.fromShiftId || null,
+    fromShiftId: finalFromShiftId || null,
     toShiftId: data.toShiftId || null,
     handoverTime: data.handoverTime || new Date(),
     notes: data.notes || null,
@@ -37,15 +55,12 @@ export async function createHandover(data: any, actorId?: string) {
   if (data.toShiftId) {
     const shift = await prisma.shift.findUnique({ where: { id: data.toShiftId } });
     if (shift && shift.driverId) {
-        await prisma.notification.create({
-            data: {
-                notificationType: 'key_handover',
-                title: 'Key Handover Alert',
-                message: `You have an incoming key handover awaiting your acceptance.`,
-                recipients: {
-                    create: { userId: shift.driverId }
-                }
-            }
+        await notificationsService.createNotification({
+            notificationType: 'key_handover',
+            title: '🔑 Key Handover Alert',
+            message: `You have an incoming key handover awaiting your acceptance. Please review and confirm your shift takeover.`,
+            priority: 'high',
+            userIds: [shift.driverId]
         });
     }
   }
@@ -168,4 +183,11 @@ export async function rejectHandover(id: string) {
   const updated = await repository.updateHandover(id, { status: 'cancelled' });
   logger.info('Key handover rejected/cancelled', { handoverId: id });
   return updated;
+}
+
+export async function deleteHandover(id: string) {
+  await getHandoverById(id); // Ensure it exists
+  const deleted = await repository.deleteHandover(id);
+  logger.info('Key handover deleted', { handoverId: id });
+  return deleted;
 }

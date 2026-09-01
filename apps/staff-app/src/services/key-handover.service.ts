@@ -63,6 +63,11 @@ class KeyHandoverService {
         const response = await api.patch(`/key-handovers/${id}/confirm-to`);
         return response.data;
     }
+
+    async delete(id: string): Promise<void> {
+        const response = await api.delete(`/key-handovers/${id}`);
+        return response.data;
+    }
 }
 
 export const keyHandoverService = new KeyHandoverService();

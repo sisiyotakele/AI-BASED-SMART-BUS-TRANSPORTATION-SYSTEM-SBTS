@@ -14,7 +14,13 @@ export function setPrismaClient(client: typeof prisma) {
 export async function findTripById(tripId: string) {
     return db.trip.findFirst({
         where: { id: tripId, deletedAt: null },
-        include: { bus: true, driver: true },
+        include: { 
+            bus: true, 
+            driver: true,
+            version: {
+                include: { route: true }
+            }
+        },
     });
 }
 
@@ -25,6 +31,25 @@ export async function findTripById(tripId: string) {
 export async function findUserById(userId: string) {
     return db.user.findUnique({
         where: { id: userId }
+    });
+}
+
+export async function findAdminUsers() {
+    return db.user.findMany({
+        where: {
+            isActive: true,
+            deletedAt: null,
+            userRoles: {
+                some: {
+                    role: {
+                        roleName: {
+                            in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER']
+                        }
+                    }
+                }
+            }
+        },
+        select: { id: true }
     });
 }
 

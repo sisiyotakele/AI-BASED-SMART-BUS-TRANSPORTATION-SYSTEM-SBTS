@@ -50,3 +50,8 @@ export const getNextDriver = asyncHandler(async (req: AuthenticatedRequest, res:
     successResponse(res, result, 'Next driver found');
   }
 });
+
+export const deleteHandover = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await service.deleteHandover(req.params.id);
+  successResponse(res, result, 'Key handover deleted successfully');
+});

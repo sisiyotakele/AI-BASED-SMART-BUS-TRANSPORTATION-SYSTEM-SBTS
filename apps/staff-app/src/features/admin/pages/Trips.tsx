@@ -1,7 +1,7 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useState } from 'react';
 import { Search, Download, Plus, Trash2, Flag, Clock, Eye, User, Edit2 } from 'lucide-react';
-import { CreateTripModal } from '@/features/admin/components/CreateTripModal';
+
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tripService } from '@/services/trip.service';
@@ -17,30 +17,13 @@ export function Trips() {
     const [filterStatus, setFilterStatus] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const { data: trips = [], isLoading, error } = useQuery({
         queryKey: ['trips'],
         queryFn: () => tripService.getAll()
     });
 
-    const { data: buses = [] } = useQuery({
-        queryKey: ['buses'],
-        queryFn: () => busService.getAll()
-    });
 
-    const { data: drivers = [] } = useQuery({
-        queryKey: ['drivers'],
-        queryFn: () => driverService.getAll()
-    });
-
-    const createTripMutation = useMutation({
-        mutationFn: (data: Partial<Trip>) => tripService.create(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['trips'] });
-            setIsCreateModalOpen(false);
-        }
-    });
 
     const deleteTripMutation = useMutation({
         mutationFn: (id: string) => tripService.delete(id),
@@ -64,11 +47,16 @@ export function Trips() {
     });
 
     // Filtering
-    const filteredTrips = trips.filter(trip => {
-        const matchesSearch =
-            trip.bus?.plateNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            trip.driver?.fullName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredTrips = trips.filter((trip: any) => {
         const matchesStatus = filterStatus === 'All' || trip.status === filterStatus.toLowerCase();
+        if (!searchTerm) return matchesStatus;
+
+        const plate = trip.bus?.plateNumber?.toLowerCase() || '';
+        const driverName = trip.driver?.fullName?.toLowerCase() || '';
+        const search = searchTerm.toLowerCase();
+
+        const matchesSearch = plate.includes(search) || driverName.includes(search) || (trip.tripNumber && trip.tripNumber.toLowerCase().includes(search));
+        
         return matchesSearch && matchesStatus;
     });
 
@@ -77,9 +65,7 @@ export function Trips() {
     const endIndex = startIndex + itemsPerPage;
     const currentTrips = filteredTrips.slice(startIndex, endIndex);
 
-    const handleCreateTrip = async (tripData: { scheduleId: string; tripDate: string }) => {
-        createTripMutation.mutate(tripData as any);
-    };
+
 
     const handleExport = () => {
         if (!filteredTrips.length) return;
@@ -119,13 +105,6 @@ export function Trips() {
 
     return (
         <div className="space-y-6">
-            <CreateTripModal
-                isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
-                onSubmit={handleCreateTrip}
-                buses={buses}
-                drivers={drivers}
-            />
 
             {/* Header Section */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -167,7 +146,7 @@ export function Trips() {
                         <span>Export</span>
                     </button>
                     <button
-                        onClick={() => setIsCreateModalOpen(true)}
+                        onClick={() => navigate('/dashboard/trips/new')}
                         className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors text-sm font-medium shadow-sm"
                     >
                         <Plus className="w-4 h-4" />

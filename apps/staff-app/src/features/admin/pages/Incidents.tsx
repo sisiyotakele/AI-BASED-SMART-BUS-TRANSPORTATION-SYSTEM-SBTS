@@ -9,8 +9,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { incidentService } from '@/services/incident.service';
 import type { Incident } from '@/types';
 import toast from 'react-hot-toast';
-
-
+import { Trash2 } from 'lucide-react';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 const getSeverityIcon = (severity: Incident['severity']) => {
     switch (severity) {
@@ -119,6 +119,7 @@ export function Incidents() {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
     const [showMapView, setShowMapView] = useState(false);
+    const [deleteIncidentId, setDeleteIncidentId] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -131,8 +132,19 @@ export function Incidents() {
         mutationFn: (data: any) => incidentService.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['incidents'] });
+            toast.success('Incident created successfully');
             setIsCreateModalOpen(false);
-        }
+        },
+        onError: () => toast.error('Failed to create incident')
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => incidentService.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['incidents'] });
+            toast.success('Incident deleted successfully');
+        },
+        onError: () => toast.error('Failed to delete incident')
     });
 
     // Filtering
@@ -161,6 +173,17 @@ export function Incidents() {
 
     const handleViewIncident = (incident: Incident) => {
         setSelectedIncident(incident);
+    };
+
+    const handleDeleteIncident = (incidentId: string) => {
+        setDeleteIncidentId(incidentId);
+    };
+
+    const confirmDelete = () => {
+        if (deleteIncidentId) {
+            deleteMutation.mutate(deleteIncidentId);
+            setDeleteIncidentId(null);
+        }
     };
 
     const handleExport = () => {
@@ -372,13 +395,22 @@ export function Incidents() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <button
-                                                onClick={() => handleViewIncident(incident)}
-                                                className="p-1 hover:bg-cyan-50 rounded transition-colors"
-                                                title="View Details"
-                                            >
-                                                <Eye className="w-4 h-4 text-cyan-600" />
-                                            </button>
+                                            <div className="flex items-center space-x-2">
+                                                <button
+                                                    onClick={() => handleViewIncident(incident)}
+                                                    className="p-1 hover:bg-cyan-50 rounded transition-colors"
+                                                    title="View Details"
+                                                >
+                                                    <Eye className="w-4 h-4 text-cyan-600" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteIncident(incident.id)}
+                                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete Incident"
+                                                >
+                                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -616,8 +648,18 @@ export function Incidents() {
                         </div>
                     </div>
                 </div>
-            )
-            }
-        </div >
+            )}
+
+            <ConfirmModal
+                isOpen={!!deleteIncidentId}
+                title="Delete Incident"
+                message="Are you sure you want to delete this incident? This action cannot be undone."
+                confirmText="Delete Incident"
+                cancelText="Cancel"
+                isDanger={true}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteIncidentId(null)}
+            />
+        </div>
     );
 }

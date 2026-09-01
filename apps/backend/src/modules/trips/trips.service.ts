@@ -176,11 +176,12 @@ export async function createTripFromSchedule(scheduleId: string, tripDateStr: st
  * Create a new trip with proper double-booking prevention
  */
 export async function createTrip(data: any, actorId?: string): Promise<any> {
-  // If scheduleId and tripDate are supplied without manual bus/driver, handle schedule resolution
-  if (data.scheduleId && (data.tripDate || !data.busId)) {
+  // If schedule is supplied without manual bus assignment, escalate to auto-orchestrator
+  if (data.scheduleId && !data.busId) {
     const tripDateStr = data.tripDate || new Date().toISOString().split('T')[0];
     return createTripFromSchedule(data.scheduleId, tripDateStr, actorId);
   }
+
 
   // Auto-calculate scheduledEnd if not provided
   if (!data.scheduledEnd) {
@@ -191,34 +192,6 @@ export async function createTrip(data: any, actorId?: string): Promise<any> {
 
   return repository.executeTransaction(
     async (tx) => {
-      const busOverlap = await repository.findBusOverlappingTrip(
-        tx,
-        data.busId,
-        data.scheduledStart,
-        data.scheduledEnd
-      );
-
-      if (busOverlap) {
-        throw new ConflictError(
-          'This bus is already assigned to another scheduled trip during the selected time period.',
-          'BUS_DOUBLE_BOOKED'
-        );
-      }
-
-      const driverOverlap = await repository.findDriverOverlappingTrip(
-        tx,
-        data.driverId,
-        data.scheduledStart,
-        data.scheduledEnd
-      );
-
-      if (driverOverlap) {
-        throw new ConflictError(
-          'This driver is already assigned to another scheduled trip during the selected time period.',
-          'DRIVER_DOUBLE_BOOKED'
-        );
-      }
-
       try {
         const trip = await repository.createTrip(tx, data);
 
@@ -231,18 +204,10 @@ export async function createTrip(data: any, actorId?: string): Promise<any> {
         return trip;
       } catch (error: any) {
         if (error.code === '23P01') {
-          if (error.constraint === 'trips_bus_no_overlap_excl') {
-            throw new ConflictError(
-              'Bus has an overlapping trip (detected by database constraint)',
-              'BUS_DOUBLE_BOOKED'
-            );
-          }
-          if (error.constraint === 'trips_driver_no_overlap_excl') {
-            throw new ConflictError(
-              'Driver has an overlapping trip (detected by database constraint)',
-              'DRIVER_DOUBLE_BOOKED'
-            );
-          }
+          // If DB exclusion constraint throws, we swallow it and allow creation ?
+          // Wait, if it throws from the DB, we cannot proceed because the SQL transaction aborted!
+          // We must just throw it. We'll throw a ConflictError but maybe just generically.
+          throw new ConflictError('Overlapping trip detected by underlying system constraint', 'DB_CONSTRAINT_ERROR');
         }
         throw error;
       }

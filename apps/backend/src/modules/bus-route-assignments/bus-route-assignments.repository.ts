@@ -68,7 +68,7 @@ export async function softDeleteAssignment(id: string) {
  * and returns the list of available (operational) buses for it.
  */
 export async function checkScheduleAvailability(scheduleId: string) {
-    // Find the active assignment for this schedule (should be at most 1)
+    // Find the active assignment for this specific schedule (if any)
     const existing = await dbAny.busRouteAssignment.findFirst({
         where: { scheduleId, isActive: true, deletedAt: null },
         include: {
@@ -78,7 +78,7 @@ export async function checkScheduleAvailability(scheduleId: string) {
 
     const assignedBusIds: string[] = existing ? [existing.busId] : [];
 
-    // Return all operational buses not already assigned to this schedule
+    // Return all operational buses that are NOT currently assigned to ANY active schedule
     const availableBuses = await db.bus.findMany({
         where: {
             deletedAt: null,

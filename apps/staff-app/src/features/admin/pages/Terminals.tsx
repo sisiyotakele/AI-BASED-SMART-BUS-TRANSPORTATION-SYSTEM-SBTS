@@ -1,20 +1,18 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Download, Plus, Building2, Edit2, Trash2, MapPin, Users, Phone, Mail, User } from 'lucide-react';
-import { TerminalModal } from '@/features/admin/components/TerminalModal';
 import { terminalsApi, Terminal } from '@/services/api/terminals.api';
 import toast from 'react-hot-toast';
 
 export function Terminals() {
     const { confirm } = useConfirm();
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(9);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTerminal, setEditingTerminal] = useState<Terminal | null>(null);
 
     // Fetch terminals
     const { data: terminals = [], isLoading, error } = useQuery({
@@ -22,32 +20,7 @@ export function Terminals() {
         queryFn: () => terminalsApi.getAll(searchTerm),
     });
 
-    // Create terminal mutation
-    const createMutation = useMutation({
-        mutationFn: terminalsApi.create,
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['terminals'] });
-            toast.success('Terminal created successfully');
-            setIsModalOpen(false);
-        },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to create terminal');
-        },
-    });
 
-    // Update terminal mutation
-    const updateMutation = useMutation({
-        mutationFn: ({ id, data }: { id: string; data: any }) => terminalsApi.update(id, data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['terminals'] });
-            toast.success('Terminal updated successfully');
-            setIsModalOpen(false);
-            setEditingTerminal(null);
-        },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || 'Failed to update terminal');
-        },
-    });
 
     // Delete terminal mutation
     const deleteMutation = useMutation({
@@ -74,19 +47,8 @@ export function Terminals() {
     const totalCapacity = terminals.reduce((sum, t) => sum + (t.capacity || 0), 0);
     const totalTerminals = terminals.length;
 
-    const handleCreateTerminal = async (terminalData: any) => {
-        createMutation.mutate(terminalData);
-    };
-
-    const handleEditTerminal = async (terminal: Terminal) => {
-        setEditingTerminal(terminal);
-        setIsModalOpen(true);
-    };
-
-    const handleUpdateTerminal = async (terminalData: any) => {
-        if (editingTerminal) {
-            updateMutation.mutate({ id: editingTerminal.id, data: terminalData });
-        }
+    const handleEditTerminal = (terminal: Terminal) => {
+        navigate(`/dashboard/terminals/${terminal.id}/edit`, { state: { editData: terminal } });
     };
 
     const handleDeleteTerminal = async (terminalId: string) => {
@@ -96,10 +58,7 @@ export function Terminals() {
         }
     };
 
-    const handleModalClose = async () => {
-        setIsModalOpen(false);
-        setEditingTerminal(null);
-    };
+
 
     const handleExport = () => {
         if (!filteredTerminals.length) {
@@ -162,12 +121,6 @@ export function Terminals() {
 
     return (
         <div className="space-y-4">
-            <TerminalModal
-                isOpen={isModalOpen}
-                onClose={handleModalClose}
-                onSubmit={editingTerminal ? handleUpdateTerminal : handleCreateTerminal}
-                editData={editingTerminal}
-            />
 
             {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
@@ -214,7 +167,7 @@ export function Terminals() {
                         </button>
 
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => navigate('/dashboard/terminals/create')}
                             className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap border border-transparent"
                         >
                             <Plus className="w-3.5 h-3.5" />

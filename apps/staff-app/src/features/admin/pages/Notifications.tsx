@@ -56,27 +56,18 @@ export function Notifications() {
 
     const getTypeIcon = (type: string) => {
         switch (type) {
-            case 'alert': return <AlertCircle className="w-5 h-5" />;
-            case 'warning': return <AlertTriangle className="w-5 h-5" />;
-            case 'success': return <CheckCheck className="w-5 h-5" />;
-            default: return <Info className="w-5 h-5" />;
-        }
-    };
-
-    const getTypeColor = (type: string) => {
-        switch (type) {
-            case 'alert': return 'bg-red-100 text-red-700 border-red-200';
-            case 'warning': return 'bg-yellow-100 text-yellow-700 border-yellow-200';
-            case 'success': return 'bg-green-100 text-green-700 border-green-200';
-            default: return 'bg-blue-100 text-blue-700 border-blue-200';
+            case 'alert': return <AlertCircle className="w-5 h-5 text-rose-500" />;
+            case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-500" />;
+            case 'success': return <CheckCheck className="w-5 h-5 text-emerald-500" />;
+            default: return <Info className="w-5 h-5 text-cyan-500" />;
         }
     };
 
     const getPriorityBadge = (priority: string) => {
         switch (priority) {
-            case 'high': return 'bg-red-100 text-red-700';
-            case 'medium': return 'bg-yellow-100 text-yellow-700';
-            default: return 'bg-gray-100 text-gray-700';
+            case 'high': return 'bg-rose-50 dark:bg-rose-900/10 text-rose-600 border border-rose-200 dark:border-rose-900/30';
+            case 'medium': return 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 border border-amber-200 dark:border-amber-900/30';
+            default: return 'bg-slate-50 dark:bg-navy-800 text-slate-500 border border-slate-200 dark:border-navy-700';
         }
     };
 
@@ -200,50 +191,68 @@ export function Notifications() {
                     currentNotifications.map((notif) => (
                         <div
                             key={notif.id}
-                            className={`bg-white rounded-lg shadow border-l-4 ${notif.isRead ? 'opacity-70' : ''} ${notif.type === 'alert'
-                                ? 'border-l-red-500'
-                                : notif.type === 'warning'
-                                    ? 'border-l-yellow-500'
-                                    : notif.type === 'success'
-                                        ? 'border-l-green-500'
-                                        : 'border-l-blue-500'
-                                } hover:shadow-md transition-shadow`}
+                            className={`bg-white dark:bg-[#1a2332] rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow relative overflow-hidden ${!notif.isRead ? 'bg-cyan-50/10 dark:bg-cyan-900/10' : ''}`}
                         >
-                            <div className="p-4">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start space-x-3 flex-1">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${getTypeColor(notif.type)}`}>
+                            {!notif.isRead && (
+                                <div className="absolute left-0 top-0 bottom-0 w-1 bg-cyan-500"></div>
+                            )}
+                            <div className="p-4 sm:p-5">
+                                <div className="flex items-start justify-between gap-4">
+                                    <div className="flex items-start space-x-4 flex-1">
+                                        <div className="w-12 h-12 rounded-full flex items-center justify-center bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 shrink-0">
                                             {getTypeIcon(notif.type)}
                                         </div>
-                                        <div className="flex-1">
-                                            <div className="flex items-start justify-between mb-2">
+                                        <div className="flex-1 mt-0.5">
+                                            <div className="flex items-start justify-between mb-1">
                                                 <div className="flex-1">
-                                                    <h3 className="text-base font-semibold text-gray-900">{notif.title}</h3>
-                                                    <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
+                                                    <h3 className={`text-sm font-bold uppercase tracking-wide md:tracking-wider ${!notif.isRead ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'}`}>
+                                                        {notif.title}
+                                                    </h3>
+                                                    {notif.message.includes('\n') ? (
+                                                        <div className="mt-2.5 flex flex-col gap-1.5 bg-gray-50 dark:bg-gray-800/50 p-3 rounded-lg border border-gray-100 dark:border-gray-700/50">
+                                                            {notif.message.split('\n').map((line, i) => {
+                                                                const parts = line.split(': ');
+                                                                if (parts.length < 2) return <p key={i} className="text-sm font-medium text-gray-800 dark:text-gray-200">{line}</p>;
+                                                                const key = parts[0];
+                                                                const value = parts.slice(1).join(': ');
+                                                                return (
+                                                                    <div key={i} className="flex items-start text-sm">
+                                                                        <span className="font-bold text-gray-500 dark:text-gray-400 w-28 shrink-0 uppercase text-[10px] tracking-wider mt-0.5">{key}:</span>
+                                                                        <span className="text-gray-800 dark:text-gray-200 font-semibold">{value}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <p className={`text-sm mt-1 leading-relaxed ${!notif.isRead ? 'text-gray-700 dark:text-gray-300 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                            {notif.message}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="flex items-center space-x-3 text-xs text-gray-500">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${getPriorityBadge(notif.priority?.toLowerCase())}`}>
-                                                    {(notif.priority || 'normal').toUpperCase()}
+                                            <div className="flex items-center space-x-3 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mt-3">
+                                                <span className={`px-2 py-0.5 rounded-md ${getPriorityBadge(notif.priority?.toLowerCase())}`}>
+                                                    {(notif.priority || 'normal')}
                                                 </span>
                                                 <span>•</span>
                                                 <span>{new Date(notif.createdAt).toLocaleString()}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className="flex items-center space-x-2 ml-4">
+                                    <div className="flex items-center space-x-2 shrink-0">
                                         {!notif.isRead && (
                                             <button
                                                 onClick={() => handleMarkAsRead(notif.id)}
-                                                className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                                className="px-3 py-1.5 text-[10px] uppercase tracking-widest font-bold bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/30 rounded-lg hover:bg-emerald-100 hover:-translate-y-0.5 transition-all shadow-sm flex items-center gap-1.5"
                                                 title="Mark as read"
                                             >
-                                                <Eye className="w-4 h-4" />
+                                                <Eye className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">Mark Read</span>
                                             </button>
                                         )}
                                         <button
                                             onClick={() => handleDelete(notif.id)}
-                                            className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                                             title="Delete"
                                         >
                                             <Trash2 className="w-4 h-4" />

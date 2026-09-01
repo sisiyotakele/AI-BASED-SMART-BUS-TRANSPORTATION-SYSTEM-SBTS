@@ -17,6 +17,7 @@ import { RouteDetails } from './features/admin/pages/RouteDetails';
 import { ManageRouteStops } from './features/admin/pages/ManageRouteStops';
 import { Stops } from './features/admin/pages/Stops';
 import { Trips } from './features/admin/pages/Trips';
+import { CreateTrip } from './features/admin/pages/CreateTrip';
 import { TripDetails } from './features/admin/pages/TripDetails';
 import { Drivers } from './features/admin/pages/Drivers';
 import { Pricing } from './features/admin/pages/Pricing';
@@ -32,10 +33,12 @@ import { Schedules } from './features/admin/pages/Schedules';
 import { CreateSchedule } from './features/admin/pages/CreateSchedule';
 import { KeyHandovers } from './features/admin/pages/KeyHandovers';
 import { BusRouteAssignments } from './features/admin/pages/BusRouteAssignments';
+import { CreateBusRouteAssignment } from './features/admin/pages/CreateBusRouteAssignment';
 import { BusDriverAssignments } from './features/admin/pages/BusDriverAssignments';
 import { Shifts } from './features/admin/pages/Shifts';
 import { Terminals } from './features/admin/pages/Terminals';
 import { TerminalDetails } from './features/admin/pages/TerminalDetails';
+import { CreateTerminal } from './features/admin/pages/CreateTerminal';
 import { Settings } from './features/admin/pages/Settings';
 import { Help } from './features/admin/pages/Help';
 import { Documentation } from './features/admin/pages/Documentation';
@@ -96,6 +99,7 @@ function App() {
                                 <Route index element={<Dashboard />} />
                                 {/* Operations */}
                                 <Route path="trips" element={<Trips />} />
+                                <Route path="trips/new" element={<CreateTrip />} />
                                 <Route path="trips/:id" element={<TripDetails />} />
                                 <Route path="tracking" element={<Tracking />} />
                                 <Route path="schedules" element={<Schedules />} />
@@ -107,6 +111,8 @@ function App() {
                                 <Route path="key-handovers" element={<KeyHandovers />} />
                                 {/* Assignments */}
                                 <Route path="bus-route-assignments" element={<BusRouteAssignments />} />
+                                <Route path="bus-route-assignments/create" element={<CreateBusRouteAssignment />} />
+                                <Route path="bus-route-assignments/edit" element={<CreateBusRouteAssignment />} />
                                 <Route path="bus-driver-assignments" element={<BusDriverAssignments />} />
                                 {/* Personnel */}
                                 <Route path="drivers" element={<Drivers />} />
@@ -117,7 +123,9 @@ function App() {
                                 <Route path="routes/:id/manage-stops" element={<ManageRouteStops />} />
                                 <Route path="stops" element={<Stops />} />
                                 <Route path="terminals" element={<Terminals />} />
+                                <Route path="terminals/create" element={<CreateTerminal />} />
                                 <Route path="terminals/:id" element={<TerminalDetails />} />
+                                <Route path="terminals/:id/edit" element={<CreateTerminal />} />
                                 {/* Financial */}
                                 <Route path="pricing" element={<Pricing />} />
                                 {/* AI & Analytics */}

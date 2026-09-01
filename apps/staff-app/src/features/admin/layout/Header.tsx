@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import { authService } from '@/services/auth.service';
 import { useTheme } from '@/contexts/ThemeContext';
 import adminLogo from '../../../assets/admin-logo.jpg';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { notificationService } from '@/services/notification.service';
 import { socketService } from '@/services/socket.service';
 
@@ -101,6 +101,13 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
         queryKey: ['notifications'],
         queryFn: () => notificationService.getNotifications(),
         refetchInterval: 30000 // refresh every 30s
+    });
+
+    const markAsReadMutation = useMutation({
+        mutationFn: (id: string) => notificationService.markAsRead(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        }
     });
 
     const unreadCount = notificationsData.filter((n: any) => !n.isRead).length;
@@ -247,14 +254,18 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
                                     <span className="text-xs font-semibold bg-[#2B4B9E] text-white px-2 py-0.5 rounded-full">{unreadCount} New</span>
                                 </div>
                                 <div className="max-h-80 overflow-y-auto">
-                                    {notificationsData.length === 0 ? (
-                                        <div className="p-6 text-center text-sm text-gray-500">No notifications</div>
+                                    {notificationsData.filter((n: any) => !n.isRead).length === 0 ? (
+                                        <div className="p-6 text-center text-sm text-gray-500">No new notifications</div>
                                     ) : (
-                                        notificationsData.slice(0, 5).map((n: any) => (
+                                        notificationsData.filter((n: any) => !n.isRead).slice(0, 5).map((n: any) => (
                                             <div 
                                                 key={n.id} 
                                                 className={`px-4 py-3 border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer ${!n.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`} 
-                                                onClick={() => { setIsNotificationMenuOpen(false); navigate('/dashboard/notifications'); }}
+                                                onClick={() => { 
+                                                    if (!n.isRead) markAsReadMutation.mutate(n.id);
+                                                    setIsNotificationMenuOpen(false); 
+                                                    navigate('/dashboard/notifications'); 
+                                                }}
                                             >
                                                 <div className="flex justify-between items-start mb-1">
                                                     <p className="text-sm font-bold text-gray-900 dark:text-white truncate pr-2">{n.notification?.title || 'System Notification'}</p>

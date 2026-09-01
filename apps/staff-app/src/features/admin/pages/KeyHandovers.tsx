@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Search, Download, Plus, Key, CheckCircle, Clock, Loader2 } from 'lucide-react';
+import { Search, Download, Plus, Key, CheckCircle, Clock, Loader2, Trash2 } from 'lucide-react';
 import { KeyHandoverModal } from '@/features/admin/components/KeyHandoverModal';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { keyHandoverService, KeyHandover } from '@/services/key-handover.service';
 import toast from 'react-hot-toast';
+import { ConfirmModal } from '@/components/ConfirmModal';
 
 
 const getStatusColor = (status: KeyHandover['status']) => {
@@ -36,6 +37,7 @@ export function KeyHandovers() {
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [deleteHandoverId, setDeleteHandoverId] = useState<string | null>(null);
 
     const queryClient = useQueryClient();
 
@@ -113,6 +115,15 @@ export function KeyHandovers() {
         onError: () => toast.error('Failed to confirm')
     });
 
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => keyHandoverService.delete(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['key-handovers'] });
+            toast.success('Handover deleted successfully');
+        },
+        onError: () => toast.error('Failed to delete handover')
+    });
+
     const handleCreateHandover = (handoverData: any) => {
         createMutation.mutate(handoverData);
     };
@@ -123,6 +134,17 @@ export function KeyHandovers() {
 
     const handleConfirmTo = (handoverId: string) => {
         confirmToMutation.mutate(handoverId);
+    };
+
+    const handleDelete = (handoverId: string) => {
+        setDeleteHandoverId(handoverId);
+    };
+
+    const confirmDelete = () => {
+        if (deleteHandoverId) {
+            deleteMutation.mutate(deleteHandoverId);
+            setDeleteHandoverId(null);
+        }
     };
 
     const handleExport = () => {
@@ -356,6 +378,13 @@ export function KeyHandovers() {
                                                         Confirm To
                                                     </button>
                                                 )}
+                                                <button
+                                                    onClick={() => handleDelete(handover.id)}
+                                                    className="p-1 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete Handover"
+                                                >
+                                                    <Trash2 className="w-4 h-4 text-red-500" />
+                                                </button>
                                             </div>
                                         </td>
                                     </tr>
@@ -421,6 +450,17 @@ export function KeyHandovers() {
                     </div>
                 )}
             </div>
+
+            <ConfirmModal
+                isOpen={!!deleteHandoverId}
+                title="Delete Key Handover"
+                message="Are you sure you want to delete this handover? This action cannot be undone."
+                confirmText="Delete Handover"
+                cancelText="Cancel"
+                isDanger={true}
+                onConfirm={confirmDelete}
+                onCancel={() => setDeleteHandoverId(null)}
+            />
         </div>
     );
 }

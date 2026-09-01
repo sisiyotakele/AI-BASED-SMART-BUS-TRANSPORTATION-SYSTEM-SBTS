@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import { routeService } from '@/services/route.service';
 import { ArrowLeft, MapPin, ChevronRight, Navigation, Map as MapIcon, ArrowRight, Route as RouteIcon, Info, Bus, Compass } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -31,6 +31,17 @@ const endIcon = new L.Icon({
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
 });
+
+function MapUpdater({ positions }: { positions: [number, number][] }) {
+    const map = useMap();
+    useEffect(() => {
+        if (positions.length > 0) {
+            const bounds = L.latLngBounds(positions);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }, [map, positions]);
+    return null;
+}
 
 export function RouteDetails() {
     const { id } = useParams<{ id: string }>();
@@ -96,15 +107,39 @@ export function RouteDetails() {
     const baseStart = route.startTerminal?.terminalName;
     const baseEnd = route.endTerminal?.terminalName;
 
-    const startLat = Number(activeStartTerminal?.latitude) || 9.0054;
-    const startLng = Number(activeStartTerminal?.longitude) || 38.7636;
-    const endLat = Number(activeEndTerminal?.latitude) || 9.0320;
-    const endLng = Number(activeEndTerminal?.longitude) || 38.7469;
+    // Intelligent Coordinate Resolution for Start Terminal
+    let startLat = activeStartTerminal?.latitude ? Number(activeStartTerminal.latitude) : 0;
+    let startLng = activeStartTerminal?.longitude ? Number(activeStartTerminal.longitude) : 0;
+    
+    if (!startLat || !startLng) {
+        const firstOriginalStop = sortedStops.length > 0 ? sortedStops[0].stop : null;
+        startLat = firstOriginalStop?.latitude ? Number(firstOriginalStop.latitude) : 9.0054;
+        startLng = firstOriginalStop?.longitude ? Number(firstOriginalStop.longitude) : 38.7636;
+    }
+
+    // Intelligent Coordinate Resolution for End Terminal
+    let endLat = activeEndTerminal?.latitude ? Number(activeEndTerminal.latitude) : 0;
+    let endLng = activeEndTerminal?.longitude ? Number(activeEndTerminal.longitude) : 0;
+
+    if (!endLat || !endLng) {
+        const lastOriginalStop = sortedStops.length > 0 ? sortedStops[sortedStops.length - 1].stop : null;
+        endLat = lastOriginalStop?.latitude ? Number(lastOriginalStop.latitude) : 9.0320;
+        endLng = lastOriginalStop?.longitude ? Number(lastOriginalStop.longitude) : 38.7469;
+    }
 
     const mapCenter: [number, number] = [
-        (startLat + endLat) / 2,
-        (startLng + endLng) / 2
+        (startLat + endLat) / 2 || 9.0054,
+        (startLng + endLng) / 2 || 38.7636
     ];
+
+    const polylinePositions: [number, number][] = [];
+    polylinePositions.push([startLat, startLng]);
+    sortedStops.forEach((rs: any) => {
+        if (rs.stop?.latitude && rs.stop?.longitude) {
+            polylinePositions.push([Number(rs.stop.latitude), Number(rs.stop.longitude)]);
+        }
+    });
+    polylinePositions.push([endLat, endLng]);
 
     return (
         <div className="space-y-6 max-w-7xl mx-auto pb-12">
@@ -318,13 +353,7 @@ export function RouteDetails() {
             {/* Live Geography Plotting Container */}
             {selectedVersionId && (
                 <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden flex flex-col h-[600px] relative">
-                    <div className="absolute top-4 left-4 z-[1000] bg-white/90 dark:bg-navy-900/90 backdrop-blur-md px-4 py-2.5 rounded-xl shadow-lg border border-slate-200/50 dark:border-navy-700/50 flex items-center gap-3">
-                        <MapIcon className="w-5 h-5 text-cyan-500" />
-                        <div>
-                            <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest line-clamp-1">Geographic Overview</div>
-                            <div className="text-sm font-bold text-slate-800 dark:text-white leading-none mt-1">Real-World Polyline</div>
-                        </div>
-                    </div>
+
                     
                     <div className="flex-1 w-full relative z-0">
                         <MapContainer
@@ -338,6 +367,8 @@ export function RouteDetails() {
                                 attribution='&copy; OpenStreetMap'
                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             />
+
+                            <MapUpdater positions={polylinePositions} />
 
                             {activeStartTerminal && (
                                 <Marker position={[startLat, startLng]} icon={startIcon}>
@@ -372,15 +403,9 @@ export function RouteDetails() {
                                 );
                             })}
 
-                            {activeStartTerminal && activeEndTerminal && (
+                            {polylinePositions.length > 1 && (
                                 <Polyline
-                                    positions={[
-                                        [startLat, startLng],
-                                        ...sortedStops
-                                            .filter((rs: any) => rs.stop?.latitude && rs.stop?.longitude)
-                                            .map((rs: any) => [Number(rs.stop.latitude), Number(rs.stop.longitude)]),
-                                        [endLat, endLng]
-                                    ] as [number, number][]}
+                                    positions={polylinePositions}
                                     color="#0ea5e9" // Tailwind sky-500
                                     weight={5}
                                     opacity={0.8}

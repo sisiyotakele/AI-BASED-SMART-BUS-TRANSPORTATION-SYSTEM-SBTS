@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardService } from '@/services/dashboard.service';
 import {
@@ -29,6 +30,7 @@ const CustomChartTooltip = ({ active, payload, label }: any) => {
 };
 
 export function Dashboard() {
+    const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date());
 
     const { data: stats, isLoading: statsLoading } = useQuery({
@@ -118,7 +120,10 @@ export function Dashboard() {
                                 </span>
                             </h3>
                         </div>
-                        <button className="text-sm px-4 py-1.5 rounded-full text-gray-600 dark:text-gray-400 font-semibold hover:bg-gray-50 dark:hover:bg-navy-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-navy-600 focus:outline-none">
+                        <button 
+                            onClick={() => navigate('/dashboard/notifications')}
+                            className="text-sm px-4 py-1.5 rounded-full text-gray-600 dark:text-gray-400 font-semibold hover:bg-gray-50 dark:hover:bg-navy-800 transition-colors border border-transparent hover:border-slate-200 dark:hover:border-navy-600 focus:outline-none"
+                        >
                             View All
                         </button>
                     </div>

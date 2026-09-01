@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { X, Building2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, Building2, ChevronDown, Check } from 'lucide-react';
 import { Route } from '@/types';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
@@ -43,6 +43,25 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [selectedStartTerminal, setSelectedStartTerminal] = useState<string>('');
     const [selectedEndTerminal, setSelectedEndTerminal] = useState<string>('');
+    const [isStartDropdownOpen, setIsStartDropdownOpen] = useState(false);
+    const startDropdownRef = useRef<HTMLDivElement>(null);
+    const [isEndDropdownOpen, setIsEndDropdownOpen] = useState(false);
+    const endDropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (startDropdownRef.current && !startDropdownRef.current.contains(event.target as Node)) {
+                setIsStartDropdownOpen(false);
+            }
+            if (endDropdownRef.current && !endDropdownRef.current.contains(event.target as Node)) {
+                setIsEndDropdownOpen(false);
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, []);
 
     // Fetch terminals
     const { data: terminals = [] } = useQuery({
@@ -51,23 +70,7 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
         staleTime: 5 * 60 * 1000,
     });
 
-    // Auto-generate route name when both terminals are selected
-    useEffect(() => {
-        if (selectedStartTerminal && selectedEndTerminal) {
-            const startTerminal = terminals.find((t: Terminal) => t.id === selectedStartTerminal);
-            const endTerminal = terminals.find((t: Terminal) => t.id === selectedEndTerminal);
 
-            if (startTerminal && endTerminal) {
-                const autoName = `${startTerminal.terminalName} ↔ ${endTerminal.terminalName}`;
-                setFormData(prev => ({
-                    ...prev,
-                    routeName: autoName,
-                    startTerminalId: selectedStartTerminal,
-                    endTerminalId: selectedEndTerminal
-                }));
-            }
-        }
-    }, [selectedStartTerminal, selectedEndTerminal, terminals]);
 
     useEffect(() => {
         if (editData) {
@@ -97,6 +100,10 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
+        if (!formData.routeName || !formData.routeName.trim()) {
+            newErrors.routeName = 'Route name is required';
+        }
+
         if (!selectedStartTerminal) {
             newErrors.startTerminal = 'Starting terminal is required';
         }
@@ -120,12 +127,11 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
             return;
         }
 
-        // Send only terminal IDs and description - route name is auto-generated
         const submitData = {
             routeName: formData.routeName,
             description: formData.description,
-            startTerminalId: formData.startTerminalId,
-            endTerminalId: formData.endTerminalId,
+            startTerminalId: selectedStartTerminal,
+            endTerminalId: selectedEndTerminal,
             status: formData.status,
         };
 
@@ -184,29 +190,63 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                 Starting Terminal <span className="text-red-500">*</span>
                             </label>
-                            <div className="relative">
-                                <select
-                                    value={selectedStartTerminal}
-                                    onChange={(e) => {
-                                        setSelectedStartTerminal(e.target.value);
-                                        if (errors.startTerminal) {
-                                            setErrors(prev => {
-                                                const newErrors = { ...prev };
-                                                delete newErrors.startTerminal;
-                                                return newErrors;
-                                            });
-                                        }
+                            <div className="relative" ref={startDropdownRef}>
+                                <div
+                                    onClick={() => {
+                                        setIsStartDropdownOpen(!isStartDropdownOpen);
+                                        setIsEndDropdownOpen(false);
                                     }}
-                                    className={`w-full px-3 py-1.5 pl-9 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm appearance-none cursor-pointer ${errors.startTerminal ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                    className={`w-full px-3 py-2 pl-9 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg flex items-center justify-between cursor-pointer border hover:border-cyan-500 transition-colors text-sm ${errors.startTerminal ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
                                 >
-                                    <option value="">-- Select Starting Terminal --</option>
-                                    {terminals.map((terminal: Terminal) => (
-                                        <option key={terminal.id} value={terminal.id}>
-                                            {terminal.terminalName}
-                                        </option>
-                                    ))}
-                                </select>
-                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                    <div className="flex items-center">
+                                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <span className={selectedStartTerminal ? "font-medium" : "text-slate-400 dark:text-slate-500"}>
+                                            {selectedStartTerminal ? terminals.find((t: Terminal) => t.id === selectedStartTerminal)?.terminalName : "-- Select Starting Terminal --"}
+                                        </span>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isStartDropdownOpen ? 'rotate-180' : ''}`} />
+                                </div>
+                                
+                                {isStartDropdownOpen && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 text-sm">
+                                        {terminals.map((terminal: Terminal) => (
+                                            <button
+                                                key={terminal.id}
+                                                type="button"
+                                                className="w-full px-4 py-2.5 text-left hover:bg-cyan-50 dark:hover:bg-navy-700/50 transition-colors flex items-center justify-between border-b border-slate-100 dark:border-navy-700/50 last:border-b-0 group"
+                                                onClick={() => {
+                                                    setSelectedStartTerminal(terminal.id);
+                                                    
+                                                    if (selectedEndTerminal) {
+                                                        const endT = terminals.find((t: Terminal) => t.id === selectedEndTerminal);
+                                                        if (endT) {
+                                                            setFormData(prev => ({
+                                                                ...prev,
+                                                                routeName: `${terminal.terminalName} ↔ ${endT.terminalName}`
+                                                            }));
+                                                        }
+                                                    }
+
+                                                    if (errors.startTerminal) {
+                                                        setErrors(prev => {
+                                                            const newErrors = { ...prev };
+                                                            delete newErrors.startTerminal;
+                                                            return newErrors;
+                                                        });
+                                                    }
+                                                    setIsStartDropdownOpen(false);
+                                                }}
+                                            >
+                                                <span className={`font-semibold ${selectedStartTerminal === terminal.id ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-700 dark:text-slate-200 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'}`}>
+                                                    {terminal.terminalName}
+                                                </span>
+                                                {selectedStartTerminal === terminal.id && (
+                                                    <Check className="w-4 h-4 text-cyan-500" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             {errors.startTerminal && (
                                 <p className="mt-1 text-sm text-red-500">{errors.startTerminal}</p>
@@ -218,33 +258,67 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                                 Destination Terminal <span className="text-red-500">*</span>
                             </label>
-                            <div className="relative">
-                                <select
-                                    value={selectedEndTerminal}
-                                    onChange={(e) => {
-                                        setSelectedEndTerminal(e.target.value);
-                                        if (errors.endTerminal) {
-                                            setErrors(prev => {
-                                                const newErrors = { ...prev };
-                                                delete newErrors.endTerminal;
-                                                return newErrors;
-                                            });
-                                        }
+                            <div className="relative" ref={endDropdownRef}>
+                                <div
+                                    onClick={() => {
+                                        setIsEndDropdownOpen(!isEndDropdownOpen);
+                                        setIsStartDropdownOpen(false);
                                     }}
-                                    className={`w-full px-3 py-1.5 pl-9 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm appearance-none cursor-pointer ${errors.endTerminal ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
+                                    className={`w-full px-3 py-2 pl-9 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg flex items-center justify-between cursor-pointer border hover:border-cyan-500 transition-colors text-sm ${errors.endTerminal ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
                                 >
-                                    <option value="">-- Select Destination Terminal --</option>
-                                    {terminals.map((terminal: Terminal) => (
-                                        <option
-                                            key={terminal.id}
-                                            value={terminal.id}
-                                            disabled={terminal.id === selectedStartTerminal}
-                                        >
-                                            {terminal.terminalName}
-                                        </option>
-                                    ))}
-                                </select>
-                                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                    <div className="flex items-center">
+                                        <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+                                        <span className={selectedEndTerminal ? "font-medium" : "text-slate-400 dark:text-slate-500"}>
+                                            {selectedEndTerminal ? terminals.find((t: Terminal) => t.id === selectedEndTerminal)?.terminalName : "-- Select Destination Terminal --"}
+                                        </span>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isEndDropdownOpen ? 'rotate-180' : ''}`} />
+                                </div>
+                                
+                                {isEndDropdownOpen && (
+                                    <div className="absolute z-20 w-full mt-1 bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl shadow-lg max-h-60 overflow-y-auto py-1 text-sm">
+                                        {terminals.map((terminal: Terminal) => (
+                                            <button
+                                                key={terminal.id}
+                                                type="button"
+                                                disabled={terminal.id === selectedStartTerminal}
+                                                className={`w-full px-4 py-2.5 text-left transition-colors flex items-center justify-between border-b border-slate-100 dark:border-navy-700/50 last:border-b-0 group ${terminal.id === selectedStartTerminal ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-navy-900/50' : 'hover:bg-cyan-50 dark:hover:bg-navy-700/50 cursor-pointer'}`}
+                                                onClick={() => {
+                                                    if (terminal.id !== selectedStartTerminal) {
+                                                        setSelectedEndTerminal(terminal.id);
+
+                                                        if (selectedStartTerminal) {
+                                                            const startT = terminals.find((t: Terminal) => t.id === selectedStartTerminal);
+                                                            if (startT) {
+                                                                setFormData(prev => ({
+                                                                    ...prev,
+                                                                    routeName: `${startT.terminalName} ↔ ${terminal.terminalName}`
+                                                                }));
+                                                            }
+                                                        }
+
+                                                        if (errors.endTerminal) {
+                                                            setErrors(prev => {
+                                                                const newErrors = { ...prev };
+                                                                delete newErrors.endTerminal;
+                                                                return newErrors;
+                                                            });
+                                                        }
+                                                        setIsEndDropdownOpen(false);
+                                                    }
+                                                }}
+                                            >
+                                                <span className={`font-semibold ${selectedEndTerminal === terminal.id ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-700 dark:text-slate-200 group-hover:text-cyan-700 dark:group-hover:text-cyan-300'}`}>
+                                                    {terminal.terminalName}
+                                                    {terminal.id === selectedStartTerminal && <span className="ml-2 text-xs font-normal text-slate-400">(Selected as Start)</span>}
+                                                </span>
+                                                {selectedEndTerminal === terminal.id && (
+                                                    <Check className="w-4 h-4 text-cyan-500" />
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             {errors.endTerminal && (
                                 <p className="mt-1 text-sm text-red-500">{errors.endTerminal}</p>
@@ -252,26 +326,26 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
                         </div>
                     </div>
 
-                    {/* Route Name - Auto-generated, Read-only */}
+                    {/* Route Name */}
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Route Name (Auto-generated)
+                            Route Name <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                             <input
                                 type="text"
                                 value={formData.routeName}
-                                readOnly
-                                placeholder="Select terminals to see route name..."
-                                className="w-full px-3 py-1.5 bg-slate-50 dark:bg-navy-900 text-slate-900 dark:text-slate-100 rounded-lg border border-slate-300 dark:border-navy-600 text-sm cursor-not-allowed"
+                                onChange={(e) => handleChange('routeName', e.target.value)}
+                                placeholder="e.g., Piassa to Bole..."
+                                className={`w-full px-3 py-1.5 bg-white dark:bg-navy-800 text-slate-900 dark:text-slate-100 rounded-lg border focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm ${errors.routeName ? 'border-red-500 dark:border-red-500' : 'border-slate-300 dark:border-navy-600'}`}
                             />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 dark:text-slate-400">
                                 ↔ Bidirectional
                             </div>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                            Route name is automatically generated from selected terminals
-                        </p>
+                        {errors.routeName && (
+                            <p className="mt-1 text-sm text-red-500">{errors.routeName}</p>
+                        )}
                     </div>
 
                     {/* Description */}
@@ -304,11 +378,7 @@ export function RouteModal({ isOpen, onClose, onSubmit, editData }: RouteModalPr
                     </div>
 
                     {/* Info Box */}
-                    <div className="bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-lg p-4">
-                        <p className="text-sm text-blue-900 dark:text-blue-500/90 leading-relaxed">
-                            <strong className="font-semibold text-blue-950 dark:text-blue-400">Note:</strong> This creates a bidirectional route. Both Forward (A→B) and Backward (B→A) directions will have their own Route 1. You can add stops to each direction independently and create additional route variants (Route 2, Route 3...) as alternatives.
-                        </p>
-                    </div>
+                    
                 </form>
 
                 <div className="p-4 border-t border-slate-200 dark:border-navy-700 flex justify-end gap-3 bg-slate-50 dark:bg-navy-800/50">

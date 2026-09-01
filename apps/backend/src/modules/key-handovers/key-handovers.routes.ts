@@ -16,6 +16,7 @@ import {
   confirmTo,
   rejectHandover,
   getNextDriver,
+  deleteHandover,
 } from './key-handovers.controller';
 
 const router = Router();
@@ -77,6 +78,14 @@ router.patch(
   requirePermission('manage_key_handovers'),
   validateParams(handoverIdParamSchema),
   rejectHandover
+);
+
+// DELETE /key-handovers/:id — Admin deletes a handover
+router.delete(
+  '/:id',
+  requirePermission('manage_key_handovers'),
+  validateParams(handoverIdParamSchema),
+  deleteHandover
 );
 
 export default router;

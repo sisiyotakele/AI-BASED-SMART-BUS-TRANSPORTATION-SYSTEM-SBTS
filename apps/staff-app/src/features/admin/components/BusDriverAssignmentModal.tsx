@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Users, Bus, Calendar, Clock } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { busService } from '@/services/bus.service';
 import { driverService } from '@/services/driver.service';
@@ -112,39 +112,33 @@ export function BusDriverAssignmentModal({ isOpen, onClose, onSubmit, editData, 
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden border border-slate-200 dark:border-navy-700">
 
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 bg-gradient-to-r from-[#2B4B9E] to-[#1E3678] text-white shrink-0 shadow-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/20 shadow-inner shrink-0">
-                            <Users className="w-5 h-5 text-cyan-300" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold tracking-wide">
-                                {editData ? 'Edit Driver Shift & Bus Assignment' : 'Create Shift & Assign Bus'}
-                            </h2>
-                            <p className="text-xs text-cyan-100/80">Configure shift details and assign vehicle in one step</p>
-                        </div>
+                <div className="flex items-center justify-between px-8 py-6 bg-white dark:bg-navy-900 border-b border-slate-100 dark:border-navy-700/80">
+                    <div>
+                        <h2 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                            {editData ? 'Edit Driver Shift Assignment' : 'Create Driver Assignment'}
+                        </h2>
+                        <p className="text-xs text-slate-500 mt-1 font-medium">Link operational personnel to fleet vehicles</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/80 hover:text-white"
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-navy-800 rounded-full transition-colors text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                     >
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 {/* Form Body */}
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                <form onSubmit={handleSubmit} className="p-8 space-y-8">
 
                     {/* Driver */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                            <Users className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                            Driver <span className="text-red-500">*</span>
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                            Operating Driver <span className="text-red-500 ml-1">*</span>
                         </label>
                         <select
                             value={formData.driverId}
                             onChange={e => handleChange('driverId', e.target.value)}
-                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.driverId ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            className={`w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-navy-900/50 dark:hover:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all text-sm font-semibold ${errors.driverId ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-navy-700'}`}
                             disabled={driversLoading}
                         >
                             <option value="">{driversLoading ? 'Loading drivers...' : '— Select Driver —'}</option>
@@ -158,65 +152,61 @@ export function BusDriverAssignmentModal({ isOpen, onClose, onSubmit, editData, 
                                 );
                             })}
                         </select>
-                        {errors.driverId && <p className="mt-1 text-xs text-red-500">{errors.driverId}</p>}
+                        {errors.driverId && <p className="text-xs text-red-500 font-bold">{errors.driverId}</p>}
                     </div>
 
                     {/* Date */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                            <Calendar className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                            Date <span className="text-red-500">*</span>
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                            Effective Date <span className="text-red-500 ml-1">*</span>
                         </label>
                         <input
                             type="date"
                             value={formData.assignedDate}
                             onChange={e => handleChange('assignedDate', e.target.value)}
-                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.assignedDate ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            className={`w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-navy-900/50 dark:hover:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all text-sm font-bold ${errors.assignedDate ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-navy-700'}`}
                         />
-                        {errors.assignedDate && <p className="mt-1 text-xs text-red-500">{errors.assignedDate}</p>}
+                        {errors.assignedDate && <p className="text-xs text-red-500 font-bold">{errors.assignedDate}</p>}
                     </div>
 
                     {/* Shift Start & End */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                                <Clock className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                                Shift Start <span className="text-red-500">*</span>
+                    <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-2.5">
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                                Shift Start <span className="text-red-500 ml-1">*</span>
                             </label>
                             <input
                                 type="time"
                                 value={formData.shiftStart}
                                 onChange={e => handleChange('shiftStart', e.target.value)}
-                                className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.shiftStart ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                                className={`w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-navy-900/50 dark:hover:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all text-sm font-bold ${errors.shiftStart ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-navy-700'}`}
                             />
-                            {errors.shiftStart && <p className="mt-1 text-xs text-red-500">{errors.shiftStart}</p>}
+                            {errors.shiftStart && <p className="text-xs text-red-500 font-bold">{errors.shiftStart}</p>}
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                                <Clock className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                                Shift End <span className="text-red-500">*</span>
+                        <div className="space-y-2.5">
+                            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                                Shift End <span className="text-red-500 ml-1">*</span>
                             </label>
                             <input
                                 type="time"
                                 value={formData.shiftEnd}
                                 onChange={e => handleChange('shiftEnd', e.target.value)}
-                                className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.shiftEnd ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                                className={`w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-navy-900/50 dark:hover:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all text-sm font-bold ${errors.shiftEnd ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-navy-700'}`}
                             />
-                            {errors.shiftEnd && <p className="mt-1 text-xs text-red-500">{errors.shiftEnd}</p>}
+                            {errors.shiftEnd && <p className="text-xs text-red-500 font-bold">{errors.shiftEnd}</p>}
                         </div>
                     </div>
 
                     {/* Bus */}
-                    <div>
-                        <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mb-1.5 flex items-center gap-1.5">
-                            <Bus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
-                            Bus <span className="text-red-500">*</span>
+                    <div className="space-y-2.5">
+                        <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                            Assigned Bus <span className="text-red-500 ml-1">*</span>
                         </label>
                         <select
                             value={formData.busId}
                             onChange={e => handleChange('busId', e.target.value)}
-                            className={`w-full px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500 border text-sm ${errors.busId ? 'border-red-500' : 'border-slate-200 dark:border-navy-700'}`}
+                            className={`w-full px-4 py-3.5 bg-slate-50 hover:bg-slate-100 dark:bg-navy-900/50 dark:hover:bg-navy-800 text-slate-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/50 border transition-all text-sm font-semibold ${errors.busId ? 'border-red-500 ring-2 ring-red-500/20' : 'border-slate-200 dark:border-navy-700'}`}
                             disabled={busesLoading}
                         >
                             <option value="">{busesLoading ? 'Loading buses...' : '— Select Bus —'}</option>
@@ -226,23 +216,23 @@ export function BusDriverAssignmentModal({ isOpen, onClose, onSubmit, editData, 
                                 </option>
                             ))}
                         </select>
-                        {errors.busId && <p className="mt-1 text-xs text-red-500">{errors.busId}</p>}
+                        {errors.busId && <p className="text-xs text-red-500 font-bold">{errors.busId}</p>}
                     </div>
 
                     {/* Actions */}
-                    <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-navy-700">
+                    <div className="flex items-center justify-end gap-3 pt-6 mt-4 border-t border-slate-100 dark:border-navy-700/80">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="px-5 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 rounded-xl hover:bg-slate-50 transition-colors"
+                            className="px-6 py-3 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-white dark:bg-navy-900 border border-slate-200 dark:border-navy-700 rounded-xl hover:bg-slate-50 dark:hover:bg-navy-800 transition-colors"
                         >
-                            Cancel
+                            Discard
                         </button>
                         <button
                             type="submit"
-                            className="px-6 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl transition-colors shadow-sm"
+                            className="px-8 py-3 text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-500/20"
                         >
-                            {editData ? 'Update Assignment' : 'Create Shift & Assign Bus'}
+                            {editData ? 'Update Assignment' : 'Create Assignment'}
                         </button>
                     </div>
                 </form>

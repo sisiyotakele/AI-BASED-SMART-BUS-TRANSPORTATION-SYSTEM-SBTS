@@ -66,3 +66,9 @@ export async function finishShiftAndAssignment(shiftId: string) {
         })
     ]);
 }
+
+export async function deleteHandover(id: string) {
+    return prisma.keyHandover.delete({
+        where: { id }
+    });
+}

@@ -6,7 +6,7 @@ import { stopService } from '@/services/stop.service';
 import { ArrowLeft, MapPin, Plus, Trash2, Save, GitBranch, ArrowUpDown, GripVertical, X, Search, Loader2, Map as MapIcon, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useConfirm } from '@/contexts/ConfirmContext';
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -35,6 +35,17 @@ const endIcon = new L.Icon({
     popupAnchor: [1, -34],
     shadowSize: [41, 41]
 });
+
+function MapUpdater({ positions }: { positions: [number, number][] }) {
+    const map = useMap();
+    useEffect(() => {
+        if (positions.length > 0) {
+            const bounds = L.latLngBounds(positions);
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+    }, [map, positions]);
+    return null;
+}
 
 export function ManageRouteStops() {
     const { id } = useParams<{ id: string }>();
@@ -364,15 +375,42 @@ export function ManageRouteStops() {
     const startTerminal = selectedDirection === 'forward' ? route.startTerminal : route.endTerminal;
     const endTerminal = selectedDirection === 'forward' ? route.endTerminal : route.startTerminal;
 
-    const startLat = Number(startTerminal?.latitude) || 9.0054;
-    const startLng = Number(startTerminal?.longitude) || 38.7636;
-    const endLat = Number(endTerminal?.latitude) || 9.0320;
-    const endLng = Number(endTerminal?.longitude) || 38.7469;
+    // Intelligent Coordinate Resolution for Start Terminal
+    let startLat = startTerminal?.latitude ? Number(startTerminal.latitude) : 0;
+    let startLng = startTerminal?.longitude ? Number(startTerminal.longitude) : 0;
+    
+    if (!startLat || !startLng) {
+        const firstStopId = editingStops.length > 0 ? editingStops[0].stopId : null;
+        const firstStop = allStops.find((s: any) => s.id === firstStopId);
+        startLat = firstStop?.latitude ? Number(firstStop.latitude) : 9.0054;
+        startLng = firstStop?.longitude ? Number(firstStop.longitude) : 38.7636;
+    }
+
+    // Intelligent Coordinate Resolution for End Terminal
+    let endLat = endTerminal?.latitude ? Number(endTerminal.latitude) : 0;
+    let endLng = endTerminal?.longitude ? Number(endTerminal.longitude) : 0;
+
+    if (!endLat || !endLng) {
+        const lastStopId = editingStops.length > 0 ? editingStops[editingStops.length - 1].stopId : null;
+        const lastStop = allStops.find((s: any) => s.id === lastStopId);
+        endLat = lastStop?.latitude ? Number(lastStop.latitude) : 9.0320;
+        endLng = lastStop?.longitude ? Number(lastStop.longitude) : 38.7469;
+    }
 
     const mapCenter: [number, number] = [
-        (startLat + endLat) / 2,
-        (startLng + endLng) / 2
+        (startLat + endLat) / 2 || 9.0054,
+        (startLng + endLng) / 2 || 38.7636
     ];
+
+    const polylinePositions: [number, number][] = [];
+    polylinePositions.push([startLat, startLng]);
+    editingStops.forEach(stop => {
+        const originalStop = allStops.find((s: any) => s.id === stop.stopId);
+        if (originalStop?.latitude && originalStop?.longitude) {
+            polylinePositions.push([Number(originalStop.latitude), Number(originalStop.longitude)]);
+        }
+    });
+    polylinePositions.push([endLat, endLng]);
 
     return (
         <div className="space-y-6">
@@ -789,17 +827,22 @@ export function ManageRouteStops() {
                                                         <div className="relative z-10 w-10 h-10 mt-1 mb-2 rounded-full border-[3px] border-white dark:border-navy-800 bg-cyan-500 shadow-md flex items-center justify-center group-hover:scale-110 transition-transform">
                                                             <span className="font-bold text-white text-xs">{index + 1}</span>
                                                             
-                                                            {/* Manage Hover Actions */}
-                                                            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white dark:bg-navy-700 rounded-lg shadow-xl border border-slate-200 dark:border-navy-600 p-1 flex gap-1 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all scale-95 group-hover:scale-100">
-                                                                <button onClick={() => handleMoveStop(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 dark:hover:bg-navy-600 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
-                                                                    <ChevronLeft className="w-4 h-4" />
-                                                                </button>
-                                                                <button onClick={() => handleRemoveStop(index)} className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 rounded text-slate-600 dark:text-slate-300">
-                                                                    <X className="w-4 h-4" />
-                                                                </button>
-                                                                <button onClick={() => handleMoveStop(index, 'down')} disabled={index === editingStops.length - 1} className="p-1 hover:bg-slate-100 dark:hover:bg-navy-600 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
-                                                                    <ChevronRight className="w-4 h-4" />
-                                                                </button>
+                                                            {/* Manage Hover Actions with Invisible Bridge */}
+                                                            <div className="absolute -top-14 left-1/2 -translate-x-1/2 pb-4 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-all scale-95 group-hover:scale-100 z-50">
+                                                                <div className="bg-white dark:bg-navy-700 rounded-lg shadow-xl border border-slate-200 dark:border-navy-600 p-1 flex gap-1 relative">
+                                                                    {/* Invisible bridge to prevent hover loss */}
+                                                                    <div className="absolute w-full h-6 -bottom-6 left-0"></div>
+                                                                    
+                                                                    <button onClick={() => handleMoveStop(index, 'up')} disabled={index === 0} className="p-1 hover:bg-slate-100 dark:hover:bg-navy-600 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
+                                                                        <ChevronLeft className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleRemoveStop(index)} className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 rounded text-slate-600 dark:text-slate-300">
+                                                                        <X className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleMoveStop(index, 'down')} disabled={index === editingStops.length - 1} className="p-1 hover:bg-slate-100 dark:hover:bg-navy-600 rounded text-slate-600 dark:text-slate-300 disabled:opacity-30">
+                                                                        <ChevronRight className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                         <div className="px-2 w-full">
@@ -847,22 +890,19 @@ export function ManageRouteStops() {
                                                 attribution='&copy; OpenStreetMap'
                                                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                                             />
-                                            {startTerminal && (
-                                                <Marker position={[startLat, startLng]} icon={startIcon}>
-                                                    <Popup>
-                                                        <div className="text-sm font-bold">{startTerminal.terminalName}</div>
-                                                        <div className="text-xs text-slate-500">Start Terminal</div>
-                                                    </Popup>
-                                                </Marker>
-                                            )}
-                                            {endTerminal && (
-                                                <Marker position={[endLat, endLng]} icon={endIcon}>
-                                                    <Popup>
-                                                        <div className="text-sm font-bold">{endTerminal.terminalName}</div>
-                                                        <div className="text-xs text-slate-500">End Terminal</div>
-                                                    </Popup>
-                                                </Marker>
-                                            )}
+                                            <MapUpdater positions={polylinePositions} />
+                                            <Marker position={[startLat, startLng]} icon={startIcon}>
+                                                <Popup>
+                                                    <div className="text-sm font-bold text-emerald-600">{startTerminal?.terminalName}</div>
+                                                    <div className="text-xs text-slate-500">Start Terminal</div>
+                                                </Popup>
+                                            </Marker>
+                                            <Marker position={[endLat, endLng]} icon={endIcon}>
+                                                <Popup>
+                                                    <div className="text-sm font-bold text-red-500">{endTerminal?.terminalName}</div>
+                                                    <div className="text-xs text-slate-500">End Terminal</div>
+                                                </Popup>
+                                            </Marker>
                                             {/* Stop Markers */}
                                             {editingStops.map((stop, index) => {
                                                 const originalStop = allStops.find((s: any) => s.id === stop.stopId);
@@ -873,26 +913,21 @@ export function ManageRouteStops() {
                                                         position={[Number(originalStop.latitude), Number(originalStop.longitude)]}
                                                     >
                                                         <Popup>
-                                                            <div className="text-sm font-bold">{stop.stopName}</div>
+                                                            <div className="text-sm font-bold text-cyan-600">{stop.stopName}</div>
                                                             <div className="text-xs text-slate-500">Sequence: {index + 1}</div>
                                                         </Popup>
                                                     </Marker>
                                                 );
                                             })}
                                             {/* Route Polyline connecting all points */}
-                                            <Polyline
-                                                positions={[
-                                                    [startLat, startLng],
-                                                    ...editingStops
-                                                        .map(stop => allStops.find((s: any) => s.id === stop.stopId))
-                                                        .filter((s: any) => s && s.latitude && s.longitude)
-                                                        .map((s: any) => [Number(s.latitude), Number(s.longitude)] as [number, number]),
-                                                    [endLat, endLng]
-                                                ]}
-                                                color="#06b6d4"
-                                                weight={4}
-                                                opacity={0.7}
-                                            />
+                                            {polylinePositions.length > 1 && (
+                                                <Polyline
+                                                    positions={polylinePositions}
+                                                    color="#06b6d4"
+                                                    weight={4}
+                                                    opacity={0.7}
+                                                />
+                                            )}
                                         </MapContainer>
                                     </div>
                                 </div>

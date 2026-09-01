@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Search, Download, Plus, XCircle, Calendar, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { busRouteAssignmentService, BusRouteAssignment } from '@/services/bus-route-assignment.service';
-import { BusRouteAssignmentModal } from '@/features/admin/components/BusRouteAssignmentModal';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const calculateDuration = (start: string, end?: string | null) => {
@@ -28,8 +28,7 @@ export function BusRouteAssignments() {
     const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingAssignment, setEditingAssignment] = useState<any>(null);
+    const navigate = useNavigate();
 
     const queryClient = useQueryClient();
 
@@ -78,29 +77,6 @@ export function BusRouteAssignments() {
         const diffDays = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
         return diffDays <= 30 && diffDays > 0;
     }).length;
-
-    const createMutation = useMutation({
-        mutationFn: (data: any) => busRouteAssignmentService.createAssignment(data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bus-route-assignments'] });
-            toast.success('Assignment created successfully');
-            setIsModalOpen(false);
-            setEditingAssignment(null);
-        },
-        onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create assignment'),
-    });
-
-    const updateMutation = useMutation({
-        mutationFn: (data: { id: string, payload: any }) => busRouteAssignmentService.updateAssignment(data.id, data.payload),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['bus-route-assignments'] });
-            toast.success('Assignment updated successfully');
-            setIsModalOpen(false);
-            setEditingAssignment(null);
-        },
-        onError: () => toast.error('Failed to update assignment'),
-    });
-
     const deactivateMutation = useMutation({
         mutationFn: (id: string) => busRouteAssignmentService.deactivateAssignment(id),
         onSuccess: () => {
@@ -109,14 +85,6 @@ export function BusRouteAssignments() {
         },
         onError: () => toast.error('Failed to deactivate assignment'),
     });
-
-    const handleCreateAssignment = async (assignmentData: any) => {
-        if (editingAssignment) {
-            updateMutation.mutate({ id: editingAssignment.id, payload: assignmentData });
-        } else {
-            createMutation.mutate(assignmentData);
-        }
-    };
 
     const handleDeactivate = async (assignmentId: string) => {
         const isConfirmed = await confirm({ title: "Confirm Action", message: 'Are you sure you want to deactivate this assignment?', confirmText: "Confirm", isDanger: true });
@@ -159,17 +127,6 @@ export function BusRouteAssignments() {
 
     return (
         <div className="space-y-4">
-            {/* Modal */}
-            <BusRouteAssignmentModal
-                isOpen={isModalOpen}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setEditingAssignment(null);
-                }}
-                onSubmit={handleCreateAssignment}
-                editData={editingAssignment}
-            />
-
             {/* Strict Single-Line Non-Scrollable Header */}
             <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
                 <div className="flex items-center justify-between gap-2 w-full">
@@ -237,7 +194,7 @@ export function BusRouteAssignments() {
                         </button>
 
                         <button
-                            onClick={() => setIsModalOpen(true)}
+                            onClick={() => navigate('/dashboard/bus-route-assignments/create')}
                             className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
                         >
                             <Plus className="w-3.5 h-3.5" />
@@ -327,6 +284,12 @@ export function BusRouteAssignments() {
                                             {assignment.isActive && (
                                                 <div className="flex items-center space-x-2">
                                                     <button
+                                                        onClick={() => navigate('/dashboard/bus-route-assignments/edit', { state: { editData: assignment } })}
+                                                        className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md hover:bg-amber-100 transition-colors"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                    <button
                                                         onClick={() => handleDeactivate(assignment.id)}
                                                         className="px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-md hover:bg-red-100 transition-colors"
                                                     >
@@ -397,16 +360,6 @@ export function BusRouteAssignments() {
                     </div>
                 )}
             </div>
-
-            <BusRouteAssignmentModal
-                isOpen={isModalOpen}
-                onClose={() => {
-                    setIsModalOpen(false);
-                    setEditingAssignment(null);
-                }}
-                onSubmit={handleCreateAssignment}
-                editData={editingAssignment}
-            />
         </div>
     );
 }

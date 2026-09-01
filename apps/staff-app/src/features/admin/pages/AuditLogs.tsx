@@ -606,22 +606,6 @@ export function AuditLogs() {
                                     <p className="text-sm text-gray-900 mt-1">{selectedLog.description}</p>
                                 </div>
                             )}
-                            {selectedLog.oldValues && (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">Old Values</label>
-                                    <pre className="text-xs text-gray-900 mt-1 bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
-                                        {typeof selectedLog.oldValues === 'string' ? selectedLog.oldValues : JSON.stringify(selectedLog.oldValues, null, 2)}
-                                    </pre>
-                                </div>
-                            )}
-                            {selectedLog.newValues && (
-                                <div>
-                                    <label className="text-sm font-medium text-gray-700">New Values</label>
-                                    <pre className="text-xs text-gray-900 mt-1 bg-gray-50 p-3 rounded border border-gray-200 overflow-x-auto">
-                                        {typeof selectedLog.newValues === 'string' ? selectedLog.newValues : JSON.stringify(selectedLog.newValues, null, 2)}
-                                    </pre>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

@@ -119,11 +119,17 @@ export async function findRouteVersions(routeId: string) {
             routeStops: {
                 where: { deletedAt: null },
                 orderBy: { sequenceNumber: 'asc' },
-                include: { stop: { select: { id: true, stopName: true, stopCode: true } } },
+                include: { stop: { select: { id: true, stopName: true, stopCode: true, latitude: true, longitude: true } } },
             },
             schedules: {
                 where: { deletedAt: null, isActive: true },
                 orderBy: { departureTime: 'asc' },
+                include: {
+                    busRouteAssignments: {
+                        where: { isActive: true, deletedAt: null },
+                        select: { id: true, busId: true, bus: { select: { plateNumber: true } } }
+                    }
+                }
             },
         },
     });
