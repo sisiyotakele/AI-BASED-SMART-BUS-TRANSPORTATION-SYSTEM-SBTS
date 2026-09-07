@@ -72,6 +72,12 @@ export async function updateNotificationUser(notificationUserId: string, data: a
     });
 }
 
+export async function deleteNotificationUser(notificationUserId: string, userId: string) {
+    return prisma.notificationUser.deleteMany({
+        where: { id: notificationUserId, userId },
+    });
+}
+
 export async function findFailedNotifications(where: any, options: {
     orderBy?: any;
     take?: number;

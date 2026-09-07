@@ -30,7 +30,16 @@ export const RouteDetailPopover: React.FC<RouteDetailPopoverProps> = ({
 
   const handleTrackLive = () => {
     onClose();
-    navigate("/tracking");
+    const viaStops = option.routeVia
+      ? option.routeVia.split("→").map((s: string) => s.trim()).filter(Boolean)
+      : [];
+    navigate("/dashboard#live-route-map", { 
+      state: { 
+        selectedRoute: option, 
+        destination: destinationName,
+        viaStops,
+      } 
+    });
   };
 
   return (
@@ -76,12 +85,10 @@ export const RouteDetailPopover: React.FC<RouteDetailPopoverProps> = ({
         <div className="p-6 space-y-6">
           {/* Key Metric Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs sm:text-sm">
-            {option.fare && (
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-center sm:text-left">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Fare</span>
-                <span className="font-black text-base sm:text-lg" style={{ color: "#2B4B9E" }}>{option.fare}</span>
-              </div>
-            )}
+            <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-center sm:text-left">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Fare</span>
+              <span className="font-black text-base sm:text-lg" style={{ color: "#2B4B9E" }}>{option.fare}</span>
+            </div>
             <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-100 text-center sm:text-left">
               <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500 block mb-1">Est. Trip Time</span>
               <span className="font-black text-slate-900 text-base sm:text-lg">~{option.totalTripMinutes} mins</span>
@@ -144,7 +151,7 @@ export const RouteDetailPopover: React.FC<RouteDetailPopoverProps> = ({
                           </span>
                           <span className="text-base font-extrabold">{leg.busNumber}</span>
                         </div>
-                        {leg.fare && <span className="font-black text-base" style={{ color: "#2B4B9E" }}>{leg.fare}</span>}
+                        <span className="font-black text-base" style={{ color: "#2B4B9E" }}>{leg.fare}</span>
                       </div>
 
                       <div className="flex items-center gap-2.5 text-slate-800 font-bold pl-9 text-sm">
@@ -162,23 +169,7 @@ export const RouteDetailPopover: React.FC<RouteDetailPopoverProps> = ({
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
-              <h4 className="text-xs sm:text-sm font-extrabold uppercase tracking-wider text-slate-600">
-                Route Stops
-              </h4>
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 max-h-48 overflow-y-auto space-y-2">
-                {option.stops && option.stops.length > 0 ? option.stops.map((stopName, idx) => (
-                  <div key={idx} className="flex items-center gap-3 text-sm font-bold text-slate-700">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
-                    <span>{stopName}</span>
-                  </div>
-                )) : (
-                  <span className="text-sm text-slate-500 font-medium">No stops recorded for this route.</span>
-                )}
-              </div>
-            </div>
-          )}
+          ) : null}
 
           {/* Modal Action Buttons */}
           <div className="flex flex-col sm:flex-row items-center gap-3.5 pt-3">

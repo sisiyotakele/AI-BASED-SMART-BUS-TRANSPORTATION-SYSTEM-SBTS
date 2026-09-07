@@ -21,7 +21,7 @@ export interface RouteLeg {
   busType: string;
   departureEtaMinutes: number;
   durationMinutes: number;
-  fare: string | null;
+  fare: string;
   transferWaitMinutes?: number;
 }
 
@@ -42,12 +42,10 @@ export interface RouteOption {
   nearestStation: BusStation;
   busEtaMinutes: number;
   totalTripMinutes: number;
-  fare: string | null;
+  fare: string;
   crowdLevel: "Low" | "Medium" | "High";
   routeVia: string;
   viaDescription?: string;
   legs?: RouteLeg[];
   aiTrafficPrediction?: AiTrafficPrediction;
-  nextDeparture?: string;
-  stops?: string[];
 }

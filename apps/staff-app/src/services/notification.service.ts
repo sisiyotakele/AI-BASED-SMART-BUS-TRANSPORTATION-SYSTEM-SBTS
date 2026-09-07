@@ -35,6 +35,11 @@ class NotificationService {
         const response = await api.patch(`/notifications/${id}/read`);
         return response.data;
     }
+
+    async deleteNotification(id: string): Promise<any> {
+        const response = await api.delete(`/notifications/${id}`);
+        return response.data;
+    }
 }
 
 export const notificationService = new NotificationService();

@@ -62,46 +62,14 @@ export function Dashboard() {
 
     return (
         <div className="space-y-6">
-            {/* Header with Key Metrics */}
+            {/* Page Header */}
             <div className="bg-gradient-to-r from-[#2B4B9E] to-blue-800 dark:from-navy-900 dark:to-cyan-900/50 rounded-2xl px-6 py-5 shadow-xl relative overflow-hidden border border-blue-700/50 dark:border-cyan-800/30">
                 <div className="absolute -top-12 -right-12 w-40 h-40 bg-white/10 dark:bg-cyan-500/10 rounded-full blur-3xl"></div>
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
-                    <div>
-                        <h2 className="text-white font-bold text-xl">Dashboard Overview</h2>
-                        <p className="text-sm text-cyan-100/80 mt-1">
-                            {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} • {currentTime.toLocaleTimeString()}
-                        </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-8 lg:gap-12">
-                        <div className="text-center">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70 mb-1">Active Buses</p>
-                            <p className="text-2xl font-bold text-white">{statsLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-cyan-300" /> : stats?.activeBuses}</p>
-                            <p className="text-[10px] text-emerald-300 flex items-center justify-center mt-1 bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                                <TrendingUp className="w-3 h-3 mr-1" />{statsLoading ? '-' : `${stats?.totalBuses} total`}
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70 mb-1">Active Trips</p>
-                            <p className="text-2xl font-bold text-white">{statsLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-cyan-300" /> : stats?.activeTrips}</p>
-                            <p className="text-[10px] text-emerald-300 flex items-center justify-center mt-1 bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                                <TrendingUp className="w-3 h-3 mr-1" />{statsLoading ? '-' : `${stats?.totalTrips} total`}
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70 mb-1">Active Drivers</p>
-                            <p className="text-2xl font-bold text-white">{statsLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-cyan-300" /> : stats?.activeDrivers}</p>
-                            <p className="text-[10px] text-emerald-300 flex items-center justify-center mt-1 bg-emerald-900/30 px-2 py-0.5 rounded-full border border-emerald-400/20">
-                                <TrendingUp className="w-3 h-3 mr-1" />{statsLoading ? '-' : `${stats?.totalDrivers} total`}
-                            </p>
-                        </div>
-                        <div className="text-center">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-cyan-200/70 mb-1">Incidents Today</p>
-                            <p className="text-2xl font-bold text-white">{statsLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto text-cyan-300" /> : stats?.incidentsToday}</p>
-                            <p className="text-[10px] text-red-300 flex items-center justify-center mt-1 bg-red-900/30 px-2 py-0.5 rounded-full border border-red-400/20">
-                                Check logs
-                            </p>
-                        </div>
-                    </div>
+                <div className="relative z-10">
+                    <h2 className="text-white font-bold text-xl">Dashboard Overview</h2>
+                    <p className="text-sm text-cyan-100/80 mt-1">
+                        {currentTime.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })} • {currentTime.toLocaleTimeString()}
+                    </p>
                 </div>
             </div>
 
@@ -166,6 +134,86 @@ export function Dashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Key Metrics Boxes */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Active Buses */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 p-6 flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Buses</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                                {statsLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> : stats?.activeBuses}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-900/20 ring-8 ring-blue-50/50 dark:ring-blue-900/10 flex items-center justify-center">
+                            <Bus className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm">
+                        <span className="text-slate-600 dark:text-slate-400 font-medium mr-1.5">{statsLoading ? '-' : stats?.totalBuses}</span>
+                        <span className="text-slate-500 dark:text-slate-400">total buses</span>
+                    </div>
+                </div>
+                
+                {/* Active Trips */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 p-6 flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Trips</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                                {statsLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> : stats?.activeTrips}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-900/20 ring-8 ring-blue-50/50 dark:ring-blue-900/10 flex items-center justify-center">
+                            <Activity className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm">
+                        <span className="text-slate-600 dark:text-slate-400 font-medium mr-1.5">{statsLoading ? '-' : stats?.totalTrips}</span>
+                        <span className="text-slate-500 dark:text-slate-400">total trips</span>
+                    </div>
+                </div>
+
+                {/* Active Drivers */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 p-6 flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Active Drivers</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                                {statsLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> : stats?.activeDrivers}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-900/20 ring-8 ring-blue-50/50 dark:ring-blue-900/10 flex items-center justify-center">
+                            <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm">
+                        <span className="text-slate-600 dark:text-slate-400 font-medium mr-1.5">{statsLoading ? '-' : stats?.totalDrivers}</span>
+                        <span className="text-slate-500 dark:text-slate-400">total drivers</span>
+                    </div>
+                </div>
+
+                {/* Incidents Today */}
+                <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 p-6 flex flex-col hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Incidents Today</p>
+                            <h3 className="text-3xl font-bold text-slate-900 dark:text-white mt-1">
+                                {statsLoading ? <Loader2 className="w-6 h-6 animate-spin text-blue-500" /> : stats?.incidentsToday}
+                            </h3>
+                        </div>
+                        <div className="p-2.5 rounded-full bg-blue-50 dark:bg-blue-900/20 ring-8 ring-blue-50/50 dark:ring-blue-900/10 flex items-center justify-center">
+                            <AlertTriangle className="w-5 h-5 text-blue-600 dark:text-blue-400" strokeWidth={2} />
+                        </div>
+                    </div>
+                    <div className="mt-4 flex items-center text-sm">
+                        <span className="text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-md text-xs font-medium cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" onClick={() => navigate('/dashboard/audit-logs')}>
+                            Check System Logs
+                        </span>
+                    </div>
+                </div>
+            </div>
 
             {/* Main Grid - Fleet, Operations, Recent Activity */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

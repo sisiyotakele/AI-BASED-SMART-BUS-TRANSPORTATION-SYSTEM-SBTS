@@ -12,6 +12,8 @@ interface DriverProfile {
   address?: string;
   licenseNumber?: string;
   licenseExpiry?: string;
+  licenseType?: string;
+  issueDate?: string;
   isActive?: boolean;
   rating?: number;
   totalTrips?: number;

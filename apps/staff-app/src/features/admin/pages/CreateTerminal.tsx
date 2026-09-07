@@ -378,7 +378,7 @@ export function CreateTerminal() {
                 <form id="terminal-form" onSubmit={handleSubmit} className="p-6 space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Terminal Name */}
-                        <div className="md:col-span-2">
+                        <div>
                             <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1.5">
                                 Terminal Name <span className="text-red-500">*</span>
                             </label>
@@ -395,7 +395,7 @@ export function CreateTerminal() {
                         </div>
 
                         {/* Address with Geocoding */}
-                        <div className="relative md:col-span-2" ref={addressRef}>
+                        <div className="relative" ref={addressRef}>
                             <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1.5">
                                 Address (Optional)
                             </label>
@@ -489,17 +489,6 @@ export function CreateTerminal() {
                         <div>
                             <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1.5 flex justify-between items-end">
                                 <span>Longitude</span>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setTempMapLocation(formData.latitude && formData.longitude ? new L.LatLng(formData.latitude, formData.longitude) : new L.LatLng(9.0300, 38.7400));
-                                        setIsMapModalOpen(true);
-                                    }}
-                                    className="text-sm font-bold text-cyan-600 dark:text-cyan-400 hover:text-cyan-700 hover:bg-cyan-100 bg-cyan-50 dark:bg-cyan-900/40 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
-                                >
-                                    <MapPin className="w-4 h-4" />
-                                    Choose on Map
-                                </button>
                             </label>
                             <input
                                 type="number"
@@ -555,7 +544,7 @@ export function CreateTerminal() {
                         </div>
 
                         {/* Facilities */}
-                        <div className="md:col-span-2">
+                        <div>
                             <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1.5">
                                 Facilities (Optional)
                             </label>
@@ -569,7 +558,7 @@ export function CreateTerminal() {
                         </div>
 
                         {/* Manager Name */}
-                        <div className="md:col-span-2">
+                        <div>
                             <label className="block text-sm font-semibold text-slate-900 dark:text-white mb-1.5">
                                 Terminal Manager (Optional)
                             </label>

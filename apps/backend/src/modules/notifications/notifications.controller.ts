@@ -21,3 +21,8 @@ export const markAsRead = asyncHandler(async (req: AuthenticatedRequest, res: Re
   const result = await service.markAsRead(req.params.id, req.user!.userId);
   successResponse(res, result, 'Notification marked as read');
 });
+
+export const deleteNotification = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  await service.deleteNotification(req.params.id, req.user!.userId);
+  successResponse(res, null, 'Notification deleted');
+});

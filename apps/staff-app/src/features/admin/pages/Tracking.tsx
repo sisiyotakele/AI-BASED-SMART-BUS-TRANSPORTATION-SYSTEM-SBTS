@@ -60,84 +60,54 @@ export function TrackingPage() {
     return (
         <div className="space-y-4">
             {/* Header Section */}
-            <div className="bg-[#2B4B9E] rounded-t-lg px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <Navigation className="w-6 h-6 text-white" />
-                        <div>
-                            <h2 className="text-white font-semibold text-lg">Live GPS Tracking</h2>
-                            <p className="text-cyan-100 text-sm">{activeBuses.length} buses active</p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center space-x-3">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search buses..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-cyan-500 w-64"
-                            />
-                        </div>
-                    </div>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Live GPS Tracking</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Monitor real-time bus locations and active routes</p>
                 </div>
             </div>
 
-            {/* Summary Stats */}
-            <div className="grid grid-cols-4 gap-4">
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Total Active</p>
-                            <p className="text-2xl font-bold text-gray-900">{activeBuses.length}</p>
-                        </div>
-                        <div className="w-12 h-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                            <Navigation className="w-6 h-6 text-cyan-600" />
-                        </div>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Navigation className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL ACTIVE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{activeBuses.length}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Activity className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MOVING:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{onTimeCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Clock className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SLOW:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{delayedCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <MapPin className="w-4 h-4 text-red-600 dark:text-red-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">STOPPED:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{stoppedCount}</span>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Moving</p>
-                            <p className="text-2xl font-bold text-green-600">
-                                {onTimeCount}
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                            <Activity className="w-6 h-6 text-green-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Slow</p>
-                            <p className="text-2xl font-bold text-orange-600">
-                                {delayedCount}
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                            <Clock className="w-6 h-6 text-orange-600" />
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-lg shadow p-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm text-gray-600">Stopped</p>
-                            <p className="text-2xl font-bold text-red-600">
-                                {stoppedCount}
-                            </p>
-                        </div>
-                        <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-                            <MapPin className="w-6 h-6 text-red-600" />
-                        </div>
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[250px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search buses..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
                     </div>
                 </div>
             </div>

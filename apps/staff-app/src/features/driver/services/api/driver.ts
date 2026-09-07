@@ -30,6 +30,8 @@ export const driverApi = {
             address: userData.address || '',
             licenseNumber: userData.licenseNumber || '',
             licenseExpiry: userData.licenseExpiry || '',
+            licenseType: userData.licenseType || userData.licenseCategory || '',
+            issueDate: userData.issueDate || userData.licenseIssueDate || '',
             isActive: userData.isActive !== undefined ? userData.isActive : true,
             rating: userData.rating || 0,
             totalTrips: userData.totalTrips || 0,

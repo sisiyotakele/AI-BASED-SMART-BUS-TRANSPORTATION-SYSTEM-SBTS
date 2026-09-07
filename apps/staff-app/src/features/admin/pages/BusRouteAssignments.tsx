@@ -1,6 +1,6 @@
 import { useConfirm } from '@/contexts/ConfirmContext';
 import { useState } from 'react';
-import { Search, Download, Plus, XCircle, Calendar, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, Download, Plus, XCircle, Calendar, CheckCircle, AlertCircle, Loader2, Bus } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { busRouteAssignmentService, BusRouteAssignment } from '@/services/bus-route-assignment.service';
 import { useNavigate } from 'react-router-dom';
@@ -127,81 +127,76 @@ export function BusRouteAssignments() {
 
     return (
         <div className="space-y-4">
-            {/* Strict Single-Line Non-Scrollable Header */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Bus-Route Assignment</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor bus to route assignments</p>
+                </div>
+            </div>
 
-                    {/* Left: Title & Inline Compact Stats */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Bus-Route Assignment</h2>
-
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <Calendar className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{assignments.length}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <CheckCircle className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Active:</span>
-                                <span className="text-xs font-bold text-white">{activeCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-gray-500/20 px-2 py-1 rounded shrink-0">
-                                <XCircle className="w-3.5 h-3.5 text-gray-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Inactive:</span>
-                                <span className="text-xs font-bold text-white">{inactiveCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-orange-500/20 px-2 py-1 rounded shrink-0">
-                                <AlertCircle className="w-3.5 h-3.5 text-orange-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Expiring:</span>
-                                <span className="text-xs font-bold text-white">{expiringCount}</span>
-                            </div>
-                        </div>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Bus className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{assignments.length}</span>
                     </div>
 
-                    {/* Right: Search, Filter, Export & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[180px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 dark:placeholder-slate-500"
-                            />
-                        </div>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ACTIVE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{activeCount}</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">EXPIRING:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{expiringCount}</span>
+                    </div>
+                </div>
 
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as any)}
-                            className="text-xs text-slate-800 dark:text-slate-200 px-2 py-1.5 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 text-gray-700 dark:text-gray-300 border border-transparent dark:border-navy-600 rounded hover:bg-gray-100 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-                        <button
-                            onClick={() => navigate('/dashboard/bus-route-assignments/create')}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Assignment</span>
-                        </button>
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[150px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
                     </div>
 
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+
+                    <button
+                        onClick={() => navigate('/dashboard/bus-route-assignments/create')}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Assignment</span>
+                    </button>
                 </div>
             </div>
 
@@ -209,15 +204,15 @@ export function BusRouteAssignments() {
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-navy-700">
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap">
-                        <thead className="bg-slate-50 dark:bg-navy-800/50 border-b border-slate-200 dark:border-navy-700">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Bus</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Route</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Assigned Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">End Date</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Schedule</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Actions</th>
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Bus</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Route</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Assigned Date</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">End Date</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Schedule</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Status</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200 dark:divide-navy-700">
@@ -238,13 +233,13 @@ export function BusRouteAssignments() {
                             ) : (
                                 currentAssignments.map((assignment) => (
                                     <tr key={assignment.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{assignment.busPlate}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm text-slate-700 dark:text-slate-300">{assignment.routeName}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm text-slate-700 dark:text-slate-300">
                                                 {new Date(assignment.assignedDate).toLocaleDateString('en-US', {
                                                     month: 'short',
@@ -253,7 +248,7 @@ export function BusRouteAssignments() {
                                                 })}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             {assignment.endDate ? (
                                                 <span className="text-sm text-slate-700 dark:text-slate-300">
                                                     {new Date(assignment.endDate).toLocaleDateString('en-US', {
@@ -266,13 +261,13 @@ export function BusRouteAssignments() {
                                                 <span className="text-sm text-slate-400 dark:text-slate-500">Ongoing</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">{assignment.scheduleName}</span>
                                                 <span className="text-xs text-slate-500">{assignment.departureTime}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${assignment.isActive
                                                 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
                                                 : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
@@ -280,9 +275,9 @@ export function BusRouteAssignments() {
                                                 {assignment.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5 text-right">
                                             {assignment.isActive && (
-                                                <div className="flex items-center space-x-2">
+                                                <div className="flex items-center justify-end space-x-2">
                                                     <button
                                                         onClick={() => navigate('/dashboard/bus-route-assignments/edit', { state: { editData: assignment } })}
                                                         className="px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 rounded-md hover:bg-amber-100 transition-colors"

@@ -22,17 +22,6 @@ export const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-
-    // Manual validation to prevent empty credentials submission
-    if (!formData.email.trim() || !formData.password.trim()) {
-      setError({
-        type: 'validation',
-        message: '⚠️ Missing Credentials',
-        detail: 'Please enter both your email address and password to login.',
-      });
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -165,23 +154,11 @@ export const LoginPage = () => {
           </div>
 
           {error && (
-            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="font-bold text-sm text-red-700 flex items-center gap-2">
-                <span className="text-base">⚠️</span>
-                {error.message}
-              </p>
-              {error.bullets && error.bullets.length > 0 ? (
-                <ul className="mt-2 space-y-1">
-                  {error.bullets.map((b, i) => (
-                    <li key={i} className="text-xs text-red-600 flex items-start gap-1.5">
-                      <span className="mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              ) : error.detail ? (
-                <p className="mt-1.5 text-xs text-red-600 leading-relaxed">{error.detail}</p>
-              ) : null}
+            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
+              <p className="font-bold text-sm mb-1">{error.message}</p>
+              {error.detail && (
+                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[11px] leading-relaxed">{error.detail}</pre>
+              )}
             </div>
           )}
 
@@ -253,35 +230,26 @@ export const LoginPage = () => {
             </button>
           </form>
 
-          {/* OR Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">or</span>
-            <div className="flex-1 h-px bg-slate-200"></div>
-          </div>
-
-          <div className="space-y-3">
-            {/* Nav to Register Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/register")}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-indigo-100 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 transition-all cursor-pointer shadow-xs"
-            >
-              <span>Create an Account (Sign Up)</span>
-            </button>
-
-            {/* Continue as Guest Button */}
+          {/* Continue as Guest Button */}
+          <div className="mt-4">
             <button
               type="button"
               onClick={() => {
                 enterGuestMode();
                 navigate("/dashboard");
               }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-all cursor-pointer shadow-xs"
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#1B2A4A] hover:text-white transition-all cursor-pointer shadow-2xs group"
             >
-              <span>Continue as Guest (Limited Access)</span>
+              <span>Continue as Guest (No Sign Up)</span>
             </button>
           </div>
+
+          <p className="auth-bottom-text text-center text-xs text-slate-500 mt-6">
+            Don't have an account?{" "}
+            <Link to="/register" className="auth-link text-indigo-600 font-bold hover:underline">
+              Sign up
+            </Link>
+          </p>
         </div>
       </div>
     </div>

@@ -137,80 +137,81 @@ export function Stops() {
                 editData={editingStop}
             />
 
-            {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-                    
-                    {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Stops Management</h2>
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Stops Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all transit stops</p>
+                </div>
+            </div>
 
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{stops.length}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-blue-500/20 px-2 py-1 rounded shrink-0">
-                                <Navigation2 className="w-3.5 h-3.5 text-blue-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total Routes:</span>
-                                <span className="text-xs font-bold text-white">{totalRoutes}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-purple-500/20 px-2 py-1 rounded shrink-0">
-                                <MapPin className="w-3.5 h-3.5 text-purple-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">With Terminal:</span>
-                                <span className="text-xs font-bold text-white">{withTerminal}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <MapPin className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Mapped:</span>
-                                <span className="text-xs font-bold text-white">{withCoordinates}</span>
-                            </div>
-                        </div>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <MapPin className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{stops.length}</span>
                     </div>
 
-                    {/* Right: Search, Terminal Filter, Export & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[150px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1 text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 transition-colors"
-                            />
-                        </div>
-
-                        <select
-                            value={filterTerminal}
-                            onChange={(e) => setFilterTerminal(e.target.value)}
-                            className="text-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer transition-colors"
-                        >
-                            <option value="all">All Terminals</option>
-                            <option value="none">No Terminal</option>
-                        </select>
-
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Stop</span>
-                        </button>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Navigation2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL ROUTES:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{totalRoutes}</span>
                     </div>
 
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <MapPin className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">WITH TERMINAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{withTerminal}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MAPPED:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{withCoordinates}</span>
+                    </div>
+                </div>
+
+                {/* Actions: Search, Filter, Export & New Stop */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[150px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search stops..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
+                    </div>
+
+                    <select
+                        value={filterTerminal}
+                        onChange={(e) => setFilterTerminal(e.target.value)}
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="all">All Terminals</option>
+                        <option value="none">No Terminal</option>
+                    </select>
+
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Stop</span>
+                    </button>
                 </div>
             </div>
 
@@ -218,13 +219,13 @@ export function Stops() {
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap">
-                        <thead className="bg-slate-50 dark:bg-navy-800 border-b border-slate-200 dark:border-navy-700">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Stop Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Code</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Address</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Coordinates</th>
-                                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Actions</th>
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-left text-sm font-medium text-white uppercase tracking-wide">Stop Name</th>
+                                <th className="px-6 text-left text-sm font-medium text-white uppercase tracking-wide">Code</th>
+                                <th className="px-6 text-left text-sm font-medium text-white uppercase tracking-wide">Address</th>
+                                <th className="px-6 text-left text-sm font-medium text-white uppercase tracking-wide">Coordinates</th>
+                                <th className="px-6 text-right text-sm font-medium text-white uppercase tracking-wide">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-navy-700">
@@ -238,27 +239,27 @@ export function Stops() {
                             ) : (
                                 currentStops.map((stop) => (
                                     <tr key={stop.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <div className="flex items-center space-x-3">
                                                 <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
                                                     <MapPin className="w-4 h-4 text-white" />
                                                 </div>
-                                                <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{stop.stopName}</div>
+                                                <div className="text-base font-semibold text-slate-900 dark:text-slate-100">{stop.stopName}</div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300 border border-slate-200 dark:border-navy-600">
                                                 {stop.stopCode}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
+                                        <td className="px-6 py-5 text-sm text-slate-600 dark:text-slate-400">
                                             {stop.address || '-'}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             {stop.latitude && stop.longitude ? (
-                                                <div className="flex items-center space-x-1.5 text-xs text-slate-500 dark:text-slate-400">
-                                                    <span className="font-medium text-[10px] uppercase tracking-wider">GPS:</span>
-                                                    <span className="font-mono bg-slate-50 dark:bg-navy-800 px-1.5 py-0.5 rounded text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
+                                                <div className="flex items-center space-x-1.5 text-sm text-slate-500 dark:text-slate-400">
+                                                    <span className="font-semibold text-xs uppercase tracking-wider">GPS:</span>
+                                                    <span className="font-mono bg-slate-50 dark:bg-navy-800 px-2 py-1 rounded text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-700">
                                                         {Number(stop.latitude).toFixed(4)}, {Number(stop.longitude).toFixed(4)}
                                                     </span>
                                                 </div>
@@ -266,7 +267,7 @@ export function Stops() {
                                                 <span className="text-sm text-slate-400 dark:text-slate-500">-</span>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <div className="flex items-center justify-end space-x-2">
                                                 <button
                                                     onClick={() => handleEditStop(stop)}

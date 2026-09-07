@@ -288,9 +288,9 @@ export function Shifts() {
 
                         <button
                             onClick={handleAddShift}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap border border-transparent"
+                            className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
                         >
-                            <Plus className="w-3.5 h-3.5" />
+                            <Plus className="w-4 h-4" />
                             <span>Add Shift</span>
                         </button>
                     </div>

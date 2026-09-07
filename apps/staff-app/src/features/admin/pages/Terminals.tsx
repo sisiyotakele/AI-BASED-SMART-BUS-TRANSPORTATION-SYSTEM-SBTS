@@ -2,7 +2,7 @@ import { useConfirm } from '@/contexts/ConfirmContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, Download, Plus, Building2, Edit2, Trash2, MapPin, Users, Phone, Mail, User } from 'lucide-react';
+import { Search, Download, Plus, Building2, Edit2, Trash2, MapPin, Users, Phone, Mail, User, Eye } from 'lucide-react';
 import { terminalsApi, Terminal } from '@/services/api/terminals.api';
 import toast from 'react-hot-toast';
 
@@ -13,6 +13,7 @@ export function Terminals() {
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(9);
+    const [filterStatus, setFilterStatus] = useState('All');
 
     // Fetch terminals
     const { data: terminals = [], isLoading, error } = useQuery({
@@ -35,7 +36,10 @@ export function Terminals() {
     });
 
     // Filtering
-    const filteredTerminals = terminals;
+    const filteredTerminals = terminals.filter((terminal) => {
+        if (filterStatus !== 'All' && terminal.status?.toLowerCase() !== filterStatus.toLowerCase()) return false;
+        return true;
+    });
 
     // Pagination
     const totalPages = Math.ceil(filteredTerminals.length / itemsPerPage);
@@ -122,213 +126,180 @@ export function Terminals() {
     return (
         <div className="space-y-4">
 
-            {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-
-                    {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Terminals</h2>
-
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <Building2 className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{totalTerminals}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-blue-500/20 px-2 py-1 rounded shrink-0">
-                                <Users className="w-3.5 h-3.5 text-blue-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Capacity:</span>
-                                <span className="text-xs font-bold text-white">{totalCapacity}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right: Search, Export & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[180px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1 text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
-                            />
-                        </div>
-
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-                        <button
-                            onClick={() => navigate('/dashboard/terminals/create')}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap border border-transparent"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Terminal</span>
-                        </button>
-                    </div>
-
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Terminals Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all bus terminals across the network</p>
                 </div>
             </div>
 
-            {/* Cards Grid */}
-            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm p-6 border border-slate-200 dark:border-navy-700">
-                {currentTerminals.length === 0 ? (
-                    <div className="text-center py-12">
-                        <Building2 className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400 text-lg">No terminals found</p>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Building2 className="w-4 h-4 text-cyan-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{totalTerminals}</span>
                     </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {currentTerminals.map((terminal) => (
-                            <div
-                                key={terminal.id}
-                                className="border border-slate-200 dark:border-navy-700 bg-slate-50/50 dark:bg-navy-800/50 rounded-xl p-4 hover:shadow-lg hover:border-cyan-400 dark:hover:border-cyan-600 transition-all duration-200 group flex flex-col h-full"
-                            >
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-4 gap-2">
-                                    <div className="flex items-start space-x-3 flex-1 min-w-0">
-                                        <div className="w-10 h-10 bg-[#12B2E4] dark:bg-cyan-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm border border-transparent dark:border-cyan-500/20">
-                                            <Building2 className="w-5 h-5 text-white" />
+                    <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors">
+                        <Building2 className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">STATUS:</span>
+                        <select
+                            value={filterStatus}
+                            onChange={e => setFilterStatus(e.target.value)}
+                            className="bg-transparent text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider focus:outline-none cursor-pointer"
+                        >
+                            <option value="All">ALL ({terminals.length})</option>
+                            <option value="active">ACTIVE ({terminals.filter(t => t.status === 'active').length})</option>
+                            <option value="maintenance">MAINTENANCE ({terminals.filter(t => t.status === 'maintenance').length})</option>
+                            <option value="closed">CLOSED ({terminals.filter(t => t.status === 'closed').length})</option>
+                        </select>
+                    </label>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Users className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL CAPACITY:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{totalCapacity}</span>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[200px] max-w-xs w-full">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search terminals..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap">
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+                    <button
+                        onClick={() => navigate('/dashboard/terminals/create')}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Terminal</span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Table */}
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-navy-700">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left whitespace-nowrap">
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">TERMINAL NAME</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">ADDRESS</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">CAPACITY</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">CONTACT</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">STATUS</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-right">ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-navy-700 bg-white dark:bg-navy-900">
+                            {currentTerminals.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-16 text-center">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <div className="w-16 h-16 bg-gray-50 dark:bg-navy-800 rounded-full flex items-center justify-center mb-4 border border-gray-100 dark:border-navy-700">
+                                                <Building2 className="w-6 h-6 text-gray-400 dark:text-slate-500" />
+                                            </div>
+                                            <p className="text-gray-500 dark:text-slate-400 font-medium">No terminals found.</p>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                                <h3 className="text-base font-bold text-slate-900 dark:text-white truncate max-w-full">
+                                    </td>
+                                </tr>
+                            ) : currentTerminals.map((terminal) => (
+                                <tr key={terminal.id} className="hover:bg-[#F8F9FA] dark:hover:bg-navy-800/50 transition-colors group">
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded bg-[#EBF5FF] dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0 border border-blue-50 dark:border-blue-800/30">
+                                                <Building2 className="w-4 h-4 text-[#12B2E4] dark:text-blue-400" />
+                                            </div>
+                                            <div>
+                                                <p className="text-base font-bold text-gray-900 dark:text-white leading-tight">
                                                     {terminal.terminalName}
-                                                </h3>
-                                                {terminal.status && (
-                                                    <span className={`flex-shrink-0 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase ${terminal.status === 'active'
-                                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-700'
-                                                        : terminal.status === 'maintenance'
-                                                            ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-700'
-                                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-700'
-                                                        }`}>
-                                                        {terminal.status}
-                                                    </span>
+                                                </p>
+                                                {terminal.facilities && (
+                                                    <p className="text-sm text-gray-400 dark:text-slate-400 font-semibold mt-0.5 max-w-[200px] truncate">
+                                                        {terminal.facilities}
+                                                    </p>
                                                 )}
                                             </div>
-                                            {terminal.address && (
-                                                <div className="flex items-start space-x-1 mt-1">
-                                                    <MapPin className="w-3 h-3 text-slate-400 dark:text-slate-500 flex-shrink-0 mt-0.5" />
-                                                    <p className="text-xs font-medium text-slate-600 dark:text-slate-400 line-clamp-1">{terminal.address}</p>
-                                                </div>
-                                            )}
                                         </div>
-                                    </div>
-                                    <div className="flex items-center space-x-1 flex-shrink-0">
-                                        <button
-                                            onClick={() => handleEditTerminal(terminal)}
-                                            className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors"
-                                            title="Edit"
-                                        >
-                                            <Edit2 className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDeleteTerminal(terminal.id)}
-                                            className="p-1.5 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* Stats */}
-                                <div className="grid grid-cols-2 gap-2 mb-4">
-                                    <div className="bg-blue-50 dark:bg-blue-500/10 rounded-lg p-2 text-center border border-transparent dark:border-blue-500/20">
-                                        <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Capacity</p>
-                                        <p className="text-lg font-bold text-blue-900 dark:text-blue-300">
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-1.5 text-base font-semibold text-gray-700 dark:text-slate-300">
+                                            <MapPin className="w-4 h-4 text-gray-400 dark:text-slate-500" />
+                                            <span className="truncate max-w-[150px]">{terminal.address || '-'}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <span className="text-base font-bold text-gray-800 dark:text-slate-200 bg-slate-50 dark:bg-navy-800 px-3 py-1 rounded-md border border-slate-100 dark:border-navy-700">
                                             {terminal.capacity || '-'}
-                                        </p>
-                                    </div>
-                                    <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-lg p-2 text-center border border-transparent dark:border-emerald-500/20">
-                                        <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Status</p>
-                                        <p className="text-sm font-bold text-emerald-900 dark:text-emerald-300 capitalize">
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        {terminal.managerName ? (
+                                            <div className="flex flex-col">
+                                                <span className="text-base font-bold text-gray-800 dark:text-slate-200">{terminal.managerName}</span>
+                                                <span className="text-sm text-gray-400 dark:text-slate-500">{terminal.phoneNumber || terminal.email || '-'}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-base text-gray-400 dark:text-slate-500 font-medium">-</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-5">
+                                        <span className={`inline-flex items-center px-3 py-1.5 rounded text-xs font-bold uppercase tracking-wide border ${terminal.status === 'active'
+                                            ? 'bg-[#ECFDF5] text-[#10B981] border-[#D1FAE5] dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/30'
+                                            : terminal.status === 'maintenance'
+                                                ? 'bg-[#FEF3C7] text-[#D97706] border-[#FDE68A] dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800/30'
+                                                : 'bg-[#FEF2F2] text-[#EF4444] border-[#FEE2E2] dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800/30'
+                                            }`}>
                                             {terminal.status || 'Active'}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                {/* Contact Information */}
-                                {(terminal.managerName || terminal.phoneNumber || terminal.email) && (
-                                    <div className="border-t border-slate-100 dark:border-navy-700 pt-3 space-y-2">
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Contact:</p>
-                                        {terminal.managerName && (
-                                            <div className="flex items-center space-x-2 text-xs">
-                                                <User className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                                                <span className="text-slate-700 dark:text-slate-300 font-medium">{terminal.managerName}</span>
-                                            </div>
-                                        )}
-                                        {terminal.phoneNumber && (
-                                            <div className="flex items-center space-x-2 text-xs">
-                                                <Phone className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                                                <span className="text-slate-700 dark:text-slate-300">{terminal.phoneNumber}</span>
-                                            </div>
-                                        )}
-                                        {terminal.email && (
-                                            <div className="flex items-center space-x-2 text-xs">
-                                                <Mail className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                                                <span className="text-slate-700 dark:text-slate-300">{terminal.email}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {/* Facilities */}
-                                {terminal.facilities && (
-                                    <div className="border-t border-slate-100 dark:border-navy-700 pt-3 mt-3">
-                                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Facilities:</p>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {terminal.facilities.split(',').slice(0, 4).map((facility, idx) => (
-                                                <span
-                                                    key={idx}
-                                                    className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-300"
-                                                >
-                                                    {facility.trim()}
-                                                </span>
-                                            ))}
-                                            {terminal.facilities.split(',').length > 4 && (
-                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-300">
-                                                    +{terminal.facilities.split(',').length - 4} more
-                                                </span>
-                                            )}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-5 text-right">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Link
+                                                to={`/dashboard/terminals/${terminal.id}`}
+                                                className="p-1.5 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded transition-colors"
+                                                title="View Details"
+                                            >
+                                                <Eye className="w-4 h-4" />
+                                            </Link>
+                                            <button
+                                                onClick={() => handleEditTerminal(terminal)}
+                                                className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded transition-colors"
+                                                title="Edit Terminal"
+                                            >
+                                                <Edit2 className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteTerminal(terminal.id)}
+                                                className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 dark:text-slate-500 hover:text-red-500 dark:hover:text-red-400 rounded transition-colors"
+                                                title="Delete Terminal"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* Assigned Buses removed for concise view */}
-
-                                {/* Coordinates */}
-                                {terminal.latitude && terminal.longitude && (
-                                    <div className="border-t border-slate-100 dark:border-navy-700 pt-3 mt-4">
-                                        <p className="text-xs font-mono text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                                            <span>📍 GPS Bounds:</span>
-                                            <span className="font-semibold">{Number(terminal.latitude).toFixed(4)}, {Number(terminal.longitude).toFixed(4)}</span>
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Action Bar */}
-                                <div className="mt-auto pt-4 border-t border-slate-100 dark:border-navy-700">
-                                    <Link 
-                                        to={`/dashboard/terminals/${terminal.id}`}
-                                        className="w-full py-2 bg-slate-50 dark:bg-navy-800 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors border border-transparent hover:border-emerald-200 dark:hover:border-emerald-500/30"
-                                    >
-                                        <Building2 className="w-4 h-4" />
-                                        Enter Terminal Details
-                                    </Link>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
 
                 {/* Pagination */}
                 {filteredTerminals.length > 0 && (

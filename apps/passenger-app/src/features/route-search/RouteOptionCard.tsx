@@ -61,128 +61,71 @@ export const RouteOptionCard: React.FC<RouteOptionCardProps> = ({
   const [showDetails, setShowDetails] = useState(false);
 
   const isDirect = !option.isMergedRoute || option.transfersCount === 0;
-  const ai = option.aiTrafficPrediction;
-  const aiStyle = ai ? aiStatusConfig[ai.status] : null;
+  const compactRouteName = option.isMergedRoute && option.legs?.length
+    ? option.legs.map((leg) => leg.busNumber.match(/^Route\s+\d+/)?.[0] || leg.busNumber).join(" + ")
+    : option.busNumber.match(/^Route\s+\d+/)?.[0] || option.busNumber;
 
   return (
     <>
       <div
-        className={`min-w-[310px] max-w-[340px] shrink-0 bg-white border rounded-2xl p-5 shadow-xs transition-all flex flex-col gap-4 ${
+        className={`w-full min-w-0 bg-white border rounded-2xl p-4 shadow-xs transition-all flex flex-col justify-between gap-3 ${
           isSelected
             ? "border-[#2B4B9E] ring-2 ring-[#2B4B9E]/20 shadow-md"
             : "border-slate-200/90 hover:border-[#12B2E4] hover:shadow-sm"
         }`}
       >
         {/* ── TOP: Route name + badge + fare ───── */}
-        <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3.5">
-          <div className="flex items-start gap-2.5 min-w-0">
-            <div className={`p-2.5 rounded-xl shrink-0 ${isDirect ? "bg-indigo-50 text-[#2B4B9E]" : "bg-sky-50 text-[#12B2E4]"}`}>
-              {isDirect ? <Bus className="w-5 h-5" /> : <GitMerge className="w-5 h-5" />}
+        <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={`p-2 rounded-xl shrink-0 ${isDirect ? "bg-indigo-50 text-[#2B4B9E]" : "bg-sky-50 text-[#12B2E4]"}`}>
+              {isDirect ? <Bus className="w-4 h-4" /> : <GitMerge className="w-4 h-4" />}
             </div>
             <div className="min-w-0">
-              <h4 className="font-extrabold text-slate-900 text-base truncate leading-tight">{option.busNumber}</h4>
-              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                {isDirect ? (
-                  <span className="text-xs font-extrabold text-white bg-emerald-500 px-2.5 py-0.5 rounded-full">Direct</span>
-                ) : (
-                  <span className="text-xs font-extrabold text-white px-2.5 py-0.5 rounded-full" style={{ backgroundColor: "#12B2E4" }}>
-                    {option.transfersCount} {option.transfersCount === 1 ? "Transfer" : "Transfers"}
-                  </span>
-                )}
-                <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${crowdColors[option.crowdLevel] ?? crowdColors.Medium}`}>
-                  {option.crowdLevel} crowd
-                </span>
-              </div>
+              <h4 className="font-extrabold text-slate-900 text-sm truncate leading-tight">{compactRouteName}</h4>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full text-white inline-block mt-0.5 ${isDirect ? "bg-emerald-500" : "bg-sky-500"}`}>
+                {isDirect ? "Direct Route" : `${option.transfersCount} Transfer`}
+              </span>
             </div>
           </div>
-          {option.fare && <span className="text-base sm:text-lg font-black shrink-0" style={{ color: "#2B4B9E" }}>{option.fare}</span>}
+          <span className="text-base font-black shrink-0 text-[#2B4B9E]">{option.fare}</span>
         </div>
 
-        {/* ── AI TRAFFIC PREDICTION BADGE ─────── */}
-        {ai && aiStyle && (
-          <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-xl border text-xs font-bold ${aiStyle.bg} ${aiStyle.border} ${aiStyle.text}`}>
-            <Sparkles className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#2B4B9E" }} />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-1.5 flex-wrap">
-                <span className="font-extrabold flex items-center gap-1.5 text-xs sm:text-sm">
-                  {aiStyle.icon}
-                  {ai.status}
-                  {ai.delayMinutes && ai.delayMinutes > 0 && (
-                    <span className="font-bold"> (+{ai.delayMinutes} min)</span>
-                  )}
-                </span>
-                <span className="text-xs font-bold text-slate-500 shrink-0">{ai.confidence}% confidence</span>
-              </div>
-              {ai.reason && (
-                <p className="text-xs text-slate-600 truncate mt-1 font-medium">{ai.reason}</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ── WALK TO STOP ────────────────────── */}
-        <div className="flex items-center gap-3 bg-slate-50 rounded-xl px-3.5 py-2.5 border border-slate-100">
-          <Footprints className="w-5 h-5 text-indigo-600 shrink-0" />
-          <div className="min-w-0">
-            <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Walk to stop</p>
-            <p className="text-sm font-extrabold text-slate-900 truncate">
-              ~{option.nearestStation.walkTimeMinutes} min
-              <span className="font-bold text-slate-500 ml-1">({option.nearestStation.distanceMeters}m)</span>
-            </p>
-            <p className="text-xs text-slate-600 font-medium truncate">{option.nearestStation.name}</p>
-          </div>
+        {/* ── ROUTE VIA PATH ───── */}
+        <div className="bg-slate-50 border border-slate-200/70 rounded-xl px-3 py-2">
+          <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">Path</span>
+          <p className="text-xs font-extrabold text-slate-900 break-words leading-relaxed mt-0.5">{option.routeVia}</p>
         </div>
 
-        {/* ── TIMING GRID ─────────────────────── */}
-        <div className="grid grid-cols-2 gap-2.5 text-xs">
-          <div className="p-2.5 border border-slate-100 rounded-xl bg-slate-50/60 flex flex-col justify-between">
-            <span className="text-xs font-extrabold uppercase text-slate-500 block mb-0.5">Assigned Bus</span>
-            <span className="text-sm font-black text-slate-900 truncate">
-              {option.busType}
-            </span>
-          </div>
-          <div className="p-2.5 border border-slate-100 rounded-xl bg-slate-50/60 flex flex-col justify-between">
-            <span className="text-xs font-extrabold uppercase text-slate-500 block mb-0.5">Departing at</span>
-            <span className="text-sm font-black flex items-center gap-1 text-slate-900">
-              <Clock className="w-4 h-4 text-indigo-600" />
-              {option.nextDeparture || "No Active Schedule"}
-            </span>
-          </div>
+        {/* ── ESSENTIAL TIMING ───── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-700 bg-indigo-50/40 px-3 py-2 rounded-xl border border-indigo-100">
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-[#2B4B9E]" />
+            ETA: <strong className="text-slate-900">{option.busEtaMinutes} min</strong>
+          </span>
+          <span className="text-slate-400">•</span>
+          <span>Trip: <strong className="text-slate-900">~{option.totalTripMinutes} min</strong></span>
         </div>
 
-        {/* ── FULL PATH BREADCRUMB: A → B → D ──── */}
-        <div className="rounded-xl border px-3.5 py-3 space-y-1" style={{ background: "#f0f4ff", borderColor: "#2B4B9E22" }}>
-          <p className="text-xs font-extrabold uppercase tracking-widest" style={{ color: "#2B4B9E" }}>Route Path</p>
-          <p className="text-xs sm:text-sm font-bold text-slate-900 leading-snug break-words">{option.routeVia}</p>
-        </div>
-
-        {/* ── DESTINATION ─────────────────────── */}
-        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 truncate -mt-1">
-          <MapPin className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">To: {destinationName}</span>
-        </div>
-
-        {/* ── ACTIONS ─────────────────────────── */}
-        <div className="flex items-center justify-between gap-2.5 pt-2 border-t border-slate-100">
+        {/* ── ACTIONS ───── */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
           <button
             type="button"
             onClick={() => setShowDetails(true)}
-            className="text-xs sm:text-sm font-extrabold flex items-center gap-1.5 cursor-pointer py-1.5 px-2 hover:bg-slate-100 rounded-lg transition-colors"
-            style={{ color: "#2B4B9E" }}
+            className="text-xs font-extrabold flex items-center gap-1 cursor-pointer py-1.5 px-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
           >
-            <Info className="w-4 h-4" />
-            Details
+            <Info className="w-3.5 h-3.5 text-[#2B4B9E]" />
+            Full Details
           </button>
           <button
             type="button"
             onClick={() => onSelectRoute?.(option)}
-            className={`text-xs sm:text-sm font-extrabold px-4 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer text-white shadow-2xs ${
+            className={`text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1 cursor-pointer text-white shadow-2xs ${
               isSelected ? "bg-emerald-600 hover:bg-emerald-700" : ""
             }`}
             style={!isSelected ? { background: "#2B4B9E" } : undefined}
           >
             <span>{isSelected ? "Selected ✓" : "Select Route"}</span>
-            {!isSelected && <ArrowRight className="w-4 h-4" />}
+            {!isSelected && <ArrowRight className="w-3.5 h-3.5" />}
           </button>
         </div>
       </div>

@@ -9,7 +9,10 @@ export interface DriverProfile {
   address: string;
   licenseNumber: string;
   licenseExpiry: string;
+  licenseType?: string;
+  issueDate?: string;
   isActive: boolean;
+  verified?: boolean;
   rating?: number;
   totalTrips?: number;
   assignedBus?: string;
@@ -18,6 +21,13 @@ export interface DriverProfile {
   profileImage?: string;
   profilePicture?: string;
   photo?: string;
+  user?: {
+    id?: string;
+    fullName?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+  };
 }
 
 export interface DriverStats {

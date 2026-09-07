@@ -13,6 +13,8 @@ import {
   ChevronUp,
 } from "lucide-react";
 
+import { subscribeToBus, BusLocationUpdate } from "@/lib/socket";
+
 interface IncomingBus {
   busId: string;
   routeNumber: string;
@@ -55,6 +57,22 @@ export const BusTrackingModal: React.FC<BusTrackingModalProps> = ({
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /* Subscribe to live socket GPS for this specific bus */
+  useEffect(() => {
+    if (!bus.busId) return;
+    const unsubscribe = subscribeToBus(bus.busId, (update: BusLocationUpdate) => {
+      setPing(true);
+      if (update.location?.speed) {
+        // adjust speed progress dynamically
+        setBusProgress((p) => Math.min(95, p + 1.2));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [bus.busId]);
+
   /* Countdown ETA */
   useEffect(() => {
     if (bus.status === "Offline") return;
@@ -82,6 +100,7 @@ export const BusTrackingModal: React.FC<BusTrackingModalProps> = ({
     const t = setInterval(() => setPing((p) => !p), 900);
     return () => clearInterval(t);
   }, []);
+
 
   const etaMins = Math.floor(etaSeconds / 60);
   const etaSecs = etaSeconds % 60;

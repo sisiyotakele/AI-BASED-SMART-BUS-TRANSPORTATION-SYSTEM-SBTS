@@ -97,81 +97,86 @@ export function Notifications() {
             .catch(() => toast.error('Failed to mark all as read'));
     };
 
-    const handleDelete = (_notifId: string) => {
-        toast.error('Delete is not supported by the API');
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) => notificationService.deleteNotification(id),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['notifications'] });
+            toast.success('Notification deleted');
+        },
+        onError: () => toast.error('Failed to delete notification')
+    });
+
+    const handleDelete = (notifId: string) => {
+        deleteMutation.mutate(notifId);
     };
 
     return (
         <div className="space-y-4">
-            {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
-            <div className="bg-[#2B4B9E] rounded-lg px-6 py-4 text-white">
-                <div className="flex items-center justify-between gap-2 w-full">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Notifications</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">View system alerts, messages, and updates</p>
+                </div>
 
-                    {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Notifications</h2>
-
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <Bell className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{totalNotifications}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-red-500/20 px-2 py-1 rounded shrink-0">
-                                <Bell className="w-3.5 h-3.5 text-red-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Unread:</span>
-                                <span className="text-xs font-bold text-white">{unreadCount}</span>
-                            </div>
+                {/* Control Bar */}
+                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-navy-800 p-1.5 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
+                    
+                    {/* Stats Pills */}
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-200 dark:border-navy-700">
+                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-navy-700">
+                            <Bell className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Total:</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white">{totalNotifications}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-navy-700">
+                            <Bell className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Unread:</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white">{unreadCount}</span>
                         </div>
                     </div>
 
-                    {/* Right: Search, Filters & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[150px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1 text-xs text-gray-800 bg-white rounded border border-transparent focus:outline-none focus:ring-1 focus:ring-cyan-400 placeholder-gray-400"
-                            />
-                        </div>
-
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="text-xs text-gray-800 px-2 py-1 rounded bg-white border border-transparent focus:outline-none focus:ring-1 focus:ring-cyan-400 shrink-0 cursor-pointer"
-                        >
-                            <option value="all">All Types</option>
-                            <option value="alert">Alert</option>
-                            <option value="warning">Warning</option>
-                            <option value="success">Success</option>
-                            <option value="info">Info</option>
-                        </select>
-
-                        <select
-                            value={filterRead}
-                            onChange={(e) => setFilterRead(e.target.value as any)}
-                            className="text-xs text-gray-800 px-2 py-1 rounded bg-white border border-transparent focus:outline-none focus:ring-1 focus:ring-cyan-400 shrink-0 cursor-pointer"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="unread">Unread</option>
-                            <option value="read">Read</option>
-                        </select>
-
-                        <button
-                            onClick={handleMarkAllAsRead}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white text-gray-700 rounded hover:bg-gray-100 transition-colors shrink-0 font-medium whitespace-nowrap"
-                        >
-                            <CheckCheck className="w-3.5 h-3.5" />
-                            <span>Mark All Read</span>
-                        </button>
-
-
+                    {/* Actions: Search, Filter, Mark As Read */}
+                    <div className="relative min-w-[200px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-400 transition-all font-medium"
+                        />
                     </div>
 
+                    <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 cursor-pointer font-medium"
+                    >
+                        <option value="all">All Types</option>
+                        <option value="alert">Alert</option>
+                        <option value="warning">Warning</option>
+                        <option value="success">Success</option>
+                        <option value="info">Info</option>
+                    </select>
+
+                    <select
+                        value={filterRead}
+                        onChange={(e) => setFilterRead(e.target.value as any)}
+                        className="px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 cursor-pointer font-medium"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="unread">Unread</option>
+                        <option value="read">Read</option>
+                    </select>
+
+                    <button
+                        onClick={handleMarkAllAsRead}
+                        className="flex items-center space-x-1.5 px-4 py-2 text-sm bg-white dark:bg-navy-800 hover:bg-slate-50 dark:hover:bg-navy-700 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded-lg transition-colors font-medium mr-1"
+                    >
+                        <CheckCheck className="w-4 h-4" />
+                        <span>Mark All Read</span>
+                    </button>
                 </div>
             </div>
 

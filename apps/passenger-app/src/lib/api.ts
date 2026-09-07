@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
-export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/v1';
+export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000') + '/api/v1';
 
 // ─── Axios Instance ──────────────────────────────────────────────────────────
 export const api = axios.create({
@@ -64,11 +64,18 @@ export interface BackendRoute {
   id: string;
   routeName: string;
   routeCode?: string;
+  description?: string;
   origin?: string;
   destination?: string;
+  startStop?: { id?: string; stopName?: string };
+  endStop?: { id?: string; stopName?: string };
+  startStopId?: string;
+  endStopId?: string;
   distanceKm?: number;
   estimatedDurationMin?: number;
+  fare?: number;
   fareAmount?: number;
+  activeBusesCount?: number;
 }
 
 export interface BackendStop {
@@ -105,6 +112,8 @@ export interface AiCombinedPrediction {
   traffic_load_percentage?: number;
   congestion_level?: string;
   estimated_delay_minutes?: number;
+  estimated_duration_minutes?: number;
+  estimated_arrival?: string;
   recommended_speed_kmh?: number;
   best_departure_time?: string;
   confidence_score?: number;
@@ -116,7 +125,6 @@ export type ApiDiagnosticError = {
   message: string;
   type: 'network' | 'cors' | 'rate_limit' | 'validation' | 'auth' | 'conflict' | 'server' | 'unknown';
   detail?: string;
-  bullets?: string[]; // structured list items for clean UI rendering
 };
 
 export function getApiDiagnosticError(error: unknown, fallback = 'Something went wrong.'): ApiDiagnosticError {
@@ -134,10 +142,11 @@ export function getApiDiagnosticError(error: unknown, fallback = 'Something went
     // This means the browser never got any reply from the backend.
     // Either the server is down, wrong URL, or CORS blocked the request.
     if (!axiosError.response) {
+      const url = (axiosError.config?.baseURL ?? '') + (axiosError.config?.url ?? '');
       return {
         type: 'network',
-        message: 'Service Unavailable',
-        detail: 'Unable to reach the server. Please check your internet connection and try again.',
+        message: '🔴 Server Not Reachable',
+        detail: `Could not connect to the backend at:\n${url}\n\nPossible causes:\n• Backend server is not running (start it with: npm run dev)\n• Wrong API URL in .env.local (VITE_API_BASE_URL)\n• Browser CORS policy blocked the request`,
       };
     }
 
@@ -157,26 +166,18 @@ export function getApiDiagnosticError(error: unknown, fallback = 'Something went
     if (status === 422) {
       const fields = data?.error?.details?.fields;
       if (fields && typeof fields === 'object') {
-        const fieldLabels: Record<string, string> = {
-          password: 'Password',
-          email: 'Email',
-          fullName: 'Full name',
-          phone: 'Phone number',
+        const messages = Object.entries(fields)
+          .map(([field, msgs]) => `• ${field}: ${(msgs as string[]).join(', ')}`)
+          .join('\n');
+        return {
+          type: 'validation',
+          message: '⚠️ Invalid Input',
+          detail: `Please fix the following:\n${messages}`,
         };
-        const bullets = Object.entries(fields).map(([field]) => {
-          const label = fieldLabels[field] ?? field;
-          // For password: always show a single, fixed human-friendly requirement sentence.
-          // We intentionally IGNORE the raw backend messages to avoid technical noise.
-          if (field === 'password') {
-            return `${label} must be at least 8 characters and include an uppercase letter, a number, and a special character`;
-          }
-          return `${label} is invalid — please check and try again`;
-        });
-        return { type: 'validation', message: 'Please check your details', bullets };
       }
       return {
         type: 'validation',
-        message: 'Invalid input',
+        message: '⚠️ Validation Failed',
         detail: data?.message || data?.error?.message || 'One or more fields are invalid.',
       };
     }
@@ -289,6 +290,12 @@ export const authApi = {
     }),
 
   me: () => api.get('/auth/me'),
+
+  updateProfile: (data: { fullName?: string; phone?: string; preferredLanguage?: string }) =>
+    api.patch('/auth/me', data),
+
+  forgotPassword: (data: { email: string }) =>
+    api.post('/auth/forgot-password', data),
 };
 
 // ─── TRACKING ENDPOINTS ──────────────────────────────────────────────────────
@@ -307,34 +314,17 @@ export const routesApi = {
     api.get('/routes-stops/stops', { params: search ? { search } : undefined }),
   getNearbyStops: (lat: number, lng: number, radius?: number) =>
     api.get('/routes-stops/stops/nearby', { params: { lat, lng, radius } }),
+  planRoute: (origin: string, destination: string) =>
+    api.post('/routes-stops/routes/plan', { origin, destination }),
+  planRouteByAddress: (origin: string, destination: string) =>
+    api.post('/routes-stops/routes/plan-by-address', { origin, destination }),
 };
 
 // ─── TRIPS ENDPOINTS ─────────────────────────────────────────────────────────
 export const tripsApi = {
-  getTrips: (params?: { status?: string; busId?: string; driverId?: string; routeId?: string }) =>
+  getTrips: (params?: { status?: string; busId?: string; driverId?: string }) =>
     api.get('/trips', { params }),
   getTrip: (id: string) => api.get(`/trips/${id}`),
-};
-
-// ─── SCHEDULES & BUSES ───────────────────────────────────────────────────────
-export const schedulesApi = {
-  getSchedules: (params?: { routeId?: string }) =>
-    api.get('/schedules', { params }),
-};
-
-export const busesApi = {
-  getBuses: (params?: { routeId?: string }) =>
-    api.get('/buses', { params }),
-};
-
-// ─── PRICING ENDPOINTS ───────────────────────────────────────────────────────
-export const pricingApi = {
-  getPrices: (params?: { routeId?: string; fromStopId?: string; toStopId?: string }) =>
-    api.get('/pricing', { params }),
-  getPricesByRoute: (routeId: string) =>
-    api.get(`/pricing/route/${routeId}`),
-  calculatePrice: (routeId: string, fromStopId: string, toStopId: string, isPeak?: boolean) =>
-    api.get('/pricing/calculate', { params: { routeId, fromStopId, toStopId, isPeak } }),
 };
 
 // ─── NOTIFICATIONS ENDPOINTS ─────────────────────────────────────────────────
@@ -362,6 +352,8 @@ export interface TripPredictionRequest {
   mileage?: number;
   direction?: string;
   timestamp?: string;
+  origin_name?: string;
+  destination_name?: string;
 }
 
 export const aiIntegrationApi = {

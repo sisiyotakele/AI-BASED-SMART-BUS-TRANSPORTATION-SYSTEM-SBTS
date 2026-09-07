@@ -100,7 +100,8 @@ export function Header({ onToggleSidebar, sidebarOpen }: HeaderProps) {
     const { data: notificationsData = [] } = useQuery({
         queryKey: ['notifications'],
         queryFn: () => notificationService.getNotifications(),
-        refetchInterval: 30000 // refresh every 30s
+        refetchInterval: 30000, // refresh every 30s
+        enabled: !!user // Only fetch if the user is logged in to intercept 401s
     });
 
     const markAsReadMutation = useMutation({

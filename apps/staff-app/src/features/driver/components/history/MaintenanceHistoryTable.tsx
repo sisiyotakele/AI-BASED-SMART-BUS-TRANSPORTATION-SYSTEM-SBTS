@@ -1,81 +1,108 @@
 // src/features/driver/components/history/MaintenanceHistoryTable.tsx
 
 import React from 'react';
-import { MaintenanceRequest } from '../../types';
 import { FaWrench } from 'react-icons/fa';
 
-interface MaintenanceHistoryTableProps {
-  requests: MaintenanceRequest[];
+interface MaintenanceRecord {
+  id: string;
+  type?: string;
+  description?: string;
+  priority?: string; // low | medium | high | urgent
+  status?: string;    // Pending | In Progress | Completed
+  date?: string;
 }
 
-const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: string }> = {
-  "Pending": { color: "text-[#12B2E4]", bg: "bg-[#12B2E4]/10", icon: "🕐" },
-  "In Progress": { color: "text-[#2B4B9E]", bg: "bg-[#2B4B9E]/10", icon: "🔧" },
-  "Completed": { color: "text-green-600", bg: "bg-green-100", icon: "✅" },
+interface MaintenanceHistoryTableProps {
+  requests: MaintenanceRecord[];
+}
+
+const priorityStyles: Record<string, string> = {
+  urgent: 'bg-rose-50 text-rose-700 border-rose-200',
+  high: 'bg-orange-50 text-orange-700 border-orange-200',
+  medium: 'bg-amber-50 text-amber-700 border-amber-200',
+  low: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
+
+const statusStyles: Record<string, string> = {
+  Pending: 'bg-amber-50 text-amber-700 border-amber-200',
+  'In Progress': 'bg-[#E8F6FC] text-[#0E86AC] border-[#BFE9F5]',
+  Completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+};
+
+const Badge: React.FC<{ label?: string; styles: Record<string, string> }> = ({ label, styles }) => {
+  const key = label || '';
+  const cls = styles[key] || styles[key.toLowerCase?.() || ''] || 'bg-gray-50 text-gray-600 border-gray-200';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11.5px] font-medium border capitalize ${cls}`}>
+      {label || 'Unknown'}
+    </span>
+  );
+};
+
+const formatDate = (value?: string) => {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return value;
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 };
 
 export const MaintenanceHistoryTable: React.FC<MaintenanceHistoryTableProps> = ({ requests }) => {
-  if (requests.length === 0) {
+  if (!requests || requests.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
-          <FaWrench className="text-2xl text-gray-300 dark:text-gray-500" />
+      <div className="flex flex-col items-center justify-center py-14 text-center">
+        <div className="w-14 h-14 rounded-full bg-[#EDF0F8] flex items-center justify-center mb-3">
+          <FaWrench className="text-[#2B4B9E]/50" size={18} />
         </div>
-        <h3 className="text-base font-semibold text-gray-700 dark:text-gray-300">No maintenance requests</h3>
-        <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-          Maintenance API integration coming soon
-        </p>
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-          You can request maintenance from the dashboard
-        </p>
+        <p className="text-sm font-semibold text-gray-700">No maintenance requests</p>
+        <p className="text-xs text-gray-400 mt-1">Your vehicle has no open or past requests for this range.</p>
       </div>
     );
   }
 
-  const getPriorityColor = (priority: string) => {
-    if (priority === "high" || priority === "urgent") return "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400";
-    if (priority === "medium") return "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400";
-    return "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400";
-  };
-
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-xs sm:text-sm">
-        <thead className="bg-[#2B4B9E] text-white">
-          <tr>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">#</th>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Type</th>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Description</th>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Priority</th>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Date</th>
-            <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] sm:text-xs font-semibold uppercase tracking-wider">Status</th>
+      <table className="w-full text-left border-collapse">
+        <thead>
+          <tr className="border-b border-[#E5E9F3]">
+            <th className="py-3 px-4 text-[12.5px] font-medium text-gray-500">Type</th>
+            <th className="py-3 px-4 text-[12.5px] font-medium text-gray-500">Description</th>
+            <th className="py-3 px-4 text-[12.5px] font-medium text-gray-500">Priority</th>
+            <th className="py-3 px-4 text-[12.5px] font-medium text-gray-500 hidden sm:table-cell">Date</th>
+            <th className="py-3 px-4 text-[12.5px] font-medium text-gray-500">Status</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-          {requests.map((req) => {
-            const config = STATUS_CONFIG[req.status] || STATUS_CONFIG["Pending"];
-            return (
-              <tr key={req.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-gray-400 dark:text-gray-500 font-mono">#{req.id.toString().slice(-6)}</td>
-                <td className="px-3 sm:px-4 py-2 sm:py-3 font-medium text-gray-800 dark:text-white">{req.type}</td>
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-gray-600 dark:text-gray-400 max-w-xs truncate">{req.description}</td>
-                <td className="px-3 sm:px-4 py-2 sm:py-3">
-                  <span className={`text-[10px] sm:text-xs font-medium px-2 py-0.5 rounded-full ${getPriorityColor(req.priority)}`}>
-                    {req.priority}
+        <tbody>
+          {requests.map((req, idx) => (
+            <tr
+              key={req.id ?? idx}
+              className="border-b border-[#F1F3F9] last:border-b-0 hover:bg-[#F7F9FD] transition-colors"
+            >
+              <td className="py-3.5 px-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-lg bg-[#EAF0FF] text-[#2B4B9E] flex items-center justify-center shrink-0">
+                    <FaWrench size={12} />
                   </span>
-                </td>
-                <td className="px-3 sm:px-4 py-2 sm:py-3 text-gray-600 dark:text-gray-400 text-[10px] sm:text-xs">{req.date}</td>
-                <td className="px-3 sm:px-4 py-2 sm:py-3">
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${config.bg} ${config.color}`}>
-                    {config.icon}
-                    {req.status}
-                  </span>
-                </td>
-              </tr>
-            );
-          })}
+                  <span className="text-[13.5px] font-medium text-[#0B1739]">{req.type || 'Maintenance'}</span>
+                </div>
+              </td>
+              <td className="py-3.5 px-4 max-w-[280px]">
+                <p className="text-[13px] text-gray-600 truncate">{req.description || '—'}</p>
+              </td>
+              <td className="py-3.5 px-4">
+                <Badge label={req.priority} styles={priorityStyles} />
+              </td>
+              <td className="py-3.5 px-4 hidden sm:table-cell">
+                <span className="text-[13px] text-gray-500">{formatDate(req.date)}</span>
+              </td>
+              <td className="py-3.5 px-4">
+                <Badge label={req.status} styles={statusStyles} />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
   );
 };
+
+export default MaintenanceHistoryTable;

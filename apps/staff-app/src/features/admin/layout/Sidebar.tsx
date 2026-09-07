@@ -38,7 +38,6 @@ interface NavItem {
 interface NavSection {
     title: string;
     items: NavItem[];
-    collapsible?: boolean;
 }
 
 const navigationSections: NavSection[] = [
@@ -55,7 +54,6 @@ const navigationSections: NavSection[] = [
     // PHASE 1: System Setup (Infrastructure)
     {
         title: 'INFRASTRUCTURE SETUP',
-        collapsible: true,
         items: [
             {
                 name: 'Terminals',
@@ -82,7 +80,6 @@ const navigationSections: NavSection[] = [
     // PHASE 2: Resource Registration
     {
         title: 'RESOURCE REGISTRATION',
-        collapsible: true,
         items: [
             {
                 name: 'Bus Management',
@@ -109,7 +106,6 @@ const navigationSections: NavSection[] = [
     // PHASE 3: Daily Dispatch & Planning
     {
         title: 'DAILY DISPATCH FLOW',
-        collapsible: true,
         items: [
             {
                 name: 'Route Schedule',
@@ -136,7 +132,6 @@ const navigationSections: NavSection[] = [
     // PHASE 4: Live Operations
     {
         title: 'LIVE OPERATIONS',
-        collapsible: true,
         items: [
             {
                 name: 'Key Handovers',
@@ -163,7 +158,6 @@ const navigationSections: NavSection[] = [
     // PHASE 5: Monitoring & Management
     {
         title: 'MONITORING & ANALYTICS',
-        collapsible: true,
         items: [
             {
                 name: 'AI Predictions',
@@ -191,24 +185,9 @@ const navigationSections: NavSection[] = [
 
 export function Sidebar() {
     const user = useAuthStore((state) => state.user);
-    const isSuperAdmin = user?.roles?.some((role: any) => 
+    const isSuperAdmin = user?.roles?.some((role: any) =>
         typeof role === 'string' ? role === 'SUPER_ADMIN' : role?.roleName === 'SUPER_ADMIN'
     ) ?? false;
-
-    const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-        'INFRASTRUCTURE SETUP': true,
-        'RESOURCE REGISTRATION': true,
-        'PLANNING & ASSIGNMENTS': true,
-        'DAILY OPERATIONS': true,
-        'MONITORING & ANALYTICS': true,
-    });
-
-    const toggleSection = (title: string) => {
-        setExpandedSections(prev => ({
-            ...prev,
-            [title]: !prev[title]
-        }));
-    };
 
     return (
         <aside className="w-72 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col h-screen">
@@ -220,25 +199,18 @@ export function Sidebar() {
                 </span>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto py-4 px-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-gray-100 dark:scrollbar-track-gray-800">
+            {/* Navigation (Hidden Scrollbar) */}
+            <nav className="flex-1 overflow-y-auto py-4 px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {navigationSections.map((section, idx) => (
                     <div key={idx} className="mb-6">
                         {section.title && (
-                            <button
-                                onClick={() => section.collapsible && toggleSection(section.title)}
-                                className="w-full flex items-center justify-between px-2 mb-3 text-sm font-bold text-gray-800 dark:text-gray-200 uppercase tracking-wide hover:text-gray-900 dark:hover:text-white transition-colors"
-                            >
-                                <span className="text-[15px]">{section.title}</span>
-                                {section.collapsible && (
-                                    expandedSections[section.title]
-                                        ? <ChevronDown className="w-5 h-5" />
-                                        : <ChevronRight className="w-5 h-5" />
-                                )}
-                            </button>
+                            <div className="px-2 mb-3">
+                                <span className="text-xs font-semibold text-slate-500 uppercase tracking-widest">
+                                    {section.title}
+                                </span>
+                            </div>
                         )}
-                        {(!section.collapsible || expandedSections[section.title]) && (
-                            <div className="space-y-2">
+                        <div className="space-y-1">
                                 {section.items.filter(item => {
                                     if (item.name === 'Roles & Permissions') {
                                         return isSuperAdmin;
@@ -276,7 +248,6 @@ export function Sidebar() {
                                     </NavLink>
                                 ))}
                             </div>
-                        )}
                     </div>
                 ))}
             </nav>

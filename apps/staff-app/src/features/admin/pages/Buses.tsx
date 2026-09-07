@@ -207,82 +207,83 @@ export function Buses() {
                 terminals={terminals}
             />
 
-            {/* Strict Single-Line Non-Scrollable Header */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-                    
-                    {/* Left: Title & Compact Stats */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Bus Fleet</h2>
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Bus Fleet</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all buses in the fleet</p>
+                </div>
+            </div>
 
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <BusIcon className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{buses.length}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <Settings className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">operations:</span>
-                                <span className="text-xs font-bold text-white">{operationalCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-orange-500/20 px-2 py-1 rounded shrink-0">
-                                <Wrench className="w-3.5 h-3.5 text-orange-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Maintenance:</span>
-                                <span className="text-xs font-bold text-white">{maintenanceCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-slate-50 dark:bg-navy-800/500/20 px-2 py-1 rounded shrink-0">
-                                <BusIcon className="w-3.5 h-3.5 text-slate-300 dark:text-slate-600" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Retired:</span>
-                                <span className="text-xs font-bold text-white">{retiredCount}</span>
-                            </div>
-                        </div>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <BusIcon className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{buses.length}</span>
                     </div>
 
-                    {/* Right: Flexible Search, Filter & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[180px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 dark:placeholder-slate-500"
-                            />
-                        </div>
-
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as any)}
-                            className="text-xs text-slate-800 dark:text-slate-200 px-2 py-1.5 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="operational">Operational</option>
-                            <option value="in_maintenance">Maintenance</option>
-                            <option value="retired">Retired</option>
-                        </select>
-
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-3 py-1.5 text-xs bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-                        <button
-                            onClick={handleAddBus}
-                            className="flex items-center space-x-1 px-3 py-1.5 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium shadow-sm"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>Add Bus</span>
-                        </button>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Settings className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">OPERATIONAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{operationalCount}</span>
                     </div>
 
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Wrench className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">MAINTENANCE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{maintenanceCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <BusIcon className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">RETIRED:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{retiredCount}</span>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[150px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search buses..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
+                    </div>
+
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="operational">Operational</option>
+                        <option value="in_maintenance">Maintenance</option>
+                        <option value="retired">Retired</option>
+                    </select>
+
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+
+                    <button
+                        onClick={handleAddBus}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>Add Bus</span>
+                    </button>
                 </div>
             </div>
 
@@ -290,13 +291,13 @@ export function Buses() {
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm overflow-hidden border border-slate-200 dark:border-navy-700">
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap">
-                        <thead className="bg-slate-50 dark:bg-navy-800/50 border-b border-slate-200 dark:border-navy-700">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Plate Number</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Status</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Terminal</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Actions</th>
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Plate Number</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Type</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Status</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">Terminal</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
@@ -316,24 +317,24 @@ export function Buses() {
                             ) : (
                                 currentBuses.map((bus) => (
                                     <tr key={bus.id} className="hover:bg-slate-50 dark:bg-navy-800/50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{bus.plateNumber}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm text-slate-700 dark:text-slate-300">{bus.model}</span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(bus.maintenanceStatus)}`}>
                                                 {getStatusLabel(bus.maintenanceStatus)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className="text-sm text-slate-700 dark:text-slate-300">
                                                 {bus.terminal ? bus.terminal.terminalName : <span className="text-slate-400 dark:text-slate-500">Not assigned</span>}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center space-x-2">
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center justify-end space-x-2">
                                                 <button
                                                     onClick={() => handleEditBus(bus)}
                                                     className="p-1.5 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 rounded transition-colors"

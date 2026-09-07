@@ -18,14 +18,9 @@ export const ForgotPasswordPage = () => {
     setLoading(true);
 
     try {
-      await api.post("/auth/passenger/forgot-password", { email });
+      await api.post("/auth/forgot-password", { email });
       setSubmitted(true);
     } catch (err: any) {
-      if (!err.response) {
-        console.warn("Backend API unreachable. Proceeding with simulated reset response...");
-        setSubmitted(true);
-        return;
-      }
       setError(err.response?.data?.message || "Failed to send reset link. Please try again.");
     } finally {
       setLoading(false);

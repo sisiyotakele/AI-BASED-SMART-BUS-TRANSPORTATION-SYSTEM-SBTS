@@ -295,76 +295,79 @@ export function Reports() {
 
     return (
         <div className="space-y-4">
-            {/* Header */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Analytics & Reports</h2>
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <BarChart className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Reports:</span>
-                                <span className="text-xs font-bold text-white">{statsData?.totalReports || 0}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <Download className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Downloads:</span>
-                                <span className="text-xs font-bold text-white">{statsData?.totalDownloads || 0}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 bg-purple-500/20 px-2 py-1 rounded shrink-0">
-                                <Calendar className="w-3.5 h-3.5 text-purple-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Scheduled:</span>
-                                <span className="text-xs font-bold text-white">{statsData?.scheduledCount || 0}</span>
-                            </div>
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 dark:text-white tracking-tight">Analytics & Reports</h1>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Generate and export system-wide insights</p>
+                </div>
+
+                {/* Control Bar */}
+                <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-navy-800 p-1.5 rounded-xl border border-slate-200 dark:border-navy-700 shadow-sm">
+                    {/* Stats Pills */}
+                    <div className="flex items-center gap-2 px-2 border-r border-slate-200 dark:border-navy-700">
+                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-navy-700">
+                            <BarChart className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Reports:</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white">{statsData?.totalReports || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-navy-700">
+                            <Download className="w-4 h-4 text-green-600 dark:text-green-400" />
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Downloads:</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white">{statsData?.totalDownloads || 0}</span>
+                        </div>
+                        <div className="flex items-center space-x-2 bg-slate-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-slate-100 dark:border-navy-700">
+                            <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">Scheduled:</span>
+                            <span className="text-sm font-bold text-slate-800 dark:text-white">{statsData?.scheduledCount || 0}</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[180px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                            <input
-                                type="text"
-                                placeholder="Search reports..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1.5 text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 dark:placeholder-slate-500"
-                            />
-                        </div>
-
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="text-xs text-slate-800 dark:text-slate-200 px-2 py-1.5 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer"
-                        >
-                            <option value="all">All Types</option>
-                            <option value="trip">Trip Reports</option>
-                            <option value="fleet">Fleet Reports</option>
-                            <option value="incident">Incident Reports</option>
-                            <option value="revenue">Revenue Reports</option>
-                            <option value="custom">Custom Reports</option>
-                        </select>
-
-                        <select
-                            value={dateRange}
-                            onChange={(e) => setDateRange(e.target.value)}
-                            className="text-xs text-slate-800 dark:text-slate-200 px-2 py-1.5 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer"
-                        >
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                            <option value="quarter">This Quarter</option>
-                            <option value="year">This Year</option>
-                            <option value="custom">Custom Range</option>
-                        </select>
-
-                        <button
-                            onClick={() => handleGenerateReport('pdf')}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
-                        >
-                            <FileText className="w-3.5 h-3.5" />
-                            <span>New Report</span>
-                        </button>
+                    {/* Actions */}
+                    <div className="relative min-w-[180px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search reports..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 placeholder-slate-400 transition-all font-medium"
+                        />
                     </div>
+
+                    <select
+                        value={filterType}
+                        onChange={(e) => setFilterType(e.target.value)}
+                        className="px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 cursor-pointer font-medium"
+                    >
+                        <option value="all">All Types</option>
+                        <option value="trip">Trip Reports</option>
+                        <option value="fleet">Fleet Reports</option>
+                        <option value="incident">Incident Reports</option>
+                        <option value="revenue">Revenue Reports</option>
+                        <option value="custom">Custom Reports</option>
+                    </select>
+
+                    <select
+                        value={dateRange}
+                        onChange={(e) => setDateRange(e.target.value)}
+                        className="px-3 py-2 text-sm text-slate-800 dark:text-slate-100 bg-slate-50 dark:bg-navy-900 rounded-lg border-none focus:ring-2 focus:ring-cyan-500 cursor-pointer font-medium"
+                    >
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="quarter">This Quarter</option>
+                        <option value="year">This Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+
+                    <button
+                        onClick={() => handleGenerateReport('pdf')}
+                        className="flex items-center space-x-1.5 px-4 py-2 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-colors font-medium mr-1"
+                    >
+                        <FileText className="w-4 h-4" />
+                        <span>New Report</span>
+                    </button>
                 </div>
             </div>
 
@@ -532,13 +535,13 @@ export function Reports() {
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap">
                         <thead className="bg-slate-50 dark:bg-navy-800/50">
-                            <tr>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Report Name</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Type</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Date Range</th>
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Generated By</th>
+                            <tr className="bg-[#2B4B9E] h-[70px]">
+                                <th className="px-6 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tl-xl">Report Name</th>
+                                <th className="px-6 text-left text-xs font-medium text-white uppercase tracking-wider">Type</th>
+                                <th className="px-6 text-left text-xs font-medium text-white uppercase tracking-wider">Date Range</th>
+                                <th className="px-6 text-left text-xs font-medium text-white uppercase tracking-wider">Generated By</th>
 
-                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase">Actions</th>
+                                <th className="px-6 text-left text-xs font-medium text-white uppercase tracking-wider rounded-tr-xl">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-navy-700">
@@ -559,7 +562,7 @@ export function Reports() {
                             ) : (
                                 displayReports.map((report) => (
                                     <tr key={report.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <div className="flex items-center space-x-3">
                                                 <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center text-white">
                                                     {getTypeIcon(report.reportType)}
@@ -570,19 +573,19 @@ export function Reports() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium ${getTypeBadge(report.reportType)}`}>
                                                 {report.reportType.charAt(0).toUpperCase() + report.reportType.slice(1)}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <p className="text-sm text-slate-600 dark:text-slate-400">{report.description || 'N/A'}</p>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <p className="text-sm text-slate-600 dark:text-slate-400">{report.creator?.fullName || 'System'}</p>
                                         </td>
 
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-5">
                                             <div className="flex items-center space-x-2">
                                                 <button
                                                     onClick={() => handleDownloadReport(report)}

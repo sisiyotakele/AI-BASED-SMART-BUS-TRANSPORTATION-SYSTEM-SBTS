@@ -237,68 +237,73 @@ export function Routes() {
                 editData={editingRoute}
             />
 
-            {/* Header */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Route Management</h2>
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <Navigation className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total:</span>
-                                <span className="text-xs font-bold text-white">{routes.length}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <GitBranch className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Active:</span>
-                                <span className="text-xs font-bold text-white">{activeCount}</span>
-                            </div>
-                            <div className="flex items-center space-x-1 bg-blue-500/20 px-2 py-1 rounded shrink-0">
-                                <MapPin className="w-3.5 h-3.5 text-blue-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total Stops:</span>
-                                <span className="text-xs font-bold text-white">{totalStops}</span>
-                            </div>
-                        </div>
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Route Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all routes across the network</p>
+                </div>
+            </div>
+
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Navigation className="w-4 h-4 text-cyan-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{routes.length}</span>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[150px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1 text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 transition-colors"
-                            />
-                        </div>
+                    <label className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap cursor-pointer hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors">
+                        <GitBranch className="w-4 h-4 text-emerald-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">STATUS:</span>
                         <select
                             value={filterStatus}
                             onChange={(e) => setFilterStatus(e.target.value as any)}
-                            className="text-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer transition-colors"
+                            className="bg-transparent text-sm font-bold text-slate-800 dark:text-white uppercase tracking-wider focus:outline-none cursor-pointer"
                         >
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="all">ALL ({routes.length})</option>
+                            <option value="active">ACTIVE ({routes.filter((r: any) => r.status === 'active').length})</option>
+                            <option value="inactive">INACTIVE ({routes.filter((r: any) => r.status === 'inactive').length})</option>
                         </select>
+                    </label>
 
-                        <button
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Route</span>
-                        </button>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <MapPin className="w-4 h-4 text-blue-500" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL STOPS:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{totalStops}</span>
                     </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[200px] max-w-xs w-full">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search routes..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap">
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Route</span>
+                    </button>
                 </div>
             </div>
 
@@ -306,49 +311,49 @@ export function Routes() {
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full whitespace-nowrap text-left border-collapse min-w-max">
-                        <thead className="bg-slate-50 dark:bg-navy-800 border-b border-slate-200 dark:border-navy-700">
-                            <tr>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route Info & Stops</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Route ID</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Start</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">End</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                                <th className="px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                        <thead className="bg-[#2B4B9E] text-white border-b border-transparent">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide">Route Info & Stops</th>
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide">Route ID</th>
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide">Start</th>
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide">End</th>
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide">Status</th>
+                                <th className="px-6 text-sm font-medium text-white uppercase tracking-wide text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-navy-700/50">
                             {filteredRoutes.map((route) => (
                                 <tr key={route.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
-                                    <td className="px-6 py-4 w-[250px]">
+                                    <td className="px-6 py-5 w-[250px]">
                                         <div className="flex flex-col gap-1.5">
                                             <div className="text-base font-bold text-slate-900 dark:text-slate-100 leading-none">{route.routeName}</div>
-                                            <div className="flex items-center gap-1.5 text-xs font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-800 w-max shadow-sm">
-                                                <ListOrdered className="w-3.5 h-3.5" />
+                                            <div className="flex items-center gap-1.5 text-sm font-bold text-cyan-700 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-900/40 px-2 py-0.5 rounded border border-cyan-200 dark:border-cyan-800 w-max shadow-sm">
+                                                <ListOrdered className="w-4 h-4" />
                                                 <span>{route.versions?.find((v: any) => v.isPrimary)?.stopCount || route.stopCount || 0} Total Active Stops</span>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">
+                                    <td className="px-6 py-5 text-sm font-mono text-slate-600 dark:text-slate-400">
                                         {route.id}
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-sm text-slate-900 dark:text-slate-300">
-                                            <MapPin className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                            <span className="font-medium">
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-1.5 text-base text-slate-900 dark:text-slate-300">
+                                            <MapPin className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                            <span className="font-semibold">
                                                 {route.startTerminal?.terminalName || 'N/A'}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-1.5 text-sm text-slate-900 dark:text-slate-300">
-                                            <MapPin className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
-                                            <span className="font-medium">
+                                    <td className="px-6 py-5">
+                                        <div className="flex items-center gap-1.5 text-base text-slate-900 dark:text-slate-300">
+                                            <MapPin className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                            <span className="font-semibold">
                                                 {route.endTerminal?.terminalName || 'N/A'}
                                             </span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm">
-                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium cursor-pointer ${route.status === 'active' ? 'bg-green-100/50 text-green-700 dark:bg-green-500/10 dark:text-green-400' : 'bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300'}`}
+                                    <td className="px-6 py-5 text-sm">
+                                        <span className={`inline-flex items-center px-3 py-1.5 rounded text-xs font-bold cursor-pointer tracking-wide ${route.status === 'active' ? 'bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5] dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/30' : 'bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300'}`}
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 const newStatus = route.status === 'active' ? 'inactive' : 'active';
@@ -358,7 +363,7 @@ export function Routes() {
                                             {route.status ? route.status.toUpperCase() : 'ACTIVE'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-sm">
+                                    <td className="px-6 py-5 text-sm">
                                         <div className="flex items-center justify-end space-x-3">
                                             <button
                                                 onClick={(e) => {

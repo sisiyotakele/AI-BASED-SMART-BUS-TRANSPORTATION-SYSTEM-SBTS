@@ -216,81 +216,82 @@ export function Pricing() {
                 editData={editingPrice}
             />
 
-            {/* Strict Single-Line Non-Scrollable Header with Original Padding */}
-            <div className="bg-[#2B4B9E] dark:bg-navy-900 border border-transparent dark:border-navy-700 rounded-2xl px-6 py-4 text-white shadow-sm">
-                <div className="flex items-center justify-between gap-2 w-full">
-                    
-                    {/* Left: Title & Inline Compact Stats (Full Words, No Abbreviations) */}
-                    <div className="flex items-center gap-3 shrink-0">
-                        <h2 className="text-white font-semibold text-base whitespace-nowrap">Pricing Management</h2>
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Pricing Management</h1>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Manage and monitor all route pricing rules</p>
+                </div>
+            </div>
 
-                        <div className="flex items-center gap-1.5 pl-3 border-l border-cyan-400/40">
-                            <div className="flex items-center space-x-1 bg-white/10 px-2 py-1 rounded shrink-0">
-                                <DollarSign className="w-3.5 h-3.5 text-cyan-100" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Total Rules:</span>
-                                <span className="text-xs font-bold text-white">{prices.length}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-green-500/20 px-2 py-1 rounded shrink-0">
-                                <Calendar className="w-3.5 h-3.5 text-green-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Active:</span>
-                                <span className="text-xs font-bold text-white">{activeCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-gray-500/20 px-2 py-1 rounded shrink-0">
-                                <Calendar className="w-3.5 h-3.5 text-gray-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Inactive:</span>
-                                <span className="text-xs font-bold text-white">{inactiveCount}</span>
-                            </div>
-
-                            <div className="flex items-center space-x-1 bg-yellow-500/20 px-2 py-1 rounded shrink-0">
-                                <TrendingUp className="w-3.5 h-3.5 text-yellow-300" />
-                                <span className="text-[10px] text-cyan-100 uppercase">Average Price:</span>
-                                <span className="text-xs font-bold text-white">{avgBasePrice.toFixed(2)} ETB</span>
-                            </div>
-                        </div>
+            {/* Control Bar with Inline Stats */}
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                
+                {/* Stats Pills */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <DollarSign className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL RULES:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{prices.length}</span>
                     </div>
 
-                    {/* Right: Search, Status Filter, Export & Action Buttons */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <div className="relative flex-1 max-w-[150px]">
-                            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-8 pr-2 py-1 text-xs text-slate-800 dark:text-slate-100 bg-white dark:bg-navy-800 rounded border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
-                            />
-                        </div>
-
-                        <select
-                            value={filterStatus}
-                            onChange={(e) => setFilterStatus(e.target.value as any)}
-                            className="text-xs text-slate-800 dark:text-slate-100 px-2 py-1 rounded bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 shrink-0 cursor-pointer transition-colors"
-                        >
-                            <option value="all">All Status</option>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-
-                        <button 
-                            onClick={handleExport}
-                            className="flex items-center space-x-1 px-2.5 py-1 text-xs bg-white dark:bg-navy-800 border border-slate-200 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors shrink-0 font-medium"
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Export</span>
-                        </button>
-
-                        <button
-                            onClick={() => setIsModalOpen(true)}
-                            className="flex items-center space-x-1 px-3 py-1 text-xs bg-emerald-500 text-white rounded hover:bg-emerald-600 transition-colors shrink-0 font-medium whitespace-nowrap border border-transparent"
-                        >
-                            <Plus className="w-3.5 h-3.5" />
-                            <span>New Price</span>
-                        </button>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Calendar className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">ACTIVE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{activeCount}</span>
                     </div>
 
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Calendar className="w-4 h-4 text-gray-600 dark:text-gray-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">INACTIVE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{inactiveCount}</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <TrendingUp className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">AVG PRICE:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{avgBasePrice.toFixed(2)} ETB</span>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[150px]">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                            type="text"
+                            placeholder="Search prices..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
+                        />
+                    </div>
+
+                    <select
+                        value={filterStatus}
+                        onChange={(e) => setFilterStatus(e.target.value as any)}
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    >
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+
+                    <button 
+                        onClick={handleExport}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span>Export</span>
+                    </button>
+
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
+                    >
+                        <Plus className="w-4 h-4" />
+                        <span>New Price</span>
+                    </button>
                 </div>
             </div>
 
@@ -340,7 +341,7 @@ export function Pricing() {
                         ))}
                     </select>
 
-                    <button onClick={handleCalculate} disabled={calcLoading} className="px-4 py-2 bg-[#2B4B9E] text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm shadow-sm flex items-center justify-center gap-2">
+                    <button onClick={handleCalculate} disabled={calcLoading} className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium text-sm shadow-sm flex items-center justify-center gap-2">
                         {calcLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Calculator className="w-4 h-4" />}
                         Calculate
                     </button>
@@ -358,162 +359,160 @@ export function Pricing() {
                 )}
             </div>
 
-            {/* Cards Grid */}
-            <div className="space-y-4">
-                {isLoading ? (
-                    <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm p-12 text-center border border-slate-200 dark:border-navy-700">
-                        <Loader2 className="w-10 h-10 text-cyan-500 animate-spin mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400 text-lg">Loading prices...</p>
-                    </div>
-                ) : currentPrices.length === 0 ? (
-                    <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm p-12 text-center border border-slate-200 dark:border-navy-700">
-                        <DollarSign className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
-                        <p className="text-slate-500 dark:text-slate-400 text-lg">No prices found</p>
-                    </div>
-                ) : (
-                    <>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                            {currentPrices.map((price) => (
-                                <div
-                                    key={price.id}
-                                    className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm hover:shadow-md border border-slate-200 dark:border-navy-700 transition-all duration-300 overflow-hidden flex flex-col group"
-                                >
-                                    {/* Card Header */}
-                                    <div className="border-b border-slate-100 dark:border-navy-700 px-4 py-3 bg-slate-50/50 dark:bg-navy-800/40">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-slate-900 dark:text-white font-bold text-[14px] transition-colors line-clamp-1">{price.routeName}</h3>
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-bold tracking-wider shrink-0 ml-2 ${price.isActive
-                                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20'
-                                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                                                }`}>
-                                                {price.isActive ? 'Active' : 'Inactive'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Card Body */}
-                                    <div className="p-4 flex-1 flex flex-col space-y-4">
-                                        {/* Route Info */}
-                                        <div className="flex items-center justify-between text-[13px]">
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">From</p>
-                                                <p className="text-slate-900 dark:text-slate-200 font-bold truncate text-[13px]">{price.fromStopName}</p>
-                                            </div>
-                                            <div className="px-3 shrink-0">
-                                                <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 flex items-center justify-center">
-                                                    <span className="text-slate-400 dark:text-slate-500 font-bold text-[11px]">→</span>
+            {/* Table View */}
+            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left whitespace-nowrap">
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">Route</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">Path</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">Base Price</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">Effective Period</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase">Status</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-50 dark:divide-navy-700 bg-white dark:bg-navy-900">
+                            {isLoading ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        <Loader2 className="w-10 h-10 animate-spin text-cyan-500 mx-auto mb-4" />
+                                        <p className="text-lg">Loading prices...</p>
+                                    </td>
+                                </tr>
+                            ) : currentPrices.length === 0 ? (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                                        <DollarSign className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+                                        <p className="text-lg">No prices found</p>
+                                    </td>
+                                </tr>
+                            ) : (
+                                currentPrices.map((price) => (
+                                    <tr key={price.id} className="hover:bg-slate-50 dark:hover:bg-navy-800/50 transition-colors">
+                                        <td className="px-6 py-5">
+                                            <div className="text-base font-semibold text-slate-900 dark:text-slate-100">{price.routeName}</div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center space-x-3 text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">From</span>
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200 leading-none">{price.fromStopName}</span>
+                                                </div>
+                                                <span className="text-slate-300 dark:text-slate-600 font-bold">→</span>
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-1">To</span>
+                                                    <span className="font-semibold text-slate-800 dark:text-slate-200 leading-none">{price.toStopName}</span>
                                                 </div>
                                             </div>
-                                            <div className="flex-1 text-right min-w-0">
-                                                <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest mb-0.5">To</p>
-                                                <p className="text-slate-900 dark:text-slate-200 font-bold truncate text-[13px]">{price.toStopName}</p>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center space-x-1">
+                                                <span className="text-[18px] font-black text-cyan-600 dark:text-cyan-400 leading-none">{Number(price.basePrice).toFixed(2)}</span>
+                                                <span className="text-xs text-cyan-600/70 dark:text-cyan-400/70 font-bold pt-1">ETB</span>
                                             </div>
-                                        </div>
-
-                                        {/* Base Price */}
-                                        <div className="border border-slate-100 dark:border-navy-700/60 rounded-xl p-2.5 bg-slate-50/50 dark:bg-navy-800/30 flex flex-col items-center justify-center">
-                                            <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-0.5">Base Price</p>
-                                            <p className="text-[20px] font-black text-cyan-600 dark:text-cyan-400 leading-none">
-                                                {Number(price.basePrice).toFixed(2)}
-                                                <span className="text-[12px] text-cyan-600/70 dark:text-cyan-400/70 ml-1 font-bold">ETB</span>
-                                            </p>
-                                        </div>
-
-                                        {/* Effective Period */}
-                                        <div className="mt-auto border-t border-slate-100 dark:border-navy-700 pt-3 pb-1">
-                                            <div className="flex items-center gap-2 justify-center">
-                                                <Calendar className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                                                <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-400 leading-none flex items-center">
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <div className="flex items-center space-x-2">
+                                                <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                                <span className="text-sm font-semibold text-slate-600 dark:text-slate-300">
                                                     {new Date(price.effectiveFrom).toLocaleDateString()}
                                                     {price.effectiveUntil ? (
                                                         <>
-                                                            <span className="font-bold text-slate-400 dark:text-slate-500 mx-1">→</span>
+                                                            <span className="text-slate-300 dark:text-slate-600 font-bold mx-2">→</span>
                                                             {new Date(price.effectiveUntil).toLocaleDateString()}
                                                         </>
                                                     ) : (
-                                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold ml-1.5 uppercase text-[10px] px-1.5 py-0.5 bg-emerald-50 dark:bg-emerald-500/10 rounded">(Ongoing)</span>
+                                                        <span className="ml-2 text-[10px] uppercase font-bold px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded">Ongoing</span>
                                                     )}
-                                                </p>
+                                                </span>
                                             </div>
-                                        </div>
+                                        </td>
+                                        <td className="px-6 py-5">
+                                            <span className={`inline-flex items-center px-3 py-1.5 rounded text-xs font-bold cursor-pointer tracking-wide ${price.isActive ? 'bg-[#ECFDF5] text-[#10B981] border border-[#D1FAE5] dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800/30' : 'bg-slate-100 text-slate-700 dark:bg-navy-800 dark:text-slate-300'}`}>
+                                                {price.isActive ? 'ACTIVE' : 'INACTIVE'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-5 text-right">
+                                            <div className="flex items-center justify-end space-x-2">
+                                                <button
+                                                    onClick={() => handleEditPrice(price)}
+                                                    className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-colors"
+                                                    title="Edit"
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePrice(price.id)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
+                        </tbody>
+                    </table>
+                </div>
 
-                                        {/* Actions */}
-                                        <div className="flex items-center gap-2 mt-2">
-                                            <button
-                                                onClick={() => handleEditPrice(price)}
-                                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 hover:bg-blue-100 dark:hover:bg-blue-500/20 rounded-lg transition-colors"
-                                            >
-                                                <Edit2 className="w-3.5 h-3.5" />
-                                                <span>Edit</span>
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeletePrice(price.id)}
-                                                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 className="w-3.5 h-3.5" />
-                                                <span>Delete</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                {/* Pagination */}
+                {filteredPrices.length > 0 && (
+                    <div className="px-6 py-4 border-t border-slate-200 dark:border-navy-700 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 dark:bg-navy-800/40">
+                        <div className="flex items-center space-x-4">
+                            <span className="text-sm text-slate-600 dark:text-slate-400 font-medium">Rows per page:</span>
+                            <select
+                                value={itemsPerPage}
+                                onChange={(e) => {
+                                    setItemsPerPage(Number(e.target.value));
+                                    setCurrentPage(1);
+                                }}
+                                className="px-3 py-1 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm transition-colors cursor-pointer"
+                            >
+                                <option value={10}>10</option>
+                                <option value={20}>20</option>
+                                <option value={50}>50</option>
+                            </select>
+                            <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
+                                Showing {startIndex + 1} to {Math.min(endIndex, filteredPrices.length)} of {filteredPrices.length} entries
+                            </span>
                         </div>
 
-                        {/* Pagination */}
-                        {filteredPrices.length > 0 && (
-                            <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 mt-6">
-                                <div className="flex items-center space-x-4">
-                                    <span className="text-sm font-medium text-slate-500 dark:text-slate-400">Cards per page:</span>
-                                    <select
-                                        value={itemsPerPage}
-                                        onChange={(e) => {
-                                            setItemsPerPage(Number(e.target.value));
-                                            setCurrentPage(1);
-                                        }}
-                                        className="px-3 py-1 bg-white dark:bg-navy-800 border border-slate-300 dark:border-navy-600 text-slate-700 dark:text-slate-200 rounded focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm transition-colors cursor-pointer"
-                                    >
-                                        <option value={9}>9</option>
-                                        <option value={18}>18</option>
-                                        <option value={30}>30</option>
-                                    </select>
-                                    <span className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
-                                        Showing {startIndex + 1} to {Math.min(endIndex, filteredPrices.length)} of {filteredPrices.length} entries
-                                    </span>
-                                </div>
+                        <div className="flex items-center space-x-2">
+                            <button
+                                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1.5 text-sm text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded disabled:text-slate-400 dark:disabled:text-slate-600 disabled:hover:bg-transparent transition-colors font-semibold"
+                            >
+                                ← Back
+                            </button>
 
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                                        disabled={currentPage === 1}
-                                        className="px-3 py-1.5 text-sm text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded disabled:text-slate-400 dark:disabled:text-slate-600 disabled:hover:bg-transparent transition-colors font-semibold"
-                                    >
-                                        ← Back
-                                    </button>
+                            {[...Array(totalPages)].map((_, i) => (
+                                <button
+                                    key={i + 1}
+                                    onClick={() => setCurrentPage(i + 1)}
+                                    className={`px-3 py-1.5 text-sm rounded font-semibold transition-colors ${
+                                        currentPage === i + 1
+                                            ? 'bg-emerald-500 text-white shadow-sm'
+                                            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
+                                    }`}
+                                >
+                                    {i + 1}
+                                </button>
+                            ))}
 
-                                    {[...Array(totalPages)].map((_, i) => (
-                                        <button
-                                            key={i + 1}
-                                            onClick={() => setCurrentPage(i + 1)}
-                                            className={`px-3 py-1.5 text-sm rounded font-semibold transition-colors ${currentPage === i + 1
-                                                ? 'bg-emerald-500 text-white shadow-sm'
-                                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-navy-800'
-                                                }`}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    ))}
-
-                                    <button
-                                        onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="px-3 py-1.5 text-sm text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded disabled:text-slate-400 dark:disabled:text-slate-600 disabled:hover:bg-transparent transition-colors font-semibold"
-                                    >
-                                        Next →
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </>
+                            <button
+                                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1.5 text-sm text-cyan-600 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 rounded disabled:text-slate-400 dark:disabled:text-slate-600 disabled:hover:bg-transparent transition-colors font-semibold"
+                            >
+                                Next →
+                            </button>
+                        </div>
+                    </div>
                 )}
             </div>
         </div>

@@ -1,4 +1,6 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { trackingApi } from "@/lib/api";
+import { subscribeToAllTracking, BusLocationUpdate } from "@/lib/socket";
 
 export interface BusTelemetry {
   busId: string;
@@ -9,9 +11,9 @@ export interface BusTelemetry {
   occupancyPercent: number;
 }
 
-export const useTripSocket = () => {
+export const useTripSocket = (targetBusId?: string) => {
   const [telemetry, setTelemetry] = useState<BusTelemetry>({
-    busId: "SH-204",
+    busId: targetBusId || "SH-204",
     plateNumber: "3-ET-10293",
     currentStop: "Mexico Square",
     etaMinutes: 4,
@@ -19,18 +21,46 @@ export const useTripSocket = () => {
     occupancyPercent: 62,
   });
 
-  // Simulated live GPS telemetry tick
   useEffect(() => {
-    const interval = setInterval(() => {
-      setTelemetry((prev) => ({
-        ...prev,
-        speedKmH: Math.floor(Math.random() * 15) + 25,
-        etaMinutes: Math.max(1, prev.etaMinutes - (Math.random() > 0.7 ? 1 : 0)),
-      }));
-    }, 4000);
+    // Initial fetch from backend tracking endpoint
+    const fetchInitial = async () => {
+      try {
+        const res = await trackingApi.getAllBusLocations();
+        if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
+          const buses = res.data.data;
+          const match = targetBusId ? buses.find((b: any) => b.busId === targetBusId) : buses[0];
+          if (match) {
+            setTelemetry((prev) => ({
+              ...prev,
+              busId: match.busId || prev.busId,
+              plateNumber: match.plateNumber || prev.plateNumber,
+              speedKmH: Math.round(Number(match.speed || match.speedKmH || 30)),
+            }));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load initial tracking telemetry:", err);
+      }
+    };
 
-    return () => clearInterval(interval);
-  }, []);
+    fetchInitial();
+
+    // Subscribe to live websocket updates
+    const unsubscribe = subscribeToAllTracking((update: BusLocationUpdate) => {
+      if (!targetBusId || update.busId === targetBusId) {
+        setTelemetry((prev) => ({
+          ...prev,
+          busId: update.busId || prev.busId,
+          speedKmH: Math.round(update.location?.speed || prev.speedKmH),
+          etaMinutes: Math.max(1, prev.etaMinutes),
+        }));
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [targetBusId]);
 
   return { telemetry };
-};
+};

@@ -32,3 +32,6 @@ Thumbs.db
 
 # Local review folder - delete after done
 _to_review/
+
+# Passenger app ZIP archive
+apps/passenger-app.zip

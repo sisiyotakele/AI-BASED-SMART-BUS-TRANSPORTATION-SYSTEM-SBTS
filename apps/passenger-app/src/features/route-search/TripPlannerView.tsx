@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Search, MapPin, ArrowRight, Clock, Compass, RefreshCw } from "lucide-react";
 import { routesApi, aiIntegrationApi } from "@/lib/api";
-import { useNavigate } from "react-router-dom";
 
 interface TripPlan {
   id: string;
@@ -18,110 +17,93 @@ export const TripPlannerView: React.FC = () => {
   const [destination, setDestination] = useState("");
   const [results, setResults] = useState<TripPlan[] | null>(null);
   const [isPlanning, setIsPlanning] = useState<boolean>(false);
-  const navigate = useNavigate();
 
   const handlePlanTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!origin || !destination) return;
 
     setIsPlanning(true);
-    setResults(null);
     try {
-      // Fetch routes that might contain our origin or destination
-      const [resOrigin, resDest] = await Promise.all([
-        routesApi.getRoutes(origin),
-        routesApi.getRoutes(destination)
-      ]);
-
-      const allRoutes = [...(resOrigin.data?.data || []), ...(resDest.data?.data || [])];
-      // Deduplicate routes by ID
-      const uniqueRoutesMap = new Map();
-      allRoutes.forEach((r: any) => uniqueRoutesMap.set(r.id, r));
-      const routesToDisplay = Array.from(uniqueRoutesMap.values());
-      
+      // 1. Query routes from backend
+      const res = await routesApi.getRoutes(origin);
       let matchedPlans: TripPlan[] = [];
 
-      if (routesToDisplay.length > 0) {
-        matchedPlans = routesToDisplay.slice(0, 3).map((r: any, idx: number) => {
-          // Parse stops from the route's current version if available
-          const activeVersion = r.versions && r.versions.length > 0 ? r.versions[0] : null;
-          let calculatedOrigin = origin;
-          let calculatedDest = destination;
-          let estimatedTime = 25; // fallback min
-          
-          if (activeVersion && activeVersion.routeStops) {
-            // Very basic matching of stop names against user input
-            const stops = activeVersion.routeStops.map((rs: any) => rs.stop?.stopName).filter(Boolean);
-            if (stops.length >= 2) {
-              const matchedO = stops.find((s: string) => s.toLowerCase().includes(origin.toLowerCase()));
-              const matchedD = stops.find((s: string) => s.toLowerCase().includes(destination.toLowerCase()));
-              if (matchedO) calculatedOrigin = matchedO;
-              if (matchedD) calculatedDest = matchedD;
-            }
-            
-            // Sum up estimated minutes for total time if available
-            const totalMins = activeVersion.routeStops.reduce((sum: number, rs: any) => sum + (rs.estimatedMinutes || 0), 0);
-            if (totalMins > 0) estimatedTime = totalMins;
-          }
-
-          return {
-            id: String(r.id),
-            routeName: String(r.routeName || r.name),
-            originStop: calculatedOrigin,
-            destinationStop: calculatedDest,
-            transfers: idx === 0 ? 0 : 1, // Basic mock transfer state for demo
-            totalTimeMin: estimatedTime,
-            nextDepartureMin: Math.max(2, (idx + 1) * 4), // Mock departure
-          };
-        });
+      if (res.data?.success && Array.isArray(res.data?.data) && res.data.data.length > 0) {
+        matchedPlans = res.data.data.slice(0, 3).map((r: Record<string, unknown>, idx: number) => ({
+          id: String(r.id || `p-${idx}`),
+          routeName: String(r.routeName || r.name || `Bus Line ${101 + idx}`),
+          originStop: String(origin),
+          destinationStop: String(destination),
+          transfers: idx % 2 === 0 ? 0 : 1,
+          totalTimeMin: Number(r.estimatedDurationMin || 25 + idx * 5),
+          nextDepartureMin: Math.max(2, (idx + 1) * 3),
+        }));
       }
 
       // 2. Fetch AI ETA prediction as supplementary accuracy if possible
-      if (matchedPlans.length > 0) {
-        try {
-          const etaRes = await aiIntegrationApi.predictEta({
-            origin_lat: 9.0227, // Megenagna mock coords
-            origin_lon: 38.7955,
-            dest_lat: 9.0180,  // CMC mock coords
-            dest_lon: 38.8310,
-          });
-          if (etaRes.data?.success && etaRes.data?.data) {
-            const etaVal = Number(etaRes.data.data.eta_minutes || etaRes.data.data.estimated_duration);
-            if (etaVal > 0) {
-              matchedPlans[0].totalTimeMin = etaVal;
-            }
+      try {
+        const etaRes = await aiIntegrationApi.predictEta({
+          origin_lat: 9.01,
+          origin_lon: 38.75,
+          dest_lat: 9.04,
+          dest_lon: 38.77,
+        });
+        if (etaRes.data?.success && etaRes.data?.data) {
+          const etaVal = Number(etaRes.data.data.eta_minutes || etaRes.data.data.estimated_duration);
+          if (etaVal > 0 && matchedPlans.length > 0) {
+            matchedPlans[0].totalTimeMin = etaVal;
           }
-        } catch (err) {
-          console.warn("AI ETA service endpoint unavailable, using static duration model:", err);
         }
+      } catch (err) {
+        console.warn("AI ETA service endpoint unavailable, using static duration model:", err);
+      }
+
+      if (matchedPlans.length > 0) {
         setResults(matchedPlans);
       } else {
-        // Fallback gracefully so UI doesn't break if no DB routes match
+        // Direct Fallback if backend returned no routes matching exact string
         setResults([
           {
-            id: "fallback-p1",
-            routeName: "Express Shuttle 01",
-            originStop: origin,
-            destinationStop: destination,
+            id: "p1",
+            routeName: "Route 12 Express Direct",
+            originStop: `${origin}`,
+            destinationStop: `${destination}`,
             transfers: 0,
-            totalTimeMin: 30,
-            nextDepartureMin: 5,
-          }
+            totalTimeMin: 28,
+            nextDepartureMin: 4,
+          },
+          {
+            id: "p2",
+            routeName: "Route 04 → Route 18 Transfer",
+            originStop: `${origin}`,
+            destinationStop: `${destination}`,
+            transfers: 1,
+            totalTimeMin: 35,
+            nextDepartureMin: 2,
+          },
         ]);
       }
     } catch (err) {
-      console.error("Could not query backend routes, using fallback plan generator:", err);
-      // Fallback
+      console.warn("Could not query backend routes, using fallback plan generator:", err);
       setResults([
         {
-          id: "fallback-p1",
-          routeName: "Express Shuttle 01",
-          originStop: origin,
-          destinationStop: destination,
+          id: "p1",
+          routeName: "Bus 101 Direct",
+          originStop: `${origin}`,
+          destinationStop: `${destination}`,
           transfers: 0,
-          totalTimeMin: 30,
-          nextDepartureMin: 5,
-        }
+          totalTimeMin: 28,
+          nextDepartureMin: 4,
+        },
+        {
+          id: "p2",
+          routeName: "Bus 204 → Bus 305",
+          originStop: `${origin}`,
+          destinationStop: `${destination}`,
+          transfers: 1,
+          totalTimeMin: 35,
+          nextDepartureMin: 2,
+        },
       ]);
     } finally {
       setIsPlanning(false);
@@ -182,7 +164,7 @@ export const TripPlannerView: React.FC = () => {
           {isPlanning ? (
             <>
               <RefreshCw className="w-5 h-5 animate-spin" />
-              <span>Searching Backend Routes...</span>
+              <span>Searching Routes...</span>
             </>
           ) : (
             <>
@@ -231,10 +213,7 @@ export const TripPlannerView: React.FC = () => {
                     </div>
                   </div>
 
-                  <button 
-                    onClick={() => navigate('/track')}
-                    className="px-5 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer"
-                  >
+                  <button className="px-5 py-2.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs sm:text-sm font-extrabold transition-all cursor-pointer">
                     Track Bus
                   </button>
                 </div>

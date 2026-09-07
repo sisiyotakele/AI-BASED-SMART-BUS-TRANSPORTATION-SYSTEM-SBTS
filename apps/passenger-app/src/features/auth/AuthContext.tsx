@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { authApi, normalizeUserProfile, type ApiUserProfile } from "@/lib/api";
+import { clearStoredProximityAlerts } from "@/lib/proximityAlerts";
 
 export type UserProfile = ApiUserProfile;
 
@@ -11,6 +12,7 @@ interface AuthContextType {
   login: (accessToken: string, refreshToken: string, userData?: UserProfile) => void;
   enterGuestMode: () => void;
   logout: () => Promise<void>;
+  updateProfile: (data: { fullName?: string; phone?: string; preferredLanguage?: string }) => Promise<void>;
   refetchUser: () => Promise<void>;
 }
 
@@ -74,13 +76,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("isGuest", "true");
     localStorage.removeItem("token");
     localStorage.removeItem("refreshToken");
+    clearStoredProximityAlerts();
     setToken(null);
     setUser(null);
     setIsGuest(true);
     setIsLoading(false);
   };
 
-  // Step 3: Server-side logout via POST /auth/logout
+  // Server-side logout via POST /auth/logout
   const logout = async () => {
     try {
       await authApi.logout();
@@ -96,6 +99,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfile = async (data: { fullName?: string; phone?: string; preferredLanguage?: string }) => {
+    const res = await authApi.updateProfile(data);
+    if (res.data?.success && res.data?.data) {
+      const normalized = normalizeUserProfile(res.data.data);
+      if (normalized) {
+        setUser(normalized);
+      }
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -106,12 +119,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         enterGuestMode,
         logout,
+        updateProfile,
         refetchUser: fetchUserProfile,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
+
 };
 
 export const useAuth = () => {

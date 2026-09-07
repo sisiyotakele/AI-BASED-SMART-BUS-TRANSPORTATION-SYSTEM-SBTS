@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Mail, Lock, User, Phone, Eye, EyeOff, Bus, Activity, ShieldCheck, CheckCircle2, Circle } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff, Bus, Activity, ShieldCheck } from "lucide-react";
 import "@/styles/auth.css";
 import { authApi, getApiDiagnosticError, normalizeUserProfile, type ApiDiagnosticError } from "@/lib/api";
 import { Link, useNavigate } from "react-router-dom";
@@ -28,27 +28,8 @@ export const RegisterPage = () => {
     e.preventDefault();
     setError(null);
 
-    // Manual validation to prevent empty submissions
-    if (!formData.email.trim() || !formData.password.trim() || !formData.fullName.trim() || !formData.phone.trim()) {
-      setError({
-        type: 'validation',
-        message: 'Please fill in all fields',
-        detail: 'All fields are required to create your account.',
-      });
-      return;
-    }
-
-    if (formData.password.length < 8 ||
-      !/[A-Z]/.test(formData.password) ||
-      !/[a-z]/.test(formData.password) ||
-      !/[0-9]/.test(formData.password) ||
-      !/[^A-Za-z0-9]/.test(formData.password)
-    ) {
-      setError({
-        type: 'validation',
-        message: 'Password does not meet requirements',
-        bullets: ['Check the password rules shown below the password field and try again.'],
-      });
+    if (formData.password.length < 8) {
+      setError({ type: 'validation', message: '⚠️ Password Too Short', detail: 'Password must be at least 8 characters long and include uppercase, lowercase, a number, and a special character.' });
       return;
     }
 
@@ -180,23 +161,11 @@ export const RegisterPage = () => {
           </div>
 
           {error && (
-            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl">
-              <p className="font-bold text-sm text-red-700 flex items-center gap-2">
-                <span className="text-base">⚠️</span>
-                {error.message}
-              </p>
-              {error.bullets && error.bullets.length > 0 ? (
-                <ul className="mt-2 space-y-1">
-                  {error.bullets.map((b, i) => (
-                    <li key={i} className="text-xs text-red-600 flex items-start gap-1.5">
-                      <span className="mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full bg-red-400 inline-block" />
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              ) : error.detail ? (
-                <p className="mt-1.5 text-xs text-red-600 leading-relaxed">{error.detail}</p>
-              ) : null}
+            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
+              <p className="font-bold text-sm mb-1">{error.message}</p>
+              {error.detail && (
+                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[11px] leading-relaxed">{error.detail}</pre>
+              )}
             </div>
           )}
 
@@ -283,30 +252,6 @@ export const RegisterPage = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
-
-              {/* Password requirements checklist (shown when user is typing) */}
-              {formData.password.length > 0 && (() => {
-                const checks = [
-                  { label: 'At least 8 characters', ok: formData.password.length >= 8 },
-                  { label: 'Uppercase letter (A–Z)', ok: /[A-Z]/.test(formData.password) },
-                  { label: 'Lowercase letter (a–z)', ok: /[a-z]/.test(formData.password) },
-                  { label: 'Number (0–9)', ok: /[0-9]/.test(formData.password) },
-                  { label: 'Special character (e.g. @, #, !)', ok: /[^A-Za-z0-9]/.test(formData.password) },
-                ];
-                return (
-                  <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
-                    {checks.map(({ label, ok }) => (
-                      <div key={label} className={`flex items-center gap-2 text-xs font-medium ${ ok ? 'text-emerald-600' : 'text-slate-400' }`}>
-                        {ok
-                          ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
-                          : <Circle className="w-3.5 h-3.5 shrink-0" />
-                        }
-                        {label}
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
             </div>
 
             {/* Submit Button */}
@@ -320,35 +265,14 @@ export const RegisterPage = () => {
             </button>
           </form>
 
-          {/* OR Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">or</span>
-            <div className="flex-1 h-px bg-slate-200"></div>
-          </div>
 
-          <div className="space-y-3">
-            {/* Nav to Login Button */}
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-white border-2 border-indigo-100 rounded-xl text-xs font-bold text-indigo-700 hover:bg-indigo-50 hover:border-indigo-200 transition-all cursor-pointer shadow-xs"
-            >
-              <span>I already have an account (Log In)</span>
-            </button>
 
-            {/* Continue as Guest Button */}
-            <button
-              type="button"
-              onClick={() => {
-                enterGuestMode();
-                navigate("/dashboard");
-              }}
-              className="w-full flex items-center justify-center gap-2 py-3 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200 hover:text-slate-900 transition-all cursor-pointer shadow-xs"
-            >
-              <span>Continue as Guest (Limited Access)</span>
-            </button>
-          </div>
+          <p className="auth-bottom-text text-center text-xs text-slate-500 mt-6">
+            Already have an account?{" "}
+            <Link to="/login" className="auth-link text-indigo-600 font-bold hover:underline">
+              Log in
+            </Link>
+          </p>
         </div>
       </div>
     </div>

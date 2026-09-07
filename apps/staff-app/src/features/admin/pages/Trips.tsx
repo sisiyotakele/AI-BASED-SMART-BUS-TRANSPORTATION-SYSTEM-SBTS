@@ -115,39 +115,54 @@ export function Trips() {
             </div>
 
             {/* Control Bar */}
-            <div className="bg-white dark:bg-navy-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col md:flex-row gap-4 justify-between items-center">
-                <div className="flex flex-1 items-center gap-4 w-full md:w-auto">
-                    <div className="relative flex-1 max-w-md">
+            <div className="bg-white dark:bg-navy-900 p-3 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 flex flex-col xl:flex-row gap-4 justify-between items-center overflow-x-auto w-full">
+                {/* Stats Pills placeholders to match layout */}
+                <div className="flex items-center gap-3 w-full xl:w-auto">
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Flag className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">TOTAL TRIPS:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{trips.length}</span>
+                    </div>
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-700 rounded-lg whitespace-nowrap">
+                        <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">SCHEDULED:</span>
+                        <span className="text-sm font-bold text-slate-800 dark:text-white">{trips.filter((t: any) => t.status === 'scheduled').length}</span>
+                    </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-1 items-center justify-end gap-3 w-full xl:w-auto overflow-x-auto">
+                    <div className="relative min-w-[150px]">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search by plate number or driver..."
+                            placeholder="Search..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors"
+                            className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-lg text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-cyan-500 transition-colors"
                         />
                     </div>
                     <select
                         value={filterStatus}
                         onChange={e => setFilterStatus(e.target.value)}
-                        className="px-4 py-2 bg-slate-50 dark:bg-navy-800 border border-slate-200 dark:border-navy-600 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-colors">
+                        className="px-4 py-2.5 bg-slate-50 dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-100 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap cursor-pointer focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                    >
                         <option value="All">All Status</option>
                         <option value="completed">Completed</option>
                         <option value="scheduled">Scheduled</option>
                         <option value="in_progress">In Progress</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
-                </div>
-                <div className="flex items-center gap-3 w-full md:w-auto">
                     <button
                         onClick={handleExport}
-                        className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-xl hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium">
+                        className="flex items-center space-x-1.5 px-4 py-2.5 bg-white dark:bg-navy-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-navy-600 rounded-lg hover:bg-slate-50 dark:hover:bg-navy-700 transition-colors text-sm font-medium whitespace-nowrap flex-shrink-0"
+                    >
                         <Download className="w-4 h-4" />
                         <span>Export</span>
                     </button>
                     <button
                         onClick={() => navigate('/dashboard/trips/new')}
-                        className="flex items-center space-x-2 px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors text-sm font-medium shadow-sm"
+                        className="flex items-center space-x-1.5 px-4 py-2.5 text-sm bg-[#2B4B9E] hover:bg-blue-800 text-white rounded-lg transition-all shadow-md hover:shadow-lg font-bold flex-shrink-0 whitespace-nowrap"
                     >
                         <Plus className="w-4 h-4" />
                         <span>Create Trip</span>
@@ -159,13 +174,13 @@ export function Trips() {
             <div className="bg-white dark:bg-navy-900 rounded-2xl shadow-sm border border-slate-200 dark:border-navy-700 overflow-hidden">
                 <div className="overflow-x-auto min-h-[400px]">
                     <table className="w-full text-left whitespace-nowrap">
-                        <thead className="bg-[#F8F9FA] border-b border-gray-100">
-                            <tr>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 tracking-wider">TRIP ID / ROUTE</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 tracking-wider">ASSET INFO</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 tracking-wider">SCHEDULED START</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 tracking-wider">STATUS</th>
-                                <th className="px-6 py-4 text-[11px] font-bold text-gray-400 tracking-wider text-right">ACTIONS</th>
+                        <thead className="bg-[#2B4B9E] text-white">
+                            <tr className="h-[70px]">
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">TRIP ID / ROUTE</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">ASSET INFO</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">SCHEDULED START</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-left">STATUS</th>
+                                <th className="px-6 text-sm font-medium text-white tracking-wide uppercase text-right">ACTIONS</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50 bg-white">
@@ -182,7 +197,7 @@ export function Trips() {
                                 </tr>
                             ) : currentTrips.map((trip) => (
                                 <tr key={trip.id} className="hover:bg-[#F8F9FA] transition-colors group cursor-pointer" onClick={() => navigate(`/dashboard/trips/${trip.id}`)}>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-5">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded bg-[#EBF5FF] flex items-center justify-center flex-shrink-0 border border-blue-50">
                                                 <Flag className="w-4 h-4 text-[#12B2E4]" />
@@ -195,7 +210,7 @@ export function Trips() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-5">
                                         <div className="flex items-center">
                                             <div className="flex -space-x-2">
                                                 <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -208,13 +223,13 @@ export function Trips() {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-5">
                                         <div className="flex items-center text-sm font-bold text-gray-700">
                                             <Clock className="w-4 h-4 text-gray-400 mr-2" />
                                             {trip.scheduledStart ? new Date(trip.scheduledStart).toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', month: 'short', day: 'numeric' }) : 'N/A'}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-5">
                                         <span className={`inline-flex items-center px-3 py-1.5 rounded text-[11px] font-bold uppercase tracking-wide border ${trip.status === 'completed' ? 'bg-[#ECFDF5] text-[#10B981] border-[#D1FAE5]' :
                                             trip.status === 'in_progress' ? 'bg-[#EFF6FF] text-[#3B82F6] border-[#DBEAFE]' :
                                                 trip.status === 'scheduled' ? 'bg-gray-50 text-gray-600 border-gray-200' :
@@ -223,7 +238,7 @@ export function Trips() {
                                             {trip.status.replace('_', ' ')}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-5 text-right">
                                         <div className="flex items-center justify-end gap-2" onClick={e => e.stopPropagation()}>
                                             {trip.status === 'scheduled' && (
                                                 <button

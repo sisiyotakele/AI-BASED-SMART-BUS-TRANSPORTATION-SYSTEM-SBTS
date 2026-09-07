@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Locate, MapPin, Search, Loader2, Navigation, Info, GitMerge, CheckCircle2 } from "lucide-react";
 import { RouteOption } from "./types";
 import { RouteOptionCard } from "./RouteOptionCard";
+import { routesApi } from "@/lib/api";
 
 interface TripPlannerCardProps {
   onRouteSelected?: (option: RouteOption) => void;
@@ -14,6 +15,7 @@ const isDirectRoute = (option: RouteOption) =>
 export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelected }) => {
   const [origin, setOrigin] = useState<string>("");
   const [destination, setDestination] = useState<string>("");
+  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
@@ -33,7 +35,8 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setOrigin(`My Current Location (${latitude.toFixed(3)}, ${longitude.toFixed(3)})`);
+        setOriginCoords({ lat: latitude, lng: longitude });
+        setOrigin("Current Location");
         setLocationStatus("GPS Location detected!");
         setIsLocating(false);
       },
@@ -49,16 +52,43 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
     );
   };
 
-  const handleSearchTrip = (e: React.FormEvent) => {
+  const handleSearchTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim()) return;
 
     setIsSearching(true);
     setSelectedRouteId(null);
 
-    setTimeout(() => {
-      const startLoc = origin.trim() || "Location A (Akaki)";
-      const endLoc = destination.trim() || "Location D (Megenagna)";
+    const startLoc = origin.trim() || "Your Starting Stop";
+    const endLoc = destination.trim();
+
+    try {
+      let planData: unknown;
+      if (originCoords) {
+        const nearby = await routesApi.getNearbyStops(originCoords.lat, originCoords.lng, 5);
+        const nearest = nearby.data?.data?.[0];
+        if (!nearest?.stopName) {
+          throw new Error("No nearby bus stop was found for the current location.");
+        }
+        const res = await routesApi.planRoute(nearest.stopName, endLoc);
+        planData = res.data?.data;
+      } else {
+        const res = await routesApi.planRouteByAddress(startLoc, endLoc);
+        planData = res.data?.data?.routes;
+      }
+
+      if (Array.isArray(planData) && planData.length > 0) {
+        const options = (planData as RouteOption[]).sort((a, b) =>
+          (a.totalTripMinutes + a.transfersCount * 5) - (b.totalTripMinutes + b.transfersCount * 5)
+        );
+        setSearchResults(options);
+        setIsSearching(false);
+        return;
+      }
+    } catch (err) {
+      console.warn("Could not fetch real routes for planner card, using fallback options:", err);
+    }
+
 
       const mockAlternatives: RouteOption[] = [
         {
@@ -179,8 +209,8 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
 
       setSearchResults(mockAlternatives);
       setIsSearching(false);
-    }, 600);
   };
+
 
   const displayedRoutes = searchResults || [];
 

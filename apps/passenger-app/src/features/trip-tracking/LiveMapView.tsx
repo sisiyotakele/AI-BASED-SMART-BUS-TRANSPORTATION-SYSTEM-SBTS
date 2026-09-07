@@ -1,33 +1,30 @@
 // src/features/trip-tracking/LiveMapView.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { 
   MapPin, 
   Radio, 
-  Maximize2, 
   Clock, 
+  Sparkles, 
+  TrendingUp, 
+  ShieldCheck, 
+  Zap, 
   CheckCircle2, 
-  Bus,
-  Minimize2,
-  Play,
-  Pause,
-  RotateCcw,
+  Navigation, 
   Compass,
-  Zap,
-  Users,
-  Navigation2,
-  Plus,
-  Minus,
-  Target,
-  RefreshCw
+  ChevronUp,
+  ChevronDown
 } from "lucide-react";
-import { trackingApi } from "@/lib/api";
+import { trackingApi, aiIntegrationApi } from "@/lib/api";
 import { subscribeToAllTracking, BusLocationUpdate } from "@/lib/socket";
+import { useLocation } from "react-router-dom";
+import { evaluateStopProximity, ProximityAlert } from "@/lib/proximityAlerts";
+import { RealGoogleMap } from "./RealGoogleMap";
 
 interface Stop {
   id: string;
   name: string;
   time: string;
-  coords: { x: number; y: number }; // Percentage along the map canvas
+  coords: { x: number; y: number };
   passengersWaiting: number;
   status: "completed" | "current" | "upcoming";
 }
@@ -42,47 +39,309 @@ export interface BusTrackingLocation {
   timestamp?: string;
 }
 
-const ROUTE_STOPS: Stop[] = [
-  {
-    id: "stop-1",
-    name: "Megenagna",
-    time: "07:00 AM",
-    coords: { x: 8, y: 42 },
-    passengersWaiting: 12,
-    status: "completed",
+// Per-route stop definitions for explicit route presets
+const ROUTE_PRESETS: Record<string, {
+  stops: Stop[];
+  routeId: string;
+  busId: string;
+  originLabel: string;
+  destLabel: string;
+}> = {
+  "Route 12": {
+    routeId: "Route 12 Express",
+    busId: "SBTS-BUS-114",
+    originLabel: "Megenagna",
+    destLabel: "Bole Airport",
+    stops: [
+      { id: "r12-1", name: "Megenagna",       time: "07:00 AM", coords: { x: 8,  y: 42 }, passengersWaiting: 12, status: "completed" },
+      { id: "r12-2", name: "CMC Michael",      time: "07:12 AM", coords: { x: 28, y: 35 }, passengersWaiting: 8,  status: "current"   },
+      { id: "r12-3", name: "Bole Medhanialem", time: "07:20 AM", coords: { x: 52, y: 48 }, passengersWaiting: 15, status: "upcoming"  },
+      { id: "r12-4", name: "Bole Airport",     time: "07:28 AM", coords: { x: 88, y: 38 }, passengersWaiting: 6,  status: "upcoming"  },
+    ],
   },
-  {
-    id: "stop-2",
-    name: "CMC Michael",
-    time: "07:12 AM",
-    coords: { x: 28, y: 35 },
-    passengersWaiting: 8,
-    status: "current",
+  "Route 04": {
+    routeId: "Route 04 Direct",
+    busId: "SBTS-BUS-092",
+    originLabel: "Tor Hailoch",
+    destLabel: "Stadium",
+    stops: [
+      { id: "r04-1", name: "Tor Hailoch",  time: "08:00 AM", coords: { x: 8,  y: 55 }, passengersWaiting: 18, status: "completed" },
+      { id: "r04-2", name: "Sarbet",        time: "08:08 AM", coords: { x: 30, y: 42 }, passengersWaiting: 10, status: "current"   },
+      { id: "r04-3", name: "Meskel Square", time: "08:18 AM", coords: { x: 58, y: 50 }, passengersWaiting: 22, status: "upcoming"  },
+      { id: "r04-4", name: "Stadium",       time: "08:26 AM", coords: { x: 88, y: 40 }, passengersWaiting: 9,  status: "upcoming"  },
+    ],
   },
-  {
-    id: "stop-3",
-    name: "Bole Medhanialem",
-    time: "07:20 AM",
-    coords: { x: 52, y: 48 },
-    passengersWaiting: 15,
-    status: "upcoming",
+  "Route 18": {
+    routeId: "Route 18 Express",
+    busId: "SBTS-BUS-073",
+    originLabel: "CMC",
+    destLabel: "Mexico",
+    stops: [
+      { id: "r18-1", name: "CMC",       time: "09:00 AM", coords: { x: 8,  y: 38 }, passengersWaiting: 7,  status: "completed" },
+      { id: "r18-2", name: "Ayat",      time: "09:10 AM", coords: { x: 28, y: 50 }, passengersWaiting: 14, status: "current"   },
+      { id: "r18-3", name: "Piassa",    time: "09:22 AM", coords: { x: 55, y: 40 }, passengersWaiting: 20, status: "upcoming"  },
+      { id: "r18-4", name: "Mexico",    time: "09:32 AM", coords: { x: 88, y: 45 }, passengersWaiting: 5,  status: "upcoming"  },
+    ],
   },
-  {
-    id: "stop-4",
-    name: "Bole Airport",
-    time: "07:28 AM",
-    coords: { x: 88, y: 38 },
-    passengersWaiting: 6,
-    status: "upcoming",
-  },
-];
+};
 
-export const LiveMapView: React.FC = () => {
+export const LiveMapView: React.FC<{ routeName?: string }> = ({ routeName }) => {
+  const location = useLocation();
+  const [dynamicSelectedRoute, setDynamicSelectedRoute] = useState<any>(location.state?.selectedRoute || null);
+  const [dynamicOrigin, setDynamicOrigin] = useState<string>(location.state?.origin || "");
+  const [dynamicDestination, setDynamicDestination] = useState<string>(location.state?.destination || "");
+  const [dynamicViaStops, setDynamicViaStops] = useState<string[]>(location.state?.viaStops || []);
+
+  const selectedRoute = dynamicSelectedRoute || location.state?.selectedRoute;
+  const destinationStr: string = dynamicDestination || location.state?.destination || "";
+  const originStr: string = dynamicOrigin || location.state?.origin || "";
+  const viaStops: string[] = dynamicViaStops.length > 0 ? dynamicViaStops : (location.state?.viaStops || []);
+
+  // Listen for real-time route selection from the side panel ("Plan a Trip" or "Find Bus Stop")
+  useEffect(() => {
+    const handleSelectRouteEvent = (e: any) => {
+      const route = e.detail?.selectedRoute;
+
+      if (!route) {
+        setDynamicSelectedRoute(null);
+        setDynamicOrigin("");
+        setDynamicDestination("");
+        setDynamicViaStops([]);
+        setBusProgress(0);
+        setIsTripCompleted(false);
+        return;
+      }
+
+      setDynamicSelectedRoute(route);
+      setDynamicOrigin(e.detail.origin || "");
+      setDynamicDestination(e.detail.destination || "");
+      setDynamicViaStops(e.detail.viaStops || []);
+      setBusProgress(8);
+      setIsTripCompleted(false);
+    };
+    window.addEventListener("sbts:select_route", handleSelectRouteEvent);
+    return () => window.removeEventListener("sbts:select_route", handleSelectRouteEvent);
+  }, []);
+
+  const activePreset = (routeName && ROUTE_PRESETS[routeName]) ? ROUTE_PRESETS[routeName] : null;
+  const hasActiveRoute = Boolean(selectedRoute || activePreset);
+
+  // Build display stops (Empty when no route is planned or selected)
+  const { displayStops, displayRouteId, displayBusId, originLabel, destLabel } = useMemo(() => {
+    if (!hasActiveRoute) {
+      return {
+        displayStops: [],
+        displayRouteId: "",
+        displayBusId: "",
+        originLabel: "",
+        destLabel: "",
+      };
+    }
+
+    if (!selectedRoute && activePreset) {
+      return {
+        displayStops: activePreset.stops,
+        displayRouteId: activePreset.routeId,
+        displayBusId: activePreset.busId,
+        originLabel: activePreset.originLabel,
+        destLabel: activePreset.destLabel,
+      };
+    }
+
+    const stops: Stop[] = [];
+    const routeId = selectedRoute.busNumber || "Route 101 Express";
+    const busId = "SBTS-BUS-" + (selectedRoute.id?.slice(0, 3).toUpperCase() || "114");
+
+    const originName = originStr || selectedRoute.nearestStation?.name || "Origin";
+    stops.push({
+      id: "stop-start",
+      name: originName,
+      time: "Now",
+      coords: { x: 8, y: 50 },
+      passengersWaiting: selectedRoute.nearestStation?.walkTimeMinutes ?? 0,
+      status: "completed",
+    });
+
+    if (selectedRoute.isMergedRoute && selectedRoute.legs && selectedRoute.legs.length > 0) {
+      const totalLegs = selectedRoute.legs.length;
+      const xStep = 80 / (totalLegs + 1);
+      selectedRoute.legs.forEach((leg: any, idx: number) => {
+        const xPos = 8 + xStep * (idx + 1);
+        const yOffset = idx % 2 === 0 ? -12 : 12;
+        stops.push({
+          id: `stop-leg-${idx}`,
+          name: idx < totalLegs - 1 ? leg.toStation : destinationStr,
+          time: `+${leg.durationMinutes}m`,
+          coords: { x: xPos, y: 50 + yOffset },
+          passengersWaiting: 5,
+          status: idx === 0 ? "current" : "upcoming",
+        });
+      });
+    } else {
+      const intermediates = viaStops.filter(
+        (s) => s.toLowerCase() !== originName.toLowerCase() && s.toLowerCase() !== destinationStr.toLowerCase()
+      );
+
+      if (intermediates.length > 0) {
+        const xStep = 82 / (intermediates.length + 1);
+        intermediates.forEach((stopName, idx) => {
+          const xPos = 8 + xStep * (idx + 1);
+          const yOffset = idx % 2 === 0 ? -10 : 10;
+          stops.push({
+            id: `stop-via-${idx}`,
+            name: stopName,
+            time: `+${Math.round((selectedRoute.totalTripMinutes / (intermediates.length + 1)) * (idx + 1))}m`,
+            coords: { x: xPos, y: 50 + yOffset },
+            passengersWaiting: 5,
+            status: "upcoming",
+          });
+        });
+      }
+
+      stops.push({
+        id: "stop-dest",
+        name: destinationStr,
+        time: `~${selectedRoute.totalTripMinutes}m`,
+        coords: { x: 90, y: 50 },
+        passengersWaiting: 0,
+        status: "upcoming",
+      });
+    }
+
+    return {
+      displayStops: stops,
+      displayRouteId: routeId,
+      displayBusId: busId,
+      originLabel: stops[0]?.name || originStr,
+      destLabel: stops[stops.length - 1]?.name || destinationStr,
+    };
+  }, [routeName, selectedRoute, originStr, destinationStr, viaStops, hasActiveRoute, activePreset]);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isSimulating, setIsSimulating] = useState(true);
-  const [busProgress, setBusProgress] = useState(48); // Progress percentage 0 - 100%
-  const [zoomLevel, setZoomLevel] = useState(1);
-  const [activeStopTooltip, setActiveStopTooltip] = useState<string | null>(null);
+  const [busProgress, setBusProgress] = useState(selectedRoute ? 8 : 0);
+  const [proximityAlertsEnabled, setProximityAlertsEnabled] = useState(true);
+  const [activeProximityAlert, setActiveProximityAlert] = useState<ProximityAlert | null>(null);
+  const [isMobileSheetExpanded, setIsMobileSheetExpanded] = useState(false);
+  
+  // Trip Completion State (No restart countdown or option)
+  const [isTripCompleted, setIsTripCompleted] = useState<boolean>(false);
+
+  // Dynamic Route AI Prediction State (Only active when a trip is planned or tracked)
+  const [routeAiPrediction, setRouteAiPrediction] = useState<{
+    traffic_level: string;
+    traffic_confidence: number;
+    estimated_duration_minutes: number;
+    estimated_arrival: string;
+    processing_time_ms: number;
+    delay_risk: string;
+    crowd_forecast: string;
+    recommended_speed_kmh: number;
+  } | null>(null);
+  const [routeAiLoading, setRouteAiLoading] = useState(false);
+
+  // Fetch live AI prediction only when a route is actively planned / selected
+  const fetchRoutePrediction = useCallback(async () => {
+    if (!hasActiveRoute || !originLabel || !destLabel) {
+      setRouteAiPrediction(null);
+      setRouteAiLoading(false);
+      return;
+    }
+
+    setRouteAiLoading(true);
+    try {
+      const stopCoords: Record<string, { lat: number; lon: number }> = {
+        "megenagna":     { lat: 9.0215, lon: 38.7989 },
+        "ayat":          { lat: 9.0345, lon: 38.8650 },
+        "cmc":           { lat: 9.0265, lon: 38.8310 },
+        "mexico":        { lat: 9.0105, lon: 38.7425 },
+        "stadium":       { lat: 9.0135, lon: 38.7562 },
+        "atlas":         { lat: 9.0025, lon: 38.7735 },
+        "medhanealem":   { lat: 8.9950, lon: 38.7865 },
+        "airport":       { lat: 8.9805, lon: 38.7995 },
+        "kality":        { lat: 8.9250, lon: 38.7520 },
+        "akaki":         { lat: 8.8785, lon: 38.7842 },
+        "tor hailoch":   { lat: 9.0125, lon: 38.7230 },
+        "sarbet":        { lat: 8.9985, lon: 38.7345 },
+        "piazza":        { lat: 9.0355, lon: 38.7515 },
+        "piassa":        { lat: 9.0355, lon: 38.7515 },
+      };
+
+      const oKey = originLabel.toLowerCase();
+      const dKey = destLabel.toLowerCase();
+
+      const matchO = Object.keys(stopCoords).find(k => oKey.includes(k));
+      const matchD = Object.keys(stopCoords).find(k => dKey.includes(k));
+
+      const originC = matchO ? stopCoords[matchO] : { lat: 9.0215, lon: 38.7989 };
+      const destC = matchD ? stopCoords[matchD] : { lat: 8.9805, lon: 38.7995 };
+
+      const res = await aiIntegrationApi.predictCombined({
+        origin_lat: originC.lat,
+        origin_lon: originC.lon,
+        dest_lat: destC.lat,
+        dest_lon: destC.lon,
+        direction: "Forward",
+        timestamp: new Date().toISOString(),
+      });
+      const raw = res.data?.data || res.data;
+      if (raw) {
+        const trafficLevel = String(raw.traffic_level || "Medium");
+        const confidence = typeof raw.traffic_confidence === "number" ? raw.traffic_confidence : 0.94;
+        const duration = typeof raw.estimated_duration_minutes === "number" ? raw.estimated_duration_minutes : 22;
+        const arrivalDate = new Date(Date.now() + duration * 60000);
+        const arrivalStr = arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        setRouteAiPrediction({
+          traffic_level: trafficLevel === "High" ? "Heavy Traffic" : trafficLevel === "Medium" ? "Moderate Congestion" : "Light Traffic",
+          traffic_confidence: confidence,
+          estimated_duration_minutes: duration,
+          estimated_arrival: arrivalStr,
+          processing_time_ms: typeof raw.processing_time_ms === "number" ? raw.processing_time_ms : 1.8,
+          delay_risk: trafficLevel === "High" ? "Moderate Delay (+4m)" : "Minimal Delay Risk (+0m)",
+          crowd_forecast: trafficLevel === "High" ? "High Passenger Volume" : "Comfortable Seating Available",
+          recommended_speed_kmh: trafficLevel === "High" ? 28 : trafficLevel === "Medium" ? 42 : 52,
+        });
+      }
+    } catch (err) {
+      console.warn("Could not fetch route AI prediction:", err);
+      const arrivalDate = new Date(Date.now() + 22 * 60000);
+      setRouteAiPrediction({
+        traffic_level: "Moderate Congestion",
+        traffic_confidence: 0.92,
+        estimated_duration_minutes: 22,
+        estimated_arrival: arrivalDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        processing_time_ms: 1.8,
+        delay_risk: "Minimal Delay Risk (+0m)",
+        crowd_forecast: "Comfortable Seating Available",
+        recommended_speed_kmh: 42,
+      });
+    } finally {
+      setRouteAiLoading(false);
+    }
+  }, [hasActiveRoute, originLabel, destLabel]);
+
+  useEffect(() => {
+    if (hasActiveRoute) {
+      fetchRoutePrediction();
+    } else {
+      setRouteAiPrediction(null);
+    }
+  }, [fetchRoutePrediction, hasActiveRoute]);
+
+  // Reset bus to start whenever a new route is selected
+  useEffect(() => {
+    if (selectedRoute) {
+      setBusProgress(8);
+      setIsTripCompleted(false);
+    }
+  }, [selectedRoute]);
+
+  useEffect(() => {
+    if (location.hash === '#live-route-map') {
+      const el = document.getElementById('live-route-map');
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [location.hash]);
 
   // Backend tracking state
   const [liveBusLocations, setLiveBusLocations] = useState<BusTrackingLocation[]>([]);
@@ -90,7 +349,6 @@ export const LiveMapView: React.FC = () => {
   const [isWebSocketActive, setIsWebSocketActive] = useState<boolean>(false);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Step 2: Poll GET /tracking from Swagger API
   const fetchLiveTracking = useCallback(async () => {
     setIsRefreshing(true);
     try {
@@ -109,7 +367,6 @@ export const LiveMapView: React.FC = () => {
     }
   }, []);
 
-  // Real-Time WebSocket stream subscription
   useEffect(() => {
     fetchLiveTracking();
 
@@ -138,7 +395,6 @@ export const LiveMapView: React.FC = () => {
       }
     });
 
-    // Poll live bus positions every 10 seconds as backup
     const interval = setInterval(fetchLiveTracking, 10000);
     return () => {
       unsubscribeSocket();
@@ -146,343 +402,136 @@ export const LiveMapView: React.FC = () => {
     };
   }, [fetchLiveTracking]);
 
-  // Smooth Live GPS movement simulation loop (fallback or demo mode)
+  // Continuous movement loop until arrival (only runs when hasActiveRoute is true and trip is not completed)
   useEffect(() => {
-    if (!isSimulating) return;
+    if (!hasActiveRoute || isTripCompleted) return;
 
     const interval = setInterval(() => {
       setBusProgress((prev) => {
-        if (prev >= 94) return 8; // Reset back to start when reaching final stop
-        return prev + 0.35; // Increment position smoothly
+        if (prev >= 98) {
+          setIsTripCompleted(true);
+          return 100;
+        }
+        return prev + 0.45;
       });
-    }, 300);
+    }, 250);
 
     return () => clearInterval(interval);
-  }, [isSimulating]);
+  }, [isTripCompleted, hasActiveRoute]);
 
-  // Calculate live telemetry values based on real API data or simulated progress
   const activeLiveBus = liveBusLocations[0];
-  const currentSpeed = activeLiveBus ? activeLiveBus.speed : Math.round(36 + Math.sin(busProgress / 5) * 8);
-  const currentLat = activeLiveBus ? activeLiveBus.latitude.toFixed(4) : (9.005 + (busProgress * 0.00035)).toFixed(4);
-  const currentLng = activeLiveBus ? activeLiveBus.longitude.toFixed(4) : (38.765 + (busProgress * 0.00042)).toFixed(4);
-  const nextStopEtaMinutes = Math.max(1, Math.round((55 - busProgress) * 0.3));
+  const currentSpeed = isTripCompleted ? 0 : (activeLiveBus?.speed ?? Math.round(36 + Math.sin(busProgress / 5) * 8));
 
-  // Determine current active stop based on progress percentage
-  const currentStopIndex = Math.min(
-    ROUTE_STOPS.length - 1,
-    Math.floor((busProgress / 100) * ROUTE_STOPS.length)
-  );
+  // Proximity Alert Detection Loop
+  useEffect(() => {
+    if (!proximityAlertsEnabled || isTripCompleted || !hasActiveRoute) return;
+    const alert = evaluateStopProximity(
+      busProgress,
+      displayStops,
+      activeLiveBus ? activeLiveBus.busId : displayBusId,
+      displayRouteId
+    );
+    if (alert) {
+      setActiveProximityAlert(alert);
+      const timer = setTimeout(() => {
+        setActiveProximityAlert((curr) => (curr?.id === alert.id ? null : curr));
+      }, 7000);
+      return () => clearTimeout(timer);
+    }
+  }, [busProgress, displayStops, activeLiveBus, displayBusId, displayRouteId, proximityAlertsEnabled, isTripCompleted, hasActiveRoute]);
+
+  // Broadcast active route state to Left Sidebar and Mobile Bottom Sheet
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("sbts:active_route_state", {
+        detail: {
+          hasActiveRoute,
+          displayRouteId,
+          displayBusId,
+          originLabel,
+          destLabel,
+          busProgress,
+          currentSpeed,
+          isTripCompleted,
+          displayStops,
+          routeAiPrediction,
+          routeAiLoading,
+          isWebSocketActive,
+        },
+      })
+    );
+  }, [
+    hasActiveRoute,
+    displayRouteId,
+    displayBusId,
+    originLabel,
+    destLabel,
+    busProgress,
+    currentSpeed,
+    isTripCompleted,
+    displayStops,
+    routeAiPrediction,
+    routeAiLoading,
+    isWebSocketActive,
+  ]);
 
   return (
-    <div className={`flex flex-col justify-between transition-all ${
-      isFullscreen ? "fixed inset-0 z-50 bg-white p-6 overflow-y-auto" : ""
+    <div className={`relative flex h-full w-full min-h-0 min-w-0 overflow-hidden bg-slate-200 ${
+      isFullscreen ? "fixed inset-0 z-50 bg-slate-100" : ""
     }`}>
-      {/* 1. MAP HEADER & REAL-TIME CONTROLS */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-            <MapPin className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
-              Real-Time GPS Fleet Tracker
-              <span className="text-xs text-slate-400 font-normal hidden sm:inline">
-                • Route 12 Express ({activeLiveBus ? activeLiveBus.busId.slice(0, 8) : "SBTS-BUS-114"})
-              </span>
-            </h3>
-          </div>
-        </div>
-
-        {/* Live GPS Telemetry Badges & Action Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Live Server Connection Badge */}
-          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
-            isWebSocketActive
-              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
-              : isLiveConnected 
-              ? "bg-sky-500/10 text-sky-600 border-sky-500/20"
-              : "bg-slate-500/10 text-slate-600 border-slate-500/20"
-          }`}>
-            <Radio className="w-3.5 h-3.5 animate-pulse text-emerald-500" />
-            {isWebSocketActive
-              ? "WebSocket Stream (Real-Time GPS)"
-              : isLiveConnected
-              ? "API Connected (Polling GPS)"
-              : "GPS Simulation Mode"}
-          </span>
-
-          {/* Refresh API Button */}
-          <button
-            onClick={fetchLiveTracking}
-            disabled={isRefreshing}
-            className="p-1.5 text-slate-600 hover:text-slate-900 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer disabled:opacity-50"
-            title="Fetch Latest GPS Telemetry"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
-          </button>
-
-          {/* Simulation Toggle Controls */}
-          <button
-            onClick={() => setIsSimulating(!isSimulating)}
-            className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-xl border transition-all cursor-pointer ${
-              isSimulating
-                ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
-                : "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
-            }`}
-            title={isSimulating ? "Pause GPS Motion" : "Resume GPS Motion"}
-          >
-            {isSimulating ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            <span>{isSimulating ? "Pause Simulation" : "Play GPS"}</span>
-          </button>
-
-          {/* Reset Bus Position */}
-          <button
-            onClick={() => setBusProgress(8)}
-            className="p-1.5 text-slate-500 hover:text-slate-900 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
-            title="Reset Bus Location to Origin"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
-
-          {/* Fullscreen Toggle */}
-          <button
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            className="flex items-center gap-1.5 text-xs text-slate-700 font-bold px-3 py-1 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors cursor-pointer"
-          >
-            {isFullscreen ? (
-              <>
-                <Minimize2 className="w-3.5 h-3.5" />
-                Exit Fullscreen
-              </>
-            ) : (
-              <>
-                <Maximize2 className="w-3.5 h-3.5" />
-                Full Screen
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* 2. HIGH-REALISM CARTOGRAPHIC MAP CANVAS */}
-      <div className="relative w-full h-80 sm:h-96 bg-[#e6edea] rounded-2xl overflow-hidden border border-slate-200/90 shadow-inner select-none">
-        
-        {/* Realistic Cartographic Background Layers */}
-        <div 
-          className="absolute inset-0 bg-[#e4ebe8] transition-transform duration-300"
-          style={{ transform: `scale(${zoomLevel})` }}
-        >
-          {/* Subtle topography street grid */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#cbd5e125_1px,transparent_1px),linear-gradient(to_bottom,#cbd5e125_1px,transparent_1px)] bg-position-[32px_32px]"></div>
-
-          {/* Major Addis Ababa Road Lines Simulation */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
-            {/* Background Secondary Arterial Roads (Gray Lines) */}
-            <path d="M 0,120 Q 250,90 500,160 T 1000,100" fill="none" stroke="#cbd5e1" strokeWidth="8" />
-            <path d="M 100,0 Q 180,200 400,350" fill="none" stroke="#cbd5e1" strokeWidth="6" />
-            <path d="M 600,0 Q 650,220 850,380" fill="none" stroke="#cbd5e1" strokeWidth="6" />
-
-            {/* Main Ring Road Highway (Yellow Border Expressway) */}
-            <path d="M 30,140 C 200,80 400,220 600,120 S 850,200 970,140" fill="none" stroke="#fde047" strokeWidth="12" strokeLinecap="round" />
-            
-            {/* Active Bus Route Path (Cyan & Indigo Track) */}
-            <path d="M 30,140 C 200,80 400,220 600,120 S 850,200 970,140" fill="none" stroke="#6366f1" strokeWidth="6" strokeLinecap="round" />
-            
-            {/* Traveled Completed Distance Path (Emerald Overlay) */}
-            <path 
-              d="M 30,140 C 200,80 400,220 600,120 S 850,200 970,140" 
-              fill="none" 
-              stroke="#10b981" 
-              strokeWidth="6" 
-              strokeDasharray="1000"
-              strokeDashoffset={1000 - (busProgress / 100) * 1000}
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {/* Interactive Bus Station Map Markers */}
-          {ROUTE_STOPS.map((stop, index) => {
-            const isCurrent = index === currentStopIndex;
-            const isPassed = index < currentStopIndex;
-
-            return (
-              <div
-                key={stop.id}
-                style={{ left: `${stop.coords.x}%`, top: `${stop.coords.y}%` }}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 cursor-pointer group"
-                onClick={() => setActiveStopTooltip(activeStopTooltip === stop.id ? null : stop.id)}
-              >
-                {/* Station Marker Circle */}
-                <div className={`relative flex items-center justify-center transition-all ${
-                  isCurrent 
-                    ? "w-8 h-8 bg-emerald-500 rounded-full border-2 border-white shadow-lg text-white ring-4 ring-emerald-500/20 scale-110"
-                    : isPassed
-                    ? "w-6 h-6 bg-indigo-600 rounded-full border-2 border-white text-white shadow-xs"
-                    : "w-5 h-5 bg-white rounded-full border-2 border-slate-400 text-slate-600 shadow-xs group-hover:scale-125"
-                }`}>
-                  {isPassed ? (
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  ) : isCurrent ? (
-                    <span className="w-2.5 h-2.5 bg-white rounded-full animate-ping"></span>
-                  ) : (
-                    <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-                  )}
-                </div>
-
-                {/* Station Name Label Tag */}
-                <div className="absolute top-7 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-xs px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs whitespace-nowrap text-[10px] font-bold text-slate-800 pointer-events-none">
-                  {stop.name}
-                </div>
-
-                {/* Popover Tooltip when clicked */}
-                {activeStopTooltip === stop.id && (
-                  <div className="absolute bottom-9 left-1/2 -translate-x-1/2 w-48 bg-slate-900 text-white rounded-xl p-3 shadow-2xl z-50 text-xs space-y-1 animate-in fade-in duration-150">
-                    <div className="font-bold flex items-center justify-between border-b border-slate-700 pb-1 text-emerald-400">
-                      <span>{stop.name}</span>
-                      <span className="text-[10px] text-slate-300 font-mono">{stop.time}</span>
-                    </div>
-                    <p className="text-[10px] text-slate-300">
-                      Passengers waiting: <strong className="text-white">{stop.passengersWaiting} people</strong>
-                    </p>
-                    <p className="text-[10px] text-slate-300">
-                      Status: <strong className="capitalize text-indigo-300">{stop.status}</strong>
-                    </p>
+      <div className="relative z-10 h-full w-full min-h-0 flex-1 overflow-hidden select-none">
+        <div className="absolute inset-x-0 bottom-0 z-[30] hidden px-3 pb-3 sm:block sm:px-4 sm:pb-4">
+          {hasActiveRoute ? (
+            <div className="mx-auto max-w-md rounded-[28px] border border-slate-200/80 bg-white/90 p-3.5 shadow-[0_18px_50px_-16px_rgba(15,23,42,0.32)] backdrop-blur-md">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="rounded-full bg-[#2B4B9E] px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white">
+                      {displayBusId || "SBTS-BUS-114"}
+                    </span>
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
+                      {isTripCompleted ? "Arrived" : "On route"}
+                    </span>
                   </div>
-                )}
-              </div>
-            );
-          })}
-
-          {/* DYNAMIC REAL-TIME BUS MARKER (Smooth Live GPS Movement) */}
-          <div
-            style={{ 
-              left: `${busProgress}%`, 
-              top: `${40 + Math.sin(busProgress / 8) * 15}%` 
-            }}
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 z-30 transition-all duration-300 ease-linear"
-          >
-            {/* GPS Pulse Rings */}
-            <div className="absolute -inset-3 bg-indigo-500/20 rounded-full animate-ping"></div>
-            <div className="absolute -inset-6 bg-indigo-500/10 rounded-full animate-pulse"></div>
-
-            {/* Active Vehicle Badge */}
-            <div className="relative bg-indigo-600 text-white p-2.5 rounded-2xl shadow-2xl border-2 border-white flex items-center gap-1.5 transform hover:scale-110 cursor-pointer">
-              <Bus className="w-5 h-5 animate-bounce" />
-              <span className="text-[10px] font-extrabold pr-1 hidden sm:inline">SBTS-BUS-114</span>
-            </div>
-
-            {/* Vehicle Floating Info Card */}
-            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-slate-900/90 text-white px-2.5 py-1 rounded-xl shadow-lg border border-slate-700 text-[10px] font-extrabold whitespace-nowrap flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>{currentSpeed} km/h</span>
-              <span className="text-slate-400">|</span>
-              <span className="text-indigo-300">Route 12</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 3. FLOATING OVERLAY: LIVE TELEMETRY DASHBOARD PANEL */}
-        <div className="absolute top-3 left-3 bg-white/95 backdrop-blur-md p-3 rounded-2xl border border-slate-200/90 shadow-md z-30 max-w-xs space-y-1.5 text-xs text-slate-800">
-          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5 gap-3">
-            <span className="font-bold text-slate-900 flex items-center gap-1 text-[11px]">
-              <Navigation2 className="w-3.5 h-3.5 text-indigo-600 transform rotate-45" />
-              Live Telemetry
-            </span>
-            <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-              Online
-            </span>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[10px] font-medium pt-0.5">
-            <div>
-              <span className="text-slate-400 block">Coordinates:</span>
-              <span className="font-mono font-bold text-slate-800">{currentLat}°N, {currentLng}°E</span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Vehicle Speed:</span>
-              <span className="font-bold text-amber-600">{currentSpeed} km/h</span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Next Station:</span>
-              <span className="font-bold text-indigo-600 truncate block">CMC Michael</span>
-            </div>
-            <div>
-              <span className="text-slate-400 block">Arrival ETA:</span>
-              <span className="font-bold text-emerald-600">~{nextStopEtaMinutes} mins</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 4. MAP ZOOM CONTROLS (BOTTOM RIGHT) */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1.5 z-30">
-          <button
-            onClick={() => setZoomLevel((z) => Math.min(1.4, z + 0.15))}
-            className="p-2 bg-white/95 hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-md transition-colors cursor-pointer"
-            title="Zoom In"
-          >
-            <Plus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setZoomLevel((z) => Math.max(0.85, z - 0.15))}
-            className="p-2 bg-white/95 hover:bg-white text-slate-700 rounded-xl border border-slate-200 shadow-md transition-colors cursor-pointer"
-            title="Zoom Out"
-          >
-            <Minus className="w-4 h-4" />
-          </button>
-          <button
-            onClick={() => setZoomLevel(1)}
-            className="p-2 bg-white/95 hover:bg-white text-indigo-600 rounded-xl border border-slate-200 shadow-md transition-colors cursor-pointer"
-            title="Recenter Map"
-          >
-            <Target className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* 5. MAP LEGEND OVERLAY (BOTTOM LEFT) */}
-        <div className="absolute bottom-3 left-3 bg-white/95 backdrop-blur-xs px-3.5 py-1.5 rounded-xl border border-slate-200/90 text-[11px] font-medium text-slate-600 flex items-center gap-4 shadow-xs z-30">
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-indigo-600"></span> Passed
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Active Bus
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Upcoming Stop
-          </span>
-        </div>
-      </div>
-
-      {/* 3. HORIZONTAL REAL-TIME ROUTE STOP TIMELINE */}
-      <div className="mt-4 pt-4 border-t border-slate-100 overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-2.5 min-w-max pb-1">
-          {ROUTE_STOPS.map((stop, index) => {
-            const isCurrent = index === currentStopIndex;
-            const isPassed = index < currentStopIndex;
-
-            return (
-              <div
-                key={stop.id}
-                onClick={() => setActiveStopTooltip(stop.id)}
-                className={`px-3.5 py-2.5 rounded-2xl text-center border transition-all cursor-pointer ${
-                  isCurrent
-                    ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-900 shadow-2xs font-bold ring-2 ring-emerald-500/20"
-                    : isPassed
-                    ? "bg-slate-50 border-slate-200/80 text-slate-700"
-                    : "bg-white border-slate-200/60 text-slate-400"
-                }`}
-              >
-                <div className="text-xs font-bold whitespace-nowrap flex items-center justify-center gap-1">
-                  {isPassed && <CheckCircle2 className="w-3 h-3 text-indigo-600 inline" />}
-                  {stop.name}
+                  <h3 className="mt-2 text-lg font-black tracking-tight text-slate-900">{displayRouteId}</h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-600">{originLabel} → {destLabel}</p>
                 </div>
-                <div className="text-[10px] font-medium opacity-80 mt-1 flex items-center justify-center gap-1">
-                  <Clock className="w-3 h-3 inline" />
-                  {stop.time}
+                <div className="text-right">
+                  <p className="text-2xl font-black leading-none text-[#2B4B9E]">{Math.max(1, Math.round((100 - busProgress) / 5))}m</p>
+                  <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">ETA</p>
                 </div>
               </div>
-            );
-          })}
+
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">Next stop</p>
+                  <p className="text-sm font-black text-slate-900">{displayStops[displayStops.length - 1]?.name || destLabel}</p>
+                </div>
+                <div className="rounded-xl bg-emerald-100 px-2.5 py-1.5 text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.12em] text-emerald-700">Status</p>
+                  <p className="text-xs font-black text-emerald-700">{isTripCompleted ? "Done" : "Moving"}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mx-auto max-w-sm rounded-[26px] border border-slate-200/80 bg-white/85 px-4 py-3 text-center shadow-[0_18px_50px_-16px_rgba(15,23,42,0.25)] backdrop-blur-sm">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Transit</p>
+              <p className="mt-1 text-base font-black text-slate-900">Ready when you are</p>
+            </div>
+          )}
         </div>
+
+        <RealGoogleMap
+          stops={displayStops}
+          busProgress={busProgress}
+          activeLiveBus={activeLiveBus}
+          displayBusId={displayBusId}
+          displayRouteId={displayRouteId}
+          hasActiveRoute={hasActiveRoute}
+          isSimulating={hasActiveRoute && !isTripCompleted}
+          currentSpeed={currentSpeed}
+          isTripCompleted={isTripCompleted}
+        />
       </div>
     </div>
   );

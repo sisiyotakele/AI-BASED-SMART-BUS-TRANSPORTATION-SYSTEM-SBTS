@@ -86,7 +86,7 @@ export class UsersService {
       throw new AppError('User with this email or phone already exists', 409);
     }
 
-    const defaultPassword = data.password || 'password123';
+    const defaultPassword = data.password || 'Password123!';
     const passwordHash = await bcrypt.hash(defaultPassword, 10);
 
     let userRolesCreate = undefined;

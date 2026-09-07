@@ -1,13 +1,19 @@
 // src/features/driver/components/history/HistoryStats.tsx
 
 import React from 'react';
-import { FaBus, FaCheckCircle, FaRoute } from 'react-icons/fa';
+import { FaBus, FaCheckCircle, FaRoute, FaExclamationTriangle, FaWrench, FaUser } from 'react-icons/fa';
 
 interface HistoryStatsProps {
   totalTrips: number;
   completedTrips: number;
   totalDistance: number;
-  tripGrowth?: number; // Add growth prop
+  tripGrowth?: number;
+  // New props for other tabs
+  label1?: string;
+  label2?: string;
+  label3?: string;
+  unit?: string;
+  icon1?: React.ReactNode;
 }
 
 export const HistoryStats: React.FC<HistoryStatsProps> = ({
@@ -15,6 +21,11 @@ export const HistoryStats: React.FC<HistoryStatsProps> = ({
   completedTrips,
   totalDistance,
   tripGrowth = 0,
+  label1 = "Total Trips",
+  label2 = "Completed",
+  label3 = "Total Distance",
+  unit = "km",
+  icon1 = <FaBus />,
 }) => {
   const completionRate = totalTrips > 0 
     ? ((completedTrips / totalTrips) * 100).toFixed(0) 
@@ -22,31 +33,31 @@ export const HistoryStats: React.FC<HistoryStatsProps> = ({
 
   const stats = [
     {
-      label: 'Total Trips',
+      label: label1,
       value: totalTrips,
       subtext: tripGrowth > 0 
         ? `+${tripGrowth}% from last month` 
         : tripGrowth < 0 
         ? `${tripGrowth}% from last month` 
-        : 'No change from last month',
-      icon: <FaBus />,
+        : 'Current period',
+      icon: icon1,
       color: 'border-l-[#12B2E4]',
       bgColor: 'bg-[#12B2E4]/10',
       textColor: 'text-[#12B2E4]',
     },
     {
-      label: 'Completed',
+      label: label2,
       value: completedTrips,
-      subtext: `${completionRate}% completion rate`,
+      subtext: `${completionRate}% rate`,
       icon: <FaCheckCircle />,
       color: 'border-l-green-500',
       bgColor: 'bg-green-50 dark:bg-green-900/30',
       textColor: 'text-green-600 dark:text-green-400',
     },
     {
-      label: 'Total Distance',
-      value: `${totalDistance.toFixed(1)} km`,
-      subtext: 'Across all trips',
+      label: label3,
+      value: unit === 'km' ? `${totalDistance.toFixed(1)} km` : `${completionRate}%`,
+      subtext: unit === 'km' ? 'Across all trips' : 'Overall performance',
       icon: <FaRoute />,
       color: 'border-l-[#2B4B9E]',
       bgColor: 'bg-[#2B4B9E]/10 dark:bg-[#2B4B9E]/20',
