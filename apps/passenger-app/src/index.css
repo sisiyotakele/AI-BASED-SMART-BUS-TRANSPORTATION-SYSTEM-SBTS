@@ -1,7 +1,14 @@
 /* ─── GOOGLE FONT: Inter (Standard typeface for all pages) ─────────── */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "leaflet/dist/leaflet.css";
 
 @import "tailwindcss";
+
+/* ─── Leaflet DivIcon Animations ──────────────────────────────────────── */
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
 
 @theme {
   --color-brand-600: #5D42D0;
@@ -62,6 +69,18 @@ body {
   line-height: 1.6;
 }
 
+.mobile-bottom-nav {
+  position: fixed !important;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  width: 100vw;
+  padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
 /* Label & caption utility class */
 .text-label {
   font-size: var(--text-xs); /* 12px */
@@ -92,4 +111,22 @@ input, select, textarea, button {
 /* Utility: mono for coordinates, IDs, timestamps */
 .font-mono {
   font-family: var(--font-mono);
-}
+}
+
+/* ─── Google Maps Silver / Retro Clean Transit Theme ────────────────── */
+.leaflet-silver-theme,
+.leaflet-silver-theme img {
+  filter: saturate(0.78) contrast(1.04) brightness(1.02);
+}
+
+.leaflet-3d-mode {
+  perspective: 900px;
+  perspective-origin: 50% 60%;
+}
+
+.leaflet-3d-mode .leaflet-map-pane {
+  transform: rotateX(48deg) scale(1.16) !important;
+  transform-origin: 50% 100%;
+  transition: transform 300ms ease;
+}
+

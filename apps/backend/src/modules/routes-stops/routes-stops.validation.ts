@@ -48,3 +48,10 @@ export const nearbyQuerySchema = z.object({
   lng: z.coerce.number().min(-180).max(180),
   radius: z.coerce.number().positive().default(1),
 });
+
+export const planRouteSchema = z.object({
+  origin: z.string().trim().min(1).max(255),
+  destination: z.string().trim().min(1).max(255),
+});
+
+export const planAddressRouteSchema = planRouteSchema;

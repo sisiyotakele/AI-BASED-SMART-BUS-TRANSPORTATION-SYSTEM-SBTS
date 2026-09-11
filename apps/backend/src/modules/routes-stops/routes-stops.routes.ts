@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '@/common/validate';
-import { authenticate } from '@/common/middleware/auth.middleware';
+import { authenticate, optionalAuth } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import {
   createRouteSchema,
@@ -12,6 +12,8 @@ import {
   stopIdParamSchema,
   addRouteStopSchema,
   nearbyQuerySchema,
+  planRouteSchema,
+  planAddressRouteSchema,
 } from './routes-stops.validation';
 import {
   createRoute,
@@ -28,12 +30,11 @@ import {
   deleteStop,
   nearbyStops,
   addRouteStop as addRouteStopController,
+  planRoute,
+  planAddressRoute,
 } from './routes-stops.controller';
 
 const router = Router();
-
-// Apply authentication to all routes
-router.use(authenticate);
 
 /**
  * @swagger
@@ -45,7 +46,7 @@ router.use(authenticate);
  *       200:
  *         description: Module information
  */
-router.get('/', (_req, res) => {
+router.get('/', optionalAuth, (_req, res) => {
   res.status(200).json({
     success: true,
     message: 'Routes & Stops module is running',
@@ -103,6 +104,7 @@ router.get('/', (_req, res) => {
  */
 router.post(
   '/routes',
+  authenticate,
   requirePermission('manage_routes'),
   validateBody(createRouteSchema),
   createRoute
@@ -128,9 +130,12 @@ router.post(
  */
 router.get(
   '/routes',
-  requirePermission('view_routes'),
+  optionalAuth,
   listRoutes
 );
+
+router.post('/routes/plan', optionalAuth, validateBody(planRouteSchema), planRoute);
+router.post('/routes/plan-by-address', optionalAuth, validateBody(planAddressRouteSchema), planAddressRoute);
 
 /**
  * @swagger
@@ -201,7 +206,7 @@ router.get(
  */
 router.get(
   '/routes/:id/versions',
-  requirePermission('view_routes'),
+  optionalAuth,
   validateParams(routeIdParamSchema),
   getRouteVersions
 );
@@ -380,6 +385,7 @@ router.delete(
  */
 router.post(
   '/stops',
+  authenticate,
   requirePermission('manage_routes'),
   validateBody(createStopSchema),
   createStop
@@ -405,7 +411,7 @@ router.post(
  */
 router.get(
   '/stops',
-  requirePermission('view_routes'),
+  optionalAuth,
   listStops
 );
 
@@ -450,7 +456,7 @@ router.get(
  */
 router.get(
   '/stops/nearby',
-  requirePermission('view_routes'),
+  optionalAuth,
   validateQuery(nearbyQuerySchema),
   nearbyStops
 );
@@ -487,7 +493,7 @@ router.get(
  */
 router.get(
   '/stops/:id',
-  requirePermission('view_routes'),
+  optionalAuth,
   validateParams(stopIdParamSchema),
   getStop
 );

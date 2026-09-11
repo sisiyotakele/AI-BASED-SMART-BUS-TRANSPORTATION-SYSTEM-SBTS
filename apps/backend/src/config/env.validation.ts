@@ -101,7 +101,7 @@ export const envSchema = z.object({
     RATE_LIMIT_AUTH_MAX_REQUESTS: z.coerce.number().int().min(1).default(5),
 
     // Socket.io
-    SOCKET_ENABLED: BooleanSchema.default('false'),
+    SOCKET_ENABLED: BooleanSchema.default('true'),
     SOCKET_PATH: z.string().default('/socket.io'),
     SOCKET_CORS_ORIGIN: z.string().default('*'),
     SOCKET_PING_TIMEOUT: z.coerce.number().int().min(1000).default(60000),
@@ -136,6 +136,12 @@ export const envSchema = z.object({
     SMS_API_KEY: z.string().optional(),
     EMAIL_PROVIDER: z.enum(['sendgrid', 'aws-ses', 'smtp', 'mock']).default('mock').optional(),
     EMAIL_API_KEY: z.string().optional(),
+    SMTP_HOST: z.string().optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).default(587),
+    SMTP_USER: z.string().optional(),
+    SMTP_PASSWORD: z.string().optional(),
+    EMAIL_FROM: z.string().email().default('no-reply@sbts.local'),
+    PASSENGER_APP_URL: UrlSchema.default('http://localhost:5175'),
 
     // Feature Flags
     ENABLE_SWAGGER: BooleanSchema.default('false'),

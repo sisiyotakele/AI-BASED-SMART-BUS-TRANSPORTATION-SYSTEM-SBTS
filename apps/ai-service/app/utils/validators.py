@@ -28,7 +28,7 @@ def validate_traffic_request(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, f"Destination: {msg}"
     
     # Validate route_id if provided
-    if 'route_id' in data and not isinstance(data['route_id'], (int, str)):
+    if data.get('route_id') is not None and not isinstance(data['route_id'], (int, str)):
         return False, "route_id must be integer or string"
     
     return True, ""
@@ -41,7 +41,7 @@ def validate_eta_request(data: Dict[str, Any]) -> Tuple[bool, str]:
         return False, msg
     
     # Additional validation for mileage if provided
-    if 'mileage' in data:
+    if data.get('mileage') is not None:
         if not isinstance(data['mileage'], (int, float)) or data['mileage'] <= 0:
             return False, "mileage must be positive number"
     

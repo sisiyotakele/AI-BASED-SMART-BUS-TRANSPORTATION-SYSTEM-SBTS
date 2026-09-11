@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validateBody } from '@/common/validate';
-import { authenticate } from '@/common/middleware/auth.middleware';
+import { authenticate, optionalAuth } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import {
     trafficPredictionSchema,
@@ -31,9 +31,6 @@ const router = Router();
  *         description: AI Service unavailable
  */
 router.get('/health', healthCheck);
-
-// Apply authentication to all protected routes
-router.use(authenticate);
 
 /**
  * @swagger
@@ -93,7 +90,7 @@ router.use(authenticate);
  */
 router.post(
     '/predict/traffic',
-    requirePermission('view_predictions'),
+    optionalAuth,
     validateBody(trafficPredictionSchema),
     predictTraffic
 );
@@ -150,7 +147,7 @@ router.post(
  */
 router.post(
     '/predict/eta',
-    requirePermission('view_predictions'),
+    optionalAuth,
     validateBody(etaPredictionSchema),
     predictETA
 );
@@ -207,7 +204,7 @@ router.post(
  */
 router.post(
     '/predict/combined',
-    requirePermission('view_predictions'),
+    optionalAuth,
     validateBody(combinedPredictionSchema),
     predictCombined
 );

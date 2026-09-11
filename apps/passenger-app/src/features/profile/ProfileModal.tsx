@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { X, Camera, User, Phone, Mail, Check, Save, LogOut, ShieldAlert, LogIn } from "lucide-react";
+import { X, Camera, User, Phone, Mail, Check, Save, LogOut, ShieldAlert, LogIn, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
 export interface ProfileModalProps {
   isOpen: boolean;
@@ -24,11 +25,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onLogout,
 }) => {
   const navigate = useNavigate();
+  const { updateProfile, isAuthenticated } = useAuth();
   const [name, setName] = useState(currentName);
   const [email, setEmail] = useState(currentEmail);
   const [phone, setPhone] = useState(currentPhone);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(currentAvatar || null);
   const [isSaved, setIsSaved] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Synchronize state when modal opens or profile props change
   useEffect(() => {
@@ -37,6 +41,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       setEmail(currentEmail);
       setPhone(currentPhone);
       setAvatarPreview(currentAvatar || null);
+      setSaveError(null);
     }
   }, [isOpen, currentName, currentEmail, currentPhone, currentAvatar]);
 
@@ -50,14 +55,29 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaved(true);
-    setTimeout(() => {
-      setIsSaved(false);
-      onClose();
-    }, 800);
+    setSaveError(null);
+    setIsSaving(true);
+    try {
+      if (isAuthenticated && !isGuest) {
+        await updateProfile({
+          fullName: name,
+          phone,
+        });
+      }
+      setIsSaved(true);
+      setTimeout(() => {
+        setIsSaved(false);
+        onClose();
+      }, 800);
+    } catch (err: any) {
+      setSaveError(err.response?.data?.message || "Failed to update profile. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in duration-150">
@@ -136,6 +156,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             />
           </div>
 
+          {saveError && (
+            <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold">
+              {saveError}
+            </div>
+          )}
+
           {/* Action Row */}
           <div className="pt-3 border-t border-slate-100 space-y-3">
             <div className="flex items-center justify-end gap-2">
@@ -148,13 +174,21 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="text-white text-xs font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90"
+                disabled={isSaving}
+                className="text-white text-xs font-bold px-5 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs hover:opacity-90 disabled:opacity-50"
                 style={{ backgroundColor: "#2B4B9E" }}
               >
-                {isSaved ? <Check className="w-3.5 h-3.5" /> : <Save className="w-3.5 h-3.5" />}
-                {isSaved ? "Saved!" : "Save Changes"}
+                {isSaving ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : isSaved ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                {isSaving ? "Saving..." : isSaved ? "Saved!" : "Save Changes"}
               </button>
             </div>
+
 
             {/* ONLY SHOW LOGOUT WHEN USER IS NOT A GUEST */}
             {!isGuest ? (

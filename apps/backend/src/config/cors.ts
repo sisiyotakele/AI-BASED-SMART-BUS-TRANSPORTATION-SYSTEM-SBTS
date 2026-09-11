@@ -14,14 +14,10 @@ export const corsConfig: CorsOptions = {
             return callback(null, true);
         }
 
-        // Allow all origins in development
-        if (env.NODE_ENV === 'development' && allowedOrigins.includes('*')) {
-            return callback(null, true);
-        }
-
-        // Check if origin is in allowed list
+        // Check if origin is allowed or wildcard in development
         if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-            callback(null, true);
+            // Reflect requesting origin to allow credentials
+            callback(null, origin);
         } else {
             callback(new Error(`Origin ${origin} not allowed by CORS policy`));
         }

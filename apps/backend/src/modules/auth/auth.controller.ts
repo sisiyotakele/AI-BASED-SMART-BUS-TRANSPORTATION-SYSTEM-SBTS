@@ -41,3 +41,20 @@ export const getMe = asyncHandler(async (req: AuthenticatedRequest, res: Respons
     const user = await authService.getMe(req.user!.userId);
     return successResponse(res, user, 'User profile retrieved');
 });
+
+export const updateMe = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+    const user = await authService.updateProfile(req.user!.userId, req.body);
+    return successResponse(res, user, 'User profile updated successfully');
+});
+
+export const forgotPassword = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email || '');
+    return successResponse(res, result, result.message);
+});
+
+export const resetPassword = asyncHandler(async (req: Request, res: Response) => {
+    const result = await authService.resetPassword(req.body.token, req.body.password);
+    return successResponse(res, result, 'Password reset successful');
+});
+

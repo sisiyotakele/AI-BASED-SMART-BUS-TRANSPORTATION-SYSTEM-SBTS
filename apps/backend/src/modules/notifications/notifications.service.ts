@@ -1,5 +1,6 @@
 import { NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
+import { socketUtils } from '@/common/socket';
 import * as repository from './notifications.repository';
 
 export async function createNotification(data: any, actorId?: string) {
@@ -21,6 +22,23 @@ export async function createNotification(data: any, actorId?: string) {
         userId,
       }))
     );
+    // Broadcast real-time notification to user rooms
+    for (const uid of existingUserIds) {
+      socketUtils.notifyUser(uid, data.message, {
+        id: notification.id,
+        title: data.title,
+        notificationType: data.notificationType,
+        priority: data.priority,
+      });
+    }
+  } else {
+    // If no specific users, broadcast to all connected clients
+    socketUtils.broadcastAnnouncement(data.message, {
+      id: notification.id,
+      title: data.title,
+      notificationType: data.notificationType,
+      priority: data.priority,
+    });
   }
 
   logger.info('Notification created', { notificationId: notification.id, recipients: existingUserIds.length });

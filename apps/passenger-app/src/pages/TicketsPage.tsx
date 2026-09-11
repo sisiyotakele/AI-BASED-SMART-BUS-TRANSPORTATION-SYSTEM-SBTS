@@ -13,13 +13,8 @@ interface DisplayTicket {
   fare: string;
 }
 
-const FALLBACK_TICKETS: DisplayTicket[] = [
-  { id: "TCK-102", route: "Megenagna → Bole", date: "Jul 24, 2026", time: "08:30 AM", status: "Confirmed", fare: "15.00 ETB" },
-  { id: "TCK-103", route: "Bole → CMC", date: "Jul 25, 2026", time: "05:15 PM", status: "Confirmed", fare: "15.00 ETB" },
-];
-
 export const TicketsPage: React.FC = () => {
-  const [tickets, setTickets] = useState<DisplayTicket[]>(FALLBACK_TICKETS);
+  const [tickets, setTickets] = useState<DisplayTicket[]>([]);
   const [activePassId, setActivePassId] = useState<string>("SBTS-QR-994821");
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -45,8 +40,8 @@ export const TicketsPage: React.FC = () => {
         }
       }
     } catch (err) {
-      console.warn("Could not fetch trips from backend API, using reservation data:", err);
-      setTickets(FALLBACK_TICKETS);
+      console.warn("Could not fetch trips from backend API:", err);
+      setTickets([]);
     } finally {
       setIsRefreshing(false);
     }
@@ -135,4 +130,4 @@ export const TicketsPage: React.FC = () => {
   );
 };
 
-export default TicketsPage;
+export default TicketsPage;

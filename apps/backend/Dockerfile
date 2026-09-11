@@ -6,19 +6,20 @@ FROM node:20-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY prisma ./prisma/
+# Prisma requires OpenSSL to select the correct query engine.
+RUN apk add --no-cache openssl
+
+# Copy package and source files
+COPY package.json ./
+COPY tsconfig.json ./
+COPY src ./src
 
 # Install dependencies
-RUN npm ci --only=production && \
+RUN npm install && \
     npm cache clean --force
 
-# Copy source code
-COPY . .
-
 # Generate Prisma client
-RUN npx prisma generate
+RUN npx prisma generate --schema=src/prisma/schema.prisma
 
 # Build TypeScript
 RUN npm run build
@@ -26,8 +27,8 @@ RUN npm run build
 # Stage 2: Production
 FROM node:20-alpine AS production
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install runtime dependencies
+RUN apk add --no-cache dumb-init openssl
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
@@ -39,7 +40,7 @@ WORKDIR /app
 # Copy built application from builder
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nodejs:nodejs /app/prisma ./prisma
+COPY --from=builder --chown=nodejs:nodejs /app/src/prisma ./src/prisma
 COPY --from=builder --chown=nodejs:nodejs /app/package*.json ./
 
 # Create logs directory

@@ -15,6 +15,16 @@ export const listRoutes = asyncHandler(async (req: Request, res: Response) => {
   successResponse(res, result, 'Routes retrieved');
 });
 
+export const planRoute = asyncHandler(async (req: Request, res: Response) => {
+  const result = await service.planRoute(req.body.origin, req.body.destination);
+  successResponse(res, result, 'Route plan calculated');
+});
+
+export const planAddressRoute = asyncHandler(async (req: Request, res: Response) => {
+  const result = await service.planAddressRoute(req.body.origin, req.body.destination);
+  successResponse(res, result, 'Address route plan calculated');
+});
+
 export const getRoute = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.getRouteById(req.params.id);
   successResponse(res, result, 'Route retrieved');

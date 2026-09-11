@@ -117,19 +117,19 @@ export const LoginPage = () => {
       </div>
 
       {/* Right Form Section */}
-      <div className="auth-form-container flex-1 flex flex-col justify-center items-center min-h-screen p-5 sm:p-10 bg-slate-50">
-        <div className="auth-card bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
+      <div className="auth-form-container flex-1 flex flex-col justify-center items-center py-6 px-4 sm:p-8 lg:p-10 bg-slate-50">
+        <div className="auth-card bg-white p-5 sm:p-8 rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-md relative">
 
           {/* Mobile-only top branding */}
-          <div className="flex lg:hidden items-center gap-3 mb-5 pb-4 border-b border-slate-100">
-            <div className="w-9 h-9 rounded-full bg-white p-0.5 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="flex lg:hidden items-center gap-2.5 mb-4 pb-3 border-b border-slate-100">
+            <div className="w-8 h-8 rounded-full bg-white p-0.5 border border-slate-200 shadow-xs flex items-center justify-center shrink-0 overflow-hidden">
               <img src={shegerLogo} alt="Sheger Bus Logo" className="w-full h-full object-cover rounded-full" />
             </div>
             <div>
-              <span className="font-extrabold text-sm text-slate-900 tracking-wide">SHEGER BUS</span>
-              <p className="text-[10px] text-slate-400 -mt-0.5">Smart Transit System</p>
+              <span className="font-extrabold text-xs text-slate-900 tracking-wide">SHEGER BUS</span>
+              <p className="text-[9px] text-slate-400 -mt-0.5">Smart Transit System</p>
             </div>
-            <Link to="/" className="ml-auto text-[11px] font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1">
+            <Link to="/" className="ml-auto text-[11px] font-semibold text-slate-500 hover:text-slate-800 flex items-center gap-1">
               ← Home
             </Link>
           </div>
@@ -144,28 +144,28 @@ export const LoginPage = () => {
             </Link>
           </div>
 
-          <div className="text-center mb-6">
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">
+          <div className="text-center mb-4 sm:mb-6">
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 mb-0.5">
               Passenger Login
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500">
+            <p className="text-xs text-slate-500">
               Welcome back! Please login to continue.
             </p>
           </div>
 
           {error && (
-            <div className="auth-error-box mb-4 p-3 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
-              <p className="font-bold text-sm mb-1">{error.message}</p>
+            <div className="auth-error-box mb-3 p-2.5 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs">
+              <p className="font-bold text-xs mb-0.5">{error.message}</p>
               {error.detail && (
-                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[11px] leading-relaxed">{error.detail}</pre>
+                <pre className="whitespace-pre-wrap font-normal text-red-600 text-[10px] leading-relaxed">{error.detail}</pre>
               )}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
             {/* Email Input */}
             <div className="form-group space-y-1">
-              <label className="text-xs font-bold text-slate-700 uppercase">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                 Email Address
               </label>
               <div className="input-field-wrapper relative flex items-center">
@@ -176,7 +176,7 @@ export const LoginPage = () => {
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="auth-input w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  className="auth-input w-full pl-9 pr-4 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
                   placeholder="Enter your email"
                 />
               </div>
@@ -184,7 +184,7 @@ export const LoginPage = () => {
 
             {/* Password Input */}
             <div className="form-group space-y-1">
-              <label className="text-xs font-bold text-slate-700 uppercase">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
                 Password
               </label>
               <div className="input-field-wrapper relative flex items-center">
@@ -195,7 +195,7 @@ export const LoginPage = () => {
                   required
                   value={formData.password}
                   onChange={handleChange}
-                  className="auth-input w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
+                  className="auth-input w-full pl-9 pr-10 py-2 sm:py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white"
                   placeholder="Enter your password"
                 />
                 <button
@@ -209,10 +209,10 @@ export const LoginPage = () => {
               </div>
 
               {/* Forgot Password Link */}
-              <div className="flex justify-end pt-1">
+              <div className="flex justify-end pt-0.5">
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-indigo-600 hover:underline font-bold"
+                  className="text-[11px] text-indigo-600 hover:underline font-bold"
                 >
                   Forgot Password?
                 </Link>
@@ -223,52 +223,28 @@ export const LoginPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 hover:opacity-90"
+              className="w-full py-2.5 sm:py-3 text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer disabled:opacity-50 hover:opacity-90 active:scale-[0.99]"
               style={{ backgroundColor: "#2B4B9E" }}
             >
               {loading ? "Logging in..." : "Login"}
             </button>
           </form>
 
-          {/* OR Divider */}
-          <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-slate-200"></div>
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">or</span>
-            <div className="flex-1 h-px bg-slate-200"></div>
+          {/* Continue as Guest Button */}
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                enterGuestMode();
+                navigate("/dashboard");
+              }}
+              className="w-full flex items-center justify-center gap-2 py-2 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#1B2A4A] hover:text-white transition-all cursor-pointer shadow-2xs group active:scale-[0.99]"
+            >
+              <span>Continue as Guest (No Sign Up)</span>
+            </button>
           </div>
 
-          {/* Google Sign-In Button */}
-          <button
-            type="button"
-            onClick={() => {
-              // Local dev shortcut — same access as guest without fake tokens
-              enterGuestMode();
-              navigate("/dashboard");
-            }}
-            className="w-full flex items-center justify-center gap-3 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:shadow-sm transition-all cursor-pointer"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-            </svg>
-            Continue with Google
-          </button>
-
-          {/* Continue as Guest Button */}
-          <button
-            type="button"
-            onClick={() => {
-              enterGuestMode();
-              navigate("/dashboard");
-            }}
-            className="w-full flex items-center justify-center gap-2 py-2.5 mt-2 bg-slate-100 border border-slate-200/80 rounded-xl text-xs font-bold text-slate-700 hover:bg-[#1B2A4A] hover:text-white transition-all cursor-pointer shadow-2xs group"
-          >
-            <span>Continue as Guest (No Sign Up)</span>
-          </button>
-
-          <p className="auth-bottom-text text-center text-xs text-slate-500 mt-6">
+          <p className="auth-bottom-text text-center text-xs text-slate-500 mt-4">
             Don't have an account?{" "}
             <Link to="/register" className="auth-link text-indigo-600 font-bold hover:underline">
               Sign up

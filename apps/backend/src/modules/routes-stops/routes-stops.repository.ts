@@ -18,12 +18,26 @@ export async function findRoutes(where: any) {
     return prisma.route.findMany({
         where,
         include: {
-            versions: { where: { isActive: true, deletedAt: null }, take: 1 },
+            versions: {
+                where: { isActive: true, deletedAt: null },
+                take: 1,
+                include: {
+                    routeStops: {
+                        where: { deletedAt: null },
+                        orderBy: { sequenceNumber: 'asc' },
+                        include: { stop: { select: { id: true, stopName: true, stopCode: true } } },
+                    },
+                },
+            },
             startStop: { select: { id: true, stopName: true } },
             endStop: { select: { id: true, stopName: true } },
         },
         orderBy: { routeName: 'asc' },
     });
+}
+
+export async function findPlannableRoutes() {
+    return findRoutes({ deletedAt: null });
 }
 
 export async function findRouteById(id: string) {
@@ -104,6 +118,13 @@ export async function findStops(where: any) {
     return prisma.stop.findMany({
         where,
         orderBy: { stopName: 'asc' }
+    });
+}
+
+export async function findAllActiveStops() {
+    return prisma.stop.findMany({
+        where: { deletedAt: null },
+        select: { id: true, stopName: true, latitude: true, longitude: true },
     });
 }
 

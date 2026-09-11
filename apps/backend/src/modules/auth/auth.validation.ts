@@ -28,3 +28,12 @@ export const refreshSchema = z.object({
 export const logoutSchema = z.object({
   refreshToken: z.string().optional(), // Optional - if not provided, won't revoke any token
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1),
+  password: registerSchema.shape.password,
+});

@@ -226,6 +226,35 @@ router.get(
     authController.getMe
 );
 
+router.patch(
+    '/me',
+    authenticate,
+    authController.updateMe
+);
+
+router.put(
+    '/me',
+    authenticate,
+    authController.updateMe
+);
+
+router.post(
+    '/forgot-password',
+    validateBody(authValidation.forgotPasswordSchema),
+    authController.forgotPassword
+);
+
+router.post(
+    '/reset-password',
+    validateBody(authValidation.resetPasswordSchema),
+    authController.resetPassword
+);
+
+router.post(
+    '/passenger/forgot-password',
+    authController.forgotPassword
+);
+
 /**
  * @swagger
  * /api/v1/auth/logout:
@@ -258,3 +287,4 @@ router.post(
 );
 
 export default router;
+

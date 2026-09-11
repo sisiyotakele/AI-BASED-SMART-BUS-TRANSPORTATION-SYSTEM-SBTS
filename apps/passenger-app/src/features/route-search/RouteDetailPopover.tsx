@@ -30,7 +30,16 @@ export const RouteDetailPopover: React.FC<RouteDetailPopoverProps> = ({
 
   const handleTrackLive = () => {
     onClose();
-    navigate("/tracking");
+    const viaStops = option.routeVia
+      ? option.routeVia.split("→").map((s: string) => s.trim()).filter(Boolean)
+      : [];
+    navigate("/dashboard#live-route-map", { 
+      state: { 
+        selectedRoute: option, 
+        destination: destinationName,
+        viaStops,
+      } 
+    });
   };
 
   return (

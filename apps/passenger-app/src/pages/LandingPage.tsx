@@ -21,7 +21,8 @@ import { useAuth } from "../features/auth/AuthContext";
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { enterGuestMode } = useAuth();
+  const { isAuthenticated, isGuest, enterGuestMode } = useAuth();
+  const isUserActive = isAuthenticated || isGuest;
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 font-sans selection:bg-sky-500 selection:text-white flex flex-col">
@@ -41,22 +42,32 @@ export const LandingPage: React.FC = () => {
 
         {/* Navigation Links & Action */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {isUserActive ? (
+            <Link 
+              to="/dashboard"
+              className="px-4 py-2 text-xs font-bold text-white bg-[#1B2A4A] hover:bg-[#111C33] rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-1.5"
+            >
+              <span>Back to Dashboard</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          ) : (
+            <>
+              <Link 
+                to="/login"
+                className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-[#1B2A4A] hover:bg-slate-100 rounded-xl transition-all"
+              >
+                Log In
+              </Link>
 
-
-          <Link 
-            to="/login"
-            className="px-3.5 py-2 text-xs font-semibold text-slate-700 hover:text-[#1B2A4A] hover:bg-slate-100 rounded-xl transition-all"
-          >
-            Sign In
-          </Link>
-
-          <Link 
-            to="/register"
-            className="px-3.5 py-2 text-xs font-bold text-white bg-[#1B2A4A] hover:bg-[#111C33] rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-1.5"
-          >
-            <span>Sign Up</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+              <Link 
+                to="/register"
+                className="px-3.5 py-2 text-xs font-bold text-white bg-[#1B2A4A] hover:bg-[#111C33] rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-1.5"
+              >
+                <span>Sign Up</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -94,24 +105,49 @@ export const LandingPage: React.FC = () => {
 
               {/* Hero Call-to-Action Buttons */}
               <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3.5 pt-2">
-                <button
-                  onClick={() => {
-                    enterGuestMode();
-                    navigate("/dashboard");
-                  }}
-                  className="w-full sm:w-auto px-7 py-3.5 bg-[#1B2A4A] hover:bg-[#111C33] text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-base"
-                >
-                  <span>Continue as Guest</span>
-                  <ArrowRight className="w-5 h-5 text-sky-400" />
-                </button>
+                {isUserActive ? (
+                  <>
+                    <button
+                      onClick={() => navigate("/dashboard")}
+                      className="w-full sm:w-auto px-7 py-3.5 bg-[#1B2A4A] hover:bg-[#111C33] text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-base"
+                    >
+                      <span>Open Dashboard</span>
+                      <ArrowRight className="w-5 h-5 text-sky-400" />
+                    </button>
 
-                <button
-                  onClick={() => navigate("/trip")}
-                  className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300/80 font-bold rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-base shadow-xs"
-                >
-                  <Navigation className="w-4 h-4 text-sky-500" />
-                  <span>Explore Routes</span>
-                </button>
+                    <button
+                      onClick={() => navigate("/dashboard")}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300/80 font-bold rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-base shadow-xs"
+                    >
+                      <Navigation className="w-4 h-4 text-sky-500" />
+                      <span>Live Transit Map</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => {
+                        enterGuestMode();
+                        navigate("/dashboard");
+                      }}
+                      className="w-full sm:w-auto px-7 py-3.5 bg-[#1B2A4A] hover:bg-[#111C33] text-white font-bold rounded-2xl shadow-lg hover:shadow-xl transition-all cursor-pointer flex items-center justify-center gap-2.5 text-base"
+                    >
+                      <span>Continue as Guest</span>
+                      <ArrowRight className="w-5 h-5 text-sky-400" />
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        enterGuestMode();
+                        navigate("/dashboard");
+                      }}
+                      className="w-full sm:w-auto px-6 py-3.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300/80 font-bold rounded-2xl transition-all cursor-pointer flex items-center justify-center gap-2 text-base shadow-xs"
+                    >
+                      <Navigation className="w-4 h-4 text-sky-500" />
+                      <span>Explore Routes</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Quick Trust Badges */}
@@ -284,18 +320,30 @@ export const LandingPage: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 w-full md:w-auto">
-              <button
-                onClick={() => navigate("/register")}
-                className="w-full sm:w-auto px-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-2xl transition-all cursor-pointer shadow-lg text-center"
-              >
-                Create an Account
-              </button>
-              <button
-                onClick={() => navigate("/login")}
-                className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all cursor-pointer text-center border border-white/20"
-              >
-                Sign In
-              </button>
+              {isUserActive ? (
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="w-full sm:w-auto px-7 py-3.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-2xl transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2"
+                >
+                  <span>Return to Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => navigate("/register")}
+                    className="w-full sm:w-auto px-6 py-3.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-2xl transition-all cursor-pointer shadow-lg text-center"
+                  >
+                    Create an Account
+                  </button>
+                  <button
+                    onClick={() => navigate("/login")}
+                    className="w-full sm:w-auto px-6 py-3.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-2xl transition-all cursor-pointer text-center border border-white/20"
+                  >
+                    Log In
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </section>

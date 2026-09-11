@@ -2,10 +2,20 @@ import React, { useState } from "react";
 import { PassengerLayout } from "../layouts/PassengerLayout";
 import { LiveMapView } from "../features/trip-tracking/LiveMapView";
 import { StopFinderView } from "../features/trip-tracking/StopFinderView";
-import { Bus, MapPin, Clock, ShieldCheck } from "lucide-react";
+import { Bus, MapPin, Clock, ShieldCheck, RefreshCw } from "lucide-react";
 
 export const LiveTrackingPage: React.FC = () => {
   const [selectedRoute, setSelectedRoute] = useState("Route 12");
+  const [mapKey, setMapKey] = useState(0);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleReset = () => {
+    setIsResetting(true);
+    setSelectedRoute("Route 12");
+    setMapKey((k) => k + 1); // force LiveMapView to remount and restart simulation
+    setTimeout(() => setIsResetting(false), 800);
+  };
+
 
   return (
     <PassengerLayout pageTitle="Live Bus Tracking">
@@ -33,13 +43,23 @@ export const LiveTrackingPage: React.FC = () => {
               <option value="Route 04">Route 04 (Tor Hailoch → Stadium)</option>
               <option value="Route 18">Route 18 (CMC → Mexico)</option>
             </select>
+            {/* Reset / Refresh button */}
+            <button
+              onClick={handleReset}
+              disabled={isResetting}
+              title="Reset map & restart simulation"
+              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl border border-slate-200 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${isResetting ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </div>
 
         {/* Live Interactive Map Box */}
         <div className="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-xs">
-          <LiveMapView />
+          <LiveMapView key={mapKey} routeName={selectedRoute} />
         </div>
+
 
         {/* Live Route Bus Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

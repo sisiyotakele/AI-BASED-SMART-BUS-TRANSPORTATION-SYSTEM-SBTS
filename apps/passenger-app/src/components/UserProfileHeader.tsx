@@ -24,47 +24,8 @@ import { useNavigate } from "react-router-dom";
 // DIRECT IMPORT: Place sheger-logo.jpg inside src/assets/
 import shegerLogo from "../assets/sheger-logo.jpg";
 
-// Mock history data
-const MOCK_HISTORY = [
-  {
-    id: "tx-101",
-    date: "Today, 2:15 PM",
-    from: "Megenagna Terminal",
-    to: "Bole Brass",
-    busNumber: "Route 12 Express",
-    fare: "15.00 ETB",
-    status: "Completed",
-  },
-  {
-    id: "tx-102",
-    date: "Yesterday, 8:40 AM",
-    from: "Alem Gena",
-    to: "Mexico Square",
-    busNumber: "Route 34",
-    fare: "10.00 ETB",
-    status: "Completed",
-  },
-];
-
-// Mock notification data
-const MOCK_NOTIFICATIONS = [
-  {
-    id: "notif-1",
-    title: "Bus Delayed",
-    message: "Route 12 is delayed by 8 mins due to high traffic near Megenagna.",
-    time: "5m ago",
-    type: "warning",
-    unread: true,
-  },
-  {
-    id: "notif-2",
-    title: "Boarding Reminder",
-    message: "SBTS-BUS-114 is arriving at Bole Brass stop in 4 minutes.",
-    time: "20m ago",
-    type: "info",
-    unread: true,
-  },
-];
+const HISTORY_ITEMS: Array<{ id: string; date: string; from: string; to: string; busNumber: string; fare: string; status: string }> = [];
+const NOTIFICATION_ITEMS: Array<{ id: string; title: string; message: string; time: string; type: "warning" | "info"; unread: boolean }> = [];
 
 interface UserProfileProps {
   user?: {
@@ -106,7 +67,7 @@ UserProfileProps) => {
   const historyRef = useRef<HTMLDivElement>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = MOCK_NOTIFICATIONS.filter((n) => n.unread).length;
+  const unreadCount = NOTIFICATION_ITEMS.filter((n) => n.unread).length;
 
   const getInitials = (name: string) => {
     return name
@@ -223,7 +184,11 @@ UserProfileProps) => {
               </div>
 
               <div className="p-3 space-y-2 max-h-72 overflow-y-auto">
-                {MOCK_NOTIFICATIONS.map((item) => (
+                {NOTIFICATION_ITEMS.length === 0 ? (
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 text-[11px] text-slate-500 dark:text-slate-400">
+                    No notifications available.
+                  </div>
+                ) : NOTIFICATION_ITEMS.map((item) => (
                   <div
                     key={item.id}
                     className={`p-3 rounded-xl border transition-colors space-y-1 ${
@@ -289,7 +254,11 @@ UserProfileProps) => {
               </div>
 
               <div className="p-3 space-y-2 max-h-72 overflow-y-auto">
-                {MOCK_HISTORY.map((trip) => (
+                {HISTORY_ITEMS.length === 0 ? (
+                  <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-700/80 text-[11px] text-slate-500 dark:text-slate-400">
+                    No trip history available.
+                  </div>
+                ) : HISTORY_ITEMS.map((trip) => (
                   <div
                     key={trip.id}
                     className="p-3 bg-slate-50 dark:bg-[#171a23] hover:bg-slate-100 dark:hover:bg-[#252a38] border border-slate-200 dark:border-slate-800 rounded-xl transition-colors space-y-1.5"

@@ -1,14 +1,11 @@
 import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '@/common/validate';
-import { authenticate } from '@/common/middleware/auth.middleware';
+import { authenticate, optionalAuth } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createTripSchema, tripIdParamSchema, tripQuerySchema } from './trips.validation';
 import { createTrip, listTrips, getTrip, startTrip, pauseTrip, resumeTrip, endTrip, cancelTrip, deleteTrip } from './trips.controller';
 
 const router = Router();
-
-// Apply authentication to all routes
-router.use(authenticate);
 
 /**
  * @swagger
@@ -62,7 +59,7 @@ router.use(authenticate);
  *       500:
  *         description: Server error
  */
-router.post('/', requirePermission('create_trip'), validateBody(createTripSchema), createTrip);
+router.post('/', authenticate, requirePermission('create_trip'), validateBody(createTripSchema), createTrip);
 
 /**
  * @swagger
@@ -70,8 +67,6 @@ router.post('/', requirePermission('create_trip'), validateBody(createTripSchema
  *   get:
  *     summary: List all trips
  *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: busId
@@ -94,14 +89,10 @@ router.post('/', requirePermission('create_trip'), validateBody(createTripSchema
  *     responses:
  *       200:
  *         description: List of trips
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       500:
  *         description: Server error
  */
-router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema), listTrips);
+router.get('/', optionalAuth, validateQuery(tripQuerySchema), listTrips);
 
 /**
  * @swagger
@@ -109,8 +100,6 @@ router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema),
  *   get:
  *     summary: Get trip by ID
  *     tags: [Trips]
- *     security:
- *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -122,16 +111,12 @@ router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema),
  *     responses:
  *       200:
  *         description: Trip details
- *       401:
- *         description: Unauthorized
- *       403:
- *         description: Forbidden
  *       404:
  *         description: Trip not found
  *       500:
  *         description: Server error
  */
-router.get('/:id', requirePermission('view_trips'), validateParams(tripIdParamSchema), getTrip);
+router.get('/:id', optionalAuth, validateParams(tripIdParamSchema), getTrip);
 
 /**
  * @swagger

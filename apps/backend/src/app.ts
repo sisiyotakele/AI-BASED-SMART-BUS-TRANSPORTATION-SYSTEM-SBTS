@@ -5,7 +5,7 @@ import compression from 'compression';
 import swaggerJsdoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 
-import { config } from '@/config';
+import { config, corsConfig } from '@/config';
 import { sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from '@/config/sentry';
 import { swaggerOptions } from '@/common/swagger';
 import { errorResponse } from '@/common/response';
@@ -60,7 +60,7 @@ app.use(requestIdMiddleware);
 app.use(responseTimeMiddleware);
 app.use(helmet());
 app.use(compression() as any);
-app.use(cors({ origin: config.cors.origin, credentials: true }));
+app.use(cors(corsConfig));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 

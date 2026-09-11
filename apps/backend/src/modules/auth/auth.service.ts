@@ -6,6 +6,7 @@ import { config } from '@/config';
 import { logger } from '@/common/logger';
 import { randomBytes } from 'crypto';
 import * as repository from './auth.repository';
+import { sendPasswordResetEmail } from '@/services/email';
 
 // Allow prisma client to be injected for testing
 export function setPrismaClient(client: PrismaClient) {
@@ -228,4 +229,41 @@ export async function getMe(userId: string) {
             permissions: ur.role.rolePermissions.map((rp) => rp.permission.permissionName),
         })),
     };
+}
+
+export async function updateProfile(userId: string, data: { fullName?: string; phone?: string; preferredLanguage?: string }) {
+    await repository.updateUser(userId, data);
+    return getMe(userId);
+}
+
+export async function forgotPassword(email: string) {
+    const user = await repository.findUserByEmail(email.toLowerCase());
+    logger.info('Password reset requested', { email, exists: !!user });
+    if (user) {
+        const resetToken = jwt.sign(
+            { userId: user.id, email: user.email, purpose: 'password-reset' },
+            config.jwt.secret,
+            { expiresIn: '15m' }
+        );
+        await sendPasswordResetEmail(user.email, resetToken);
+    }
+    return {
+        message: 'If the email is registered, password reset instructions have been sent.',
+    };
+}
+
+export async function resetPassword(token: string, password: string) {
+    let payload: any;
+    try {
+        payload = jwt.verify(token, config.jwt.secret);
+    } catch {
+        throw new UnauthorizedError('Reset link is invalid or expired');
+    }
+    if (payload.purpose !== 'password-reset') {
+        throw new UnauthorizedError('Invalid password reset token');
+    }
+    const user = await repository.findUserById(payload.userId);
+    if (!user) throw new UnauthorizedError('Reset link is invalid or expired');
+    await repository.updatePassword(user.id, await bcrypt.hash(password, 12));
+    return { message: 'Password reset successful. You can now log in.' };
 }

@@ -3,6 +3,9 @@ import React, { useState } from "react";
 import { Locate, MapPin, Search, Loader2, Navigation, Info, GitMerge, CheckCircle2 } from "lucide-react";
 import { RouteOption } from "./types";
 import { RouteOptionCard } from "./RouteOptionCard";
+import { routesApi } from "@/lib/api";
+
+import { PlaceAutocomplete, AutocompleteItem } from "@/components/PlaceAutocomplete";
 
 interface TripPlannerCardProps {
   onRouteSelected?: (option: RouteOption) => void;
@@ -14,11 +17,26 @@ const isDirectRoute = (option: RouteOption) =>
 export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelected }) => {
   const [origin, setOrigin] = useState<string>("");
   const [destination, setDestination] = useState<string>("");
+  const [originCoords, setOriginCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [isLocating, setIsLocating] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [locationStatus, setLocationStatus] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<RouteOption[] | null>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
+
+  const handleSelectOriginItem = (item: AutocompleteItem) => {
+    if (item.type === "route" && item.startStop && item.endStop) {
+      setOrigin(item.startStop);
+      setDestination(item.endStop);
+    }
+  };
+
+  const handleSelectDestItem = (item: AutocompleteItem) => {
+    if (item.type === "route" && item.startStop && item.endStop) {
+      if (!origin) setOrigin(item.startStop);
+      setDestination(item.endStop);
+    }
+  };
 
   const handleDetectLocation = () => {
     setIsLocating(true);
@@ -33,7 +51,8 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        setOrigin(`My Current Location (${latitude.toFixed(3)}, ${longitude.toFixed(3)})`);
+        setOriginCoords({ lat: latitude, lng: longitude });
+        setOrigin("Current Location");
         setLocationStatus("GPS Location detected!");
         setIsLocating(false);
       },
@@ -49,138 +68,48 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
     );
   };
 
-  const handleSearchTrip = (e: React.FormEvent) => {
+  const handleSearchTrip = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!destination.trim()) return;
 
     setIsSearching(true);
     setSelectedRouteId(null);
 
-    setTimeout(() => {
-      const startLoc = origin.trim() || "Location A (Akaki)";
-      const endLoc = destination.trim() || "Location D (Megenagna)";
+    const startLoc = origin.trim() || "Your Starting Stop";
+    const endLoc = destination.trim();
 
-      const mockAlternatives: RouteOption[] = [
-        {
-          id: "opt-merged-3leg",
-          isMergedRoute: true,
-          transfersCount: 2,
-          busNumber: "Merged Transit: Bus 1 → Bus 2 → Bus 3",
-          busType: "3-Leg Multi-Bus Transit",
-          nearestStation: {
-            id: "st-a",
-            name: `${startLoc} Terminal`,
-            distanceMeters: 220,
-            walkTimeMinutes: 3,
-            coords: { lat: 9.01, lng: 38.75 },
-          },
-          busEtaMinutes: 4,
-          totalTripMinutes: 42,
-          fare: "30.00 ETB",
-          crowdLevel: "Medium",
-          routeVia: "Via Transit Stops B & C Interchanges",
-          legs: [
-            {
-              legIndex: 1,
-              fromStation: startLoc,
-              toStation: "Transfer Stop B (Stadium)",
-              busNumber: "Bus 1 (Bus 08 Akaki Express)",
-              busType: "Anbessa Euro 5",
-              departureEtaMinutes: 4,
-              durationMinutes: 14,
-              fare: "10.00 ETB",
-            },
-            {
-              legIndex: 2,
-              fromStation: "Transfer Stop B (Stadium)",
-              toStation: "Transfer Stop C (Mexico Square)",
-              busNumber: "Bus 2 (Bus 04 Rapid)",
-              busType: "Sheger Express",
-              departureEtaMinutes: 3,
-              durationMinutes: 10,
-              fare: "8.00 ETB",
-              transferWaitMinutes: 4,
-            },
-            {
-              legIndex: 3,
-              fromStation: "Transfer Stop C (Mexico Square)",
-              toStation: endLoc,
-              busNumber: "Bus 3 (Bus 12 Direct)",
-              busType: "Anbessa Standard",
-              departureEtaMinutes: 5,
-              durationMinutes: 14,
-              fare: "12.00 ETB",
-              transferWaitMinutes: 5,
-            },
-          ],
-        },
-        {
-          id: "opt-merged-2leg",
-          isMergedRoute: true,
-          transfersCount: 1,
-          busNumber: "Merged Transit: Bus 1 → Bus 2",
-          busType: "2-Leg Multi-Bus Transit",
-          nearestStation: {
-            id: "st-b",
-            name: `${startLoc} Station`,
-            distanceMeters: 380,
-            walkTimeMinutes: 5,
-            coords: { lat: 9.02, lng: 38.77 },
-          },
-          busEtaMinutes: 7,
-          totalTripMinutes: 36,
-          fare: "25.00 ETB",
-          crowdLevel: "Low",
-          routeVia: "Via Transfer Stop B (Bole Atlas)",
-          legs: [
-            {
-              legIndex: 1,
-              fromStation: startLoc,
-              toStation: "Transfer Stop B (Bole Atlas)",
-              busNumber: "Bus 1 (Bus 34 Line)",
-              busType: "Sheger Express",
-              departureEtaMinutes: 7,
-              durationMinutes: 18,
-              fare: "12.00 ETB",
-            },
-            {
-              legIndex: 2,
-              fromStation: "Transfer Stop B (Bole Atlas)",
-              toStation: endLoc,
-              busNumber: "Bus 2 (Bus 12 Express)",
-              busType: "Anbessa Euro 5",
-              departureEtaMinutes: 4,
-              durationMinutes: 14,
-              fare: "13.00 ETB",
-              transferWaitMinutes: 5,
-            },
-          ],
-        },
-        {
-          id: "opt-direct",
-          isMergedRoute: false,
-          transfersCount: 0,
-          busNumber: "Bus 12 Express (Direct Line)",
-          busType: "Anbessa Euro 5 Direct",
-          nearestStation: {
-            id: "st-c",
-            name: `${startLoc} Central Station`,
-            distanceMeters: 450,
-            walkTimeMinutes: 6,
-            coords: { lat: 9.022, lng: 38.775 },
-          },
-          busEtaMinutes: 8,
-          totalTripMinutes: 28,
-          fare: "15.00 ETB",
-          crowdLevel: "High",
-          routeVia: "Direct Expressway Line",
-        },
-      ];
+    try {
+      let planData: unknown;
+      if (originCoords) {
+        const nearby = await routesApi.getNearbyStops(originCoords.lat, originCoords.lng, 5);
+        const nearest = nearby.data?.data?.[0];
+        if (!nearest?.stopName) {
+          throw new Error("No nearby bus stop was found for the current location.");
+        }
+        const res = await routesApi.planRoute(nearest.stopName, endLoc);
+        planData = res.data?.data;
+      } else {
+        const res = await routesApi.planRouteByAddress(startLoc, endLoc);
+        planData = res.data?.data?.routes;
+      }
 
-      setSearchResults(mockAlternatives);
+      if (Array.isArray(planData) && planData.length > 0) {
+        const options = (planData as RouteOption[]).sort((a, b) =>
+          (a.totalTripMinutes + a.transfersCount * 5) - (b.totalTripMinutes + b.transfersCount * 5)
+        );
+        setSearchResults(options);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (err) {
+      console.warn("Could not fetch real routes for planner card from database:", err);
+      setSearchResults([]);
+    } finally {
       setIsSearching(false);
-    }, 600);
+    }
   };
+
+
 
   const displayedRoutes = searchResults || [];
 
@@ -222,31 +151,28 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
                   {isLocating ? "Detecting GPS..." : "Use Current Location"}
                 </button>
               </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Enter origin (e.g. Akaki, Mexico, Bole)..."
-                  value={origin}
-                  onChange={(e) => setOrigin(e.target.value)}
-                  className="w-full bg-[#F8FAFC] border border-slate-200 text-sm sm:text-base font-semibold rounded-xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
-                <Locate className="w-5 h-5 text-indigo-500 absolute left-3.5 top-3.5" />
-              </div>
+              <PlaceAutocomplete
+                value={origin}
+                onChange={(val) => {
+                  setOrigin(val);
+                  setOriginCoords(null);
+                }}
+                onSelect={handleSelectOriginItem}
+                placeholder="Enter origin (e.g. Akaki, Mexico, Bole)..."
+                icon={<Locate className="w-5 h-5 text-indigo-500" />}
+              />
             </div>
 
             <div className="space-y-2">
               <label className="text-sm font-extrabold text-slate-800">Destination</label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Where are you going? (e.g. Megenagna, Tor Hailoch)"
-                  value={destination}
-                  onChange={(e) => setDestination(e.target.value)}
-                  required
-                  className="w-full bg-[#F8FAFC] border border-slate-200 text-sm sm:text-base font-semibold rounded-xl pl-11 pr-4 py-3 text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                />
-                <MapPin className="w-5 h-5 text-rose-500 absolute left-3.5 top-3.5" />
-              </div>
+              <PlaceAutocomplete
+                value={destination}
+                onChange={setDestination}
+                onSelect={handleSelectDestItem}
+                required
+                placeholder="Where are you going? (e.g. Megenagna, Tor Hailoch)"
+                icon={<MapPin className="w-5 h-5 text-rose-500" />}
+              />
             </div>
           </div>
 
@@ -284,17 +210,24 @@ export const TripPlannerCard: React.FC<TripPlannerCardProps> = ({ onRouteSelecte
             </h4>
           </div>
 
-          <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin -mx-1 px-1">
-            {displayedRoutes.map((option) => (
-              <RouteOptionCard
-                key={option.id}
-                option={option}
-                destinationName={destination}
-                isSelected={selectedRouteId === option.id}
-                onSelectRoute={handleSelectRoute}
-              />
-            ))}
-          </div>
+          {displayedRoutes.length > 0 ? (
+            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin -mx-1 px-1">
+              {displayedRoutes.map((option) => (
+                <RouteOptionCard
+                  key={option.id}
+                  option={option}
+                  destinationName={destination}
+                  isSelected={selectedRouteId === option.id}
+                  onSelectRoute={handleSelectRoute}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 px-4 bg-white rounded-xl border border-dashed border-slate-300">
+              <p className="text-sm font-bold text-slate-700">No transit routes found in database connecting these stops.</p>
+              <p className="text-xs text-slate-500 mt-1">Try searching between registered stations like Akaki, Stadium, Mexico, Bole, Megenagna, or Ayat.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

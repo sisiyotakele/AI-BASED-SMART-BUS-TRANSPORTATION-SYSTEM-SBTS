@@ -8,6 +8,8 @@ export const trafficPredictionSchema = z.object({
     route_id: z.string().uuid().optional(),
     direction: z.string().optional(),
     timestamp: z.string().datetime().optional(),
+    origin_name: z.string().trim().min(1).optional(),
+    destination_name: z.string().trim().min(1).optional(),
 });
 
 export const etaPredictionSchema = trafficPredictionSchema.extend({

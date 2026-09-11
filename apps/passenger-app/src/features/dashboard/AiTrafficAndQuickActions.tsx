@@ -1,38 +1,34 @@
 // src/features/dashboard/AiTrafficAndQuickActions.tsx
 import React, { useState, useEffect, useCallback } from "react";
-import { Sparkles, Clock, TrendingUp, RefreshCw } from "lucide-react";
+import { Sparkles, Clock, RefreshCw } from "lucide-react";
 import { aiIntegrationApi, AiCombinedPrediction } from "@/lib/api";
 
 export const AiTrafficAndQuickActions: React.FC = () => {
-  const [prediction, setPrediction] = useState<AiCombinedPrediction>({
-    traffic_load_percentage: 65,
-    congestion_level: "Moderate Traffic",
-    estimated_delay_minutes: 8,
-    recommended_speed_kmh: 40,
-    confidence_score: 91,
-  });
+  const [prediction, setPrediction] = useState<AiCombinedPrediction | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const fetchTrafficPrediction = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await aiIntegrationApi.predictCombined({
-        origin_lat: 9.0105,
-        origin_lon: 38.7615,
-        dest_lat: 9.0300,
-        dest_lon: 38.7400,
+        origin_lat: 9.0215, // Megenagna Station
+        origin_lon: 38.7989,
+        dest_lat: 9.0125,   // Tor Hailoch
+        dest_lon: 38.7230,
+        direction: "Forward",
+        timestamp: new Date().toISOString(),
       });
-      if (res.data?.success && res.data?.data) {
-        const data = res.data.data;
+      const raw = res.data?.data || res.data;
+      if (raw) {
         setPrediction({
-          traffic_load_percentage: Number(data.traffic_load_percentage ?? data.traffic_load ?? 65),
-          congestion_level: String(data.congestion_level ?? "Moderate Traffic"),
-          estimated_delay_minutes: Number(data.estimated_delay_minutes ?? data.estimated_delay ?? 8),
-          recommended_speed_kmh: Number(data.recommended_speed_kmh ?? 40),
-          confidence_score: Number(data.confidence_score ?? 91),
+          congestion_level: String(raw.traffic_level),
+          estimated_duration_minutes: Number(raw.estimated_duration_minutes),
+          estimated_arrival: String(raw.estimated_arrival),
+          confidence_score: Number(raw.traffic_confidence) * 100,
         });
       }
     } catch (err) {
+      setPrediction(null);
       console.warn("Could not fetch live AI traffic predictions from backend, using current telemetry model:", err);
     } finally {
       setIsLoading(false);
@@ -42,9 +38,6 @@ export const AiTrafficAndQuickActions: React.FC = () => {
   useEffect(() => {
     fetchTrafficPrediction();
   }, [fetchTrafficPrediction]);
-
-  const loadPct = prediction.traffic_load_percentage ?? 65;
-  const strokeDash = `${loadPct}, 100`;
 
   return (
     <div className="w-full">
@@ -79,83 +72,27 @@ export const AiTrafficAndQuickActions: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Traffic Metrics */}
-          <div className="flex items-center gap-5 my-3">
-            <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <path
-                  className="text-white/20"
-                  strokeWidth="3.8"
-                  stroke="currentColor"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-                <path
-                  strokeDasharray={strokeDash}
-                  strokeWidth="3.8"
-                  strokeLinecap="round"
-                  stroke="#38BDF8"
-                  fill="none"
-                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-base font-extrabold text-white leading-none">{loadPct}%</span>
-                <span className="text-[9px] text-blue-200 font-medium mt-0.5">load</span>
-              </div>
-            </div>
-
-            <div>
-              <div className="text-xl font-black flex items-center gap-2 text-white capitalize">
-                {prediction.congestion_level || "Moderate Traffic"}
-              </div>
-              <p className="text-xs font-semibold mt-0.5 flex items-center gap-1" style={{ color: "#7DD3FC" }}>
-                <Clock className="w-3.5 h-3.5 inline" />
-                +{prediction.estimated_delay_minutes ?? 8} min estimated delay on Route 12
-              </p>
-              <div className="mt-2 text-xs text-blue-100 space-y-1">
-                <div className="flex items-center gap-4">
-                  <span>Recommended Speed: <strong className="text-white">{prediction.recommended_speed_kmh ?? 40} km/h</strong></span>
-                  <span>AI Confidence: <strong className="text-white">{prediction.confidence_score ?? 91}%</strong></span>
-                </div>
-              </div>
-            </div>
+          <div className="my-3 text-white">
+            {prediction ? (
+              <>
+                <div className="text-xl font-black capitalize">{prediction.congestion_level}</div>
+                <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-[#7DD3FC]">
+                  <Clock className="h-3.5 w-3.5" />
+                  Estimated duration: {prediction.estimated_duration_minutes} minutes
+                </p>
+                <p className="mt-2 text-xs text-blue-100">
+                  Arrival: {new Date(prediction.estimated_arrival || "").toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  <span className="ml-4">Confidence: {Math.round(prediction.confidence_score || 0)}%</span>
+                </p>
+              </>
+            ) : (
+              <p className="text-sm text-blue-100">Prediction unavailable</p>
+            )}
           </div>
-
-          {/* Hourly Traffic Bar Graph Simulation */}
-          <div className="mt-4 pt-3 border-t border-white/15">
-            <div className="flex items-end justify-between h-14 gap-1.5 px-2">
-              {[30, 50, 75, 90, 60, 40, 35, 55, 70, 85].map((height, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-xs transition-all"
-                    style={{
-                      height: `${height}%`,
-                      backgroundColor: height > 75 ? "#38BDF8" : "rgba(255,255,255,0.2)"
-                    }}
-                  ></div>
-                  <span className="text-[9px] text-blue-200">{i + 6}h</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* AI Suggested Alternate Route Box */}
-        <div className="mt-4 bg-white/10 border border-white/20 p-3 rounded-xl text-xs text-white flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 shrink-0" style={{ color: "#38BDF8" }} />
-            <span>
-              <strong>Suggested Alternate Route:</strong> Via Sarbet bypass — saves ~6 min.
-            </span>
-          </div>
-          <span className="font-bold text-[11px] whitespace-nowrap ml-2" style={{ color: "#7DD3FC" }}>
-            {prediction.confidence_score ?? 89}% confidence
-          </span>
         </div>
       </div>
     </div>
   );
 };
 
-export default AiTrafficAndQuickActions;
+export default AiTrafficAndQuickActions;

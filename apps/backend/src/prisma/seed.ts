@@ -1,5 +1,8 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const prisma = new PrismaClient();
 
@@ -238,10 +241,16 @@ async function main() {
     },
   });
 
-  // PASSENGER - Read public info, manage own bookings
+  // PASSENGER - Read public info, view routes/trips/tracking/predictions, manage own bookings
   const passengerPermissions = createdPermissions.filter(
     (p) =>
       p.resource === 'Booking' ||
+      p.resource === 'Route' ||
+      p.resource === 'Stop' ||
+      p.resource === 'Trip' ||
+      p.resource === 'Tracking' ||
+      p.resource === 'Notification' ||
+      p.resource === 'AIPrediction' ||
       (p.resource === 'Terminal' && p.action === 'read') ||
       (p.resource === 'Bus' && p.action === 'read')
   );

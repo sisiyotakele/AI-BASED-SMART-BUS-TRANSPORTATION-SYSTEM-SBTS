@@ -12,12 +12,6 @@ export interface RouteItem {
   description?: string;
 }
 
-const MOCK_FALLBACK_ROUTES: RouteItem[] = [
-  { id: "r1", routeName: "Route 12 Express", origin: "Megenagna Terminal", destination: "Bole Airport", fareEtb: 15, estimatedDurationMin: 35, activeBusesCount: 6, description: "Corridor Express Line" },
-  { id: "r2", routeName: "Route 04 Direct", origin: "CMC Michael", destination: "Mexico Square", fareEtb: 12, estimatedDurationMin: 25, activeBusesCount: 4, description: "Central Direct Line" },
-  { id: "r3", routeName: "Route 18 Standard", origin: "Tor Hailoch", destination: "Stadium", fareEtb: 10, estimatedDurationMin: 40, activeBusesCount: 5, description: "Inner Ring Line" },
-];
-
 export const useRouteSearch = () => {
   const [search, setSearch] = useState("");
   const [routes, setRoutes] = useState<RouteItem[]>([]);
@@ -45,7 +39,7 @@ export const useRouteSearch = () => {
               r.destination ||
               "End Stop"
           ),
-          fareEtb: Number(r.fare || r.fareEtb || 12),
+          fareEtb: Number(r.fareAmount || r.fare || r.fareEtb || 15),
           estimatedDurationMin: Number(r.estimatedDurationMin || 30),
           activeBusesCount: Number(r.activeBusesCount || 4),
           description: r.description ? String(r.description) : undefined,
@@ -56,7 +50,7 @@ export const useRouteSearch = () => {
       }
     } catch (err) {
       console.warn("Could not fetch /routes-stops/routes from backend:", err);
-      setRoutes(MOCK_FALLBACK_ROUTES);
+      setRoutes([]);
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);

@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
-export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000') + '/api/v1';
+export const BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000') + '/api/v1';
 
 // ─── Axios Instance ──────────────────────────────────────────────────────────
 export const api = axios.create({
@@ -64,11 +64,18 @@ export interface BackendRoute {
   id: string;
   routeName: string;
   routeCode?: string;
+  description?: string;
   origin?: string;
   destination?: string;
+  startStop?: { id?: string; stopName?: string };
+  endStop?: { id?: string; stopName?: string };
+  startStopId?: string;
+  endStopId?: string;
   distanceKm?: number;
   estimatedDurationMin?: number;
+  fare?: number;
   fareAmount?: number;
+  activeBusesCount?: number;
 }
 
 export interface BackendStop {
@@ -105,6 +112,8 @@ export interface AiCombinedPrediction {
   traffic_load_percentage?: number;
   congestion_level?: string;
   estimated_delay_minutes?: number;
+  estimated_duration_minutes?: number;
+  estimated_arrival?: string;
   recommended_speed_kmh?: number;
   best_departure_time?: string;
   confidence_score?: number;
@@ -281,6 +290,12 @@ export const authApi = {
     }),
 
   me: () => api.get('/auth/me'),
+
+  updateProfile: (data: { fullName?: string; phone?: string; preferredLanguage?: string }) =>
+    api.patch('/auth/me', data),
+
+  forgotPassword: (data: { email: string }) =>
+    api.post('/auth/forgot-password', data),
 };
 
 // ─── TRACKING ENDPOINTS ──────────────────────────────────────────────────────
@@ -299,6 +314,10 @@ export const routesApi = {
     api.get('/routes-stops/stops', { params: search ? { search } : undefined }),
   getNearbyStops: (lat: number, lng: number, radius?: number) =>
     api.get('/routes-stops/stops/nearby', { params: { lat, lng, radius } }),
+  planRoute: (origin: string, destination: string) =>
+    api.post('/routes-stops/routes/plan', { origin, destination }),
+  planRouteByAddress: (origin: string, destination: string) =>
+    api.post('/routes-stops/routes/plan-by-address', { origin, destination }),
 };
 
 // ─── TRIPS ENDPOINTS ─────────────────────────────────────────────────────────
@@ -333,6 +352,8 @@ export interface TripPredictionRequest {
   mileage?: number;
   direction?: string;
   timestamp?: string;
+  origin_name?: string;
+  destination_name?: string;
 }
 
 export const aiIntegrationApi = {

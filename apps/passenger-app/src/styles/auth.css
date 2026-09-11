@@ -9,16 +9,15 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Left Hero Sidebar */
+/* Left Hero Sidebar — Hidden on mobile screens to prevent multi-page height scrolling */
 .auth-hero-sidebar {
+  display: none;
   position: relative;
   overflow: hidden;
-  display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 100vh;
 }
-
 
 @media (min-width: 1024px) {
   .auth-hero-sidebar {
@@ -126,11 +125,16 @@
 }
 
 @media (max-width: 640px) {
+  .auth-form-container {
+    padding: 0.75rem;
+    min-height: 100vh;
+  }
   .auth-card {
-    padding: 1.5rem;
-    box-shadow: none;
-    border: none;
-    background-color: transparent;
+    padding: 1.25rem 1rem;
+    border-radius: 1.25rem;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.05);
   }
 }
 

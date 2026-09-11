@@ -88,6 +88,16 @@ export const config = {
   },
 
   aiServiceUrl: env.AI_SERVICE_URL || 'http://localhost:5000',
+
+  email: {
+    provider: env.EMAIL_PROVIDER,
+    host: env.SMTP_HOST,
+    port: env.SMTP_PORT,
+    user: env.SMTP_USER,
+    password: env.SMTP_PASSWORD,
+    from: env.EMAIL_FROM,
+    passengerAppUrl: env.PASSENGER_APP_URL,
+  },
 } as const;
 
 export type Config = typeof config;

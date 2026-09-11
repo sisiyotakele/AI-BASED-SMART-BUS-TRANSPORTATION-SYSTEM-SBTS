@@ -157,3 +157,16 @@ export async function revokeRefreshTokenByValue(token: string) {
         data: { revokedAt: new Date() },
     });
 }
+
+export async function updateUser(userId: string, data: { fullName?: string; phone?: string; preferredLanguage?: string }) {
+    return prisma.user.update({
+        where: { id: userId },
+        data,
+    });
+}
+
+export async function updatePassword(userId: string, passwordHash: string) {
+    return prisma.user.update({ where: { id: userId }, data: { passwordHash } });
+}
+
+
