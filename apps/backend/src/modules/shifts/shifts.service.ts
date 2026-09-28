@@ -6,16 +6,25 @@ export function setPrismaClient(client: any) {
   repository.setPrismaClient(client);
 }
 
-function timeToDate(timeStr: string, baseDate: Date) {
+function timeToDate(timeStr: string, baseDate: Date, isEndTime = false, startTimeStr?: string) {
   const [h, m] = timeStr.split(':').map(Number);
   const d = new Date(baseDate);
   d.setHours(h, m, 0, 0);
+
+  // If this is an end time and it's earlier than the start time, it means the shift crosses midnight.
+  if (isEndTime && startTimeStr) {
+    const [startH] = startTimeStr.split(':').map(Number);
+    if (h < startH) {
+      d.setDate(d.getDate() + 1);
+    }
+  }
+
   return d;
 }
 
 export async function createShift(data: any, _actorId?: string) {
   const start = timeToDate(data.shiftStart, data.shiftDate);
-  const end = timeToDate(data.shiftEnd, data.shiftDate);
+  const end = timeToDate(data.shiftEnd, data.shiftDate, true, data.shiftStart);
   if (end <= start) throw new BadRequestError('Shift end must be after shift start');
 
   const overlapping = await repository.findOverlappingShift(
@@ -53,9 +62,20 @@ export async function getShiftById(id: string) {
 
 export async function updateShift(id: string, data: any) {
   const existing = await getShiftById(id);
-  const start = data.shiftStart ? timeToDate(data.shiftStart, data.shiftDate || existing.shiftDate) : existing.shiftStart;
-  const end = data.shiftEnd ? timeToDate(data.shiftEnd, data.shiftDate || existing.shiftDate) : existing.shiftEnd;
-  if (end <= start) throw new BadRequestError('Shift end must be after shift start');
+
+  let start = existing.shiftStart;
+  let end = existing.shiftEnd;
+
+  if (data.shiftStart || data.shiftEnd || data.shiftDate) {
+    const baseDate = data.shiftDate || existing.shiftDate;
+    const startStr = data.shiftStart || existing.shiftStart.toTimeString().substring(0, 5);
+    const endStr = data.shiftEnd || existing.shiftEnd.toTimeString().substring(0, 5);
+
+    start = timeToDate(startStr, baseDate);
+    end = timeToDate(endStr, baseDate, true, startStr);
+
+    if (end <= start) throw new BadRequestError('Shift end must be after shift start');
+  }
 
   const shift = await repository.updateShift(id, {
     ...(data.driverId && { driverId: data.driverId }),
@@ -75,3 +95,4 @@ export async function deleteShift(id: string, _actorId?: string) {
   logger.info('Shift soft-deleted', { shiftId: id });
   return shift;
 }
+

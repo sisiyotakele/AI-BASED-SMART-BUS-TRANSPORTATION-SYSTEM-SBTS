@@ -10,13 +10,18 @@ export const createAssignment = asyncHandler(async (req: AuthenticatedRequest, r
 });
 
 export const listAssignments = asyncHandler(async (req: Request, res: Response) => {
-  const result = await service.listAssignments({ busId: req.query.busId as string });
+  const result = await service.listAssignments({ busId: req.query.busId as string, scheduleId: req.query.scheduleId as string });
   successResponse(res, result, 'Assignments retrieved');
 });
 
 export const getAssignment = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.getAssignmentById(req.params.id);
   successResponse(res, result, 'Assignment retrieved');
+});
+
+export const updateAssignment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
+  const result = await service.updateAssignment(req.params.id, req.body);
+  successResponse(res, result, 'Assignment updated');
 });
 
 export const deactivateAssignment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
@@ -27,4 +32,14 @@ export const deactivateAssignment = asyncHandler(async (req: AuthenticatedReques
 export const deleteAssignment = asyncHandler(async (req: AuthenticatedRequest, res: Response) => {
   await service.deleteAssignment(req.params.id, req.user?.userId);
   successResponse(res, null, 'Assignment deleted');
+});
+
+export const scheduleAvailabilityCheck = asyncHandler(async (req: Request, res: Response) => {
+  const { scheduleId } = req.query as { scheduleId: string };
+  if (!scheduleId) {
+    res.status(400).json({ success: false, message: 'scheduleId is required' });
+    return;
+  }
+  const result = await service.checkScheduleAvailability(scheduleId);
+  successResponse(res, result, 'Schedule availability checked');
 });

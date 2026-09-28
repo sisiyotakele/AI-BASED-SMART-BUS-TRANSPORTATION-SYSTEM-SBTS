@@ -31,18 +31,27 @@ export async function findBusById(tx: any, busId: string) {
 // BUS-DRIVER ASSIGNMENT CONFLICT CHECKS
 // ============================================================
 
-export async function findBusAssignmentByDate(
+export async function findOverlappingBusAssignments(
     tx: any,
     busId: string,
-    assignedDate: Date
+    assignedDate: Date,
+    shiftStart: Date,
+    shiftEnd: Date
 ) {
     return tx.busDriverAssignment.findFirst({
         where: {
             busId,
             assignedDate,
             deletedAt: null,
-            status: 'active'
+            status: 'active',
+            shift: {
+                AND: [
+                    { shiftEnd: { gt: shiftStart } },
+                    { shiftStart: { lt: shiftEnd } }
+                ]
+            }
         },
+        include: { shift: true }
     });
 }
 

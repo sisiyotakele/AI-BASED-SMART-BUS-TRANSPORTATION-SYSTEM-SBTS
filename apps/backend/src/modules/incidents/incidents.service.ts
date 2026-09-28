@@ -1,6 +1,7 @@
 import { NotFoundError, BadRequestError } from '@/common/errors';
 import { logger } from '@/common/logger';
 import * as repository from './incidents.repository';
+import * as notificationsService from '../notifications/notifications.service';
 
 // Allow test injection
 export function setPrismaClient(client: any) {
@@ -30,14 +31,25 @@ export async function createIncident(data: any, actorId?: string) {
     status: 'reported',
   });
 
-  // TODO: publish event for notifications module
+  const admins = await repository.findAdminUsers();
+  if (admins.length > 0) {
+      const priorityMap: any = { low: 'low', medium: 'normal', high: 'high', critical: 'urgent' };
+      await notificationsService.createNotification({
+          notificationType: 'accident_report',
+          title: `🚨 INCIDENT ALERT (Severity: ${data.severity.toUpperCase()})`,
+          message: `Incident Type: ${data.incidentType.toUpperCase()}\nDriver: ${trip.driver?.fullName || 'Unknown'}\nBus Plate: ${trip.bus?.plateNumber || 'Unknown'}\nRoute: ${trip.version?.route?.routeName || 'Unknown'}\nTrip ID: ${trip.id}`,
+          priority: priorityMap[data.severity] || 'normal',
+          userIds: admins.map(a => a.id),
+      });
+  }
+
   logger.info('Incident reported', { incidentId: incident.id, tripId: data.tripId });
   return incident;
 }
 
 export async function listIncidents(filters: { status?: string; tripId?: string; driverId?: string } = {}) {
   const where: any = { deletedAt: null };
-  if (filters.status) where.status = filters.status;
+  if (filters.status && filters.status !== 'all') where.status = filters.status;
   if (filters.tripId) where.tripId = filters.tripId;
   if (filters.driverId) where.driverId = filters.driverId;
   return repository.findIncidents(where);

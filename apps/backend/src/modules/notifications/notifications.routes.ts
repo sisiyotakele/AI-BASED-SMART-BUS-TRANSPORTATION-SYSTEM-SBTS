@@ -3,7 +3,7 @@ import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createNotificationSchema, notificationIdParamSchema, notificationQuerySchema } from './notifications.validation';
-import { createNotification, listNotifications, markAsRead } from './notifications.controller';
+import { createNotification, listNotifications, markAsRead, deleteNotification } from './notifications.controller';
 
 const router = Router();
 
@@ -125,5 +125,29 @@ router.get('/', validateQuery(notificationQuerySchema), listNotifications);
  *         description: Internal server error
  */
 router.patch('/:id/read', validateParams(notificationIdParamSchema), markAsRead);
+
+/**
+ * @swagger
+ * /api/v1/notifications/{id}:
+ *   delete:
+ *     summary: Delete a notification
+ *     tags: [Notifications]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         description: Notification ID
+ *     responses:
+ *       200:
+ *         description: Notification deleted
+ *       404:
+ *         description: Notification not found
+ */
+router.delete('/:id', validateParams(notificationIdParamSchema), deleteNotification);
 
 export default router;

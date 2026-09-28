@@ -28,12 +28,17 @@ import {
   deleteStop,
   nearbyStops,
   addRouteStop as addRouteStopController,
+  overwriteVersionStops,
+  deleteRouteVersion,
+  activateRouteVersion,
+  deactivateRouteVersion,
 } from './routes-stops.controller';
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+// Notice: We removed router.use(authenticate) from the global router scope.
+// Why? We want GET /routes and GET /stops to be fully public (no token required) 
+// so the Passenger App can freely search without risking HTTP 401 errors.
 
 /**
  * @swagger
@@ -103,6 +108,7 @@ router.get('/', (_req, res) => {
  */
 router.post(
   '/routes',
+  authenticate,
   requirePermission('manage_routes'),
   validateBody(createRouteSchema),
   createRoute
@@ -128,7 +134,6 @@ router.post(
  */
 router.get(
   '/routes',
-  requirePermission('view_routes'),
   listRoutes
 );
 
@@ -164,7 +169,6 @@ router.get(
  */
 router.get(
   '/routes/:id',
-  requirePermission('view_routes'),
   validateParams(routeIdParamSchema),
   getRoute
 );
@@ -201,7 +205,6 @@ router.get(
  */
 router.get(
   '/routes/:id/versions',
-  requirePermission('view_routes'),
   validateParams(routeIdParamSchema),
   getRouteVersions
 );
@@ -255,6 +258,7 @@ router.get(
  */
 router.patch(
   '/routes/:id',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(routeIdParamSchema),
   validateBody(updateRouteSchema),
@@ -293,6 +297,7 @@ router.patch(
  */
 router.post(
   '/routes/:id/versions',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(routeIdParamSchema),
   createNewVersion
@@ -330,6 +335,7 @@ router.post(
  */
 router.delete(
   '/routes/:id',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(routeIdParamSchema),
   deleteRoute
@@ -380,6 +386,7 @@ router.delete(
  */
 router.post(
   '/stops',
+  authenticate,
   requirePermission('manage_routes'),
   validateBody(createStopSchema),
   createStop
@@ -405,7 +412,6 @@ router.post(
  */
 router.get(
   '/stops',
-  requirePermission('view_routes'),
   listStops
 );
 
@@ -450,7 +456,6 @@ router.get(
  */
 router.get(
   '/stops/nearby',
-  requirePermission('view_routes'),
   validateQuery(nearbyQuerySchema),
   nearbyStops
 );
@@ -487,7 +492,6 @@ router.get(
  */
 router.get(
   '/stops/:id',
-  requirePermission('view_routes'),
   validateParams(stopIdParamSchema),
   getStop
 );
@@ -539,6 +543,7 @@ router.get(
  */
 router.patch(
   '/stops/:id',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(stopIdParamSchema),
   validateBody(updateStopSchema),
@@ -577,6 +582,7 @@ router.patch(
  */
 router.delete(
   '/stops/:id',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(stopIdParamSchema),
   deleteStop
@@ -636,10 +642,113 @@ router.delete(
  */
 router.post(
   '/route-versions/:versionId/stops',
+  authenticate,
   requirePermission('manage_routes'),
   validateParams(z.object({ versionId: z.string().uuid() })),
   validateBody(addRouteStopSchema),
   addRouteStopController
+);
+
+router.put(
+  '/route-versions/:versionId/stops',
+  authenticate,
+  requirePermission('manage_routes'),
+  validateParams(z.object({ versionId: z.string().uuid() })),
+  overwriteVersionStops
+);
+
+/**
+ * @swagger
+ * /routes-stops/route-versions/{versionId}:
+ *   delete:
+ *     tags: [Routes & Stops]
+ *     summary: Delete a route version
+ *     description: Soft delete a route version (cannot delete active or primary routes)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: versionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Route version deleted
+ *       400:
+ *         description: Cannot delete active or primary route
+ *       404:
+ *         description: Route version not found
+ */
+router.delete(
+  '/route-versions/:versionId',
+  authenticate,
+  requirePermission('manage_routes'),
+  validateParams(z.object({ versionId: z.string().uuid() })),
+  deleteRouteVersion
+);
+
+/**
+ * @swagger
+ * /routes-stops/route-versions/{versionId}/activate:
+ *   patch:
+ *     tags: [Routes & Stops]
+ *     summary: Activate a route version
+ *     description: Make a route version active (must have stops)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: versionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Route version activated
+ *       400:
+ *         description: Route has no stops
+ *       404:
+ *         description: Route version not found
+ */
+router.patch(
+  '/route-versions/:versionId/activate',
+  authenticate,
+  requirePermission('manage_routes'),
+  validateParams(z.object({ versionId: z.string().uuid() })),
+  activateRouteVersion
+);
+
+/**
+ * @swagger
+ * /routes-stops/route-versions/{versionId}/deactivate:
+ *   patch:
+ *     tags: [Routes & Stops]
+ *     summary: Deactivate a route version
+ *     description: Make a route version inactive
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: versionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Route version deactivated
+ *       404:
+ *         description: Route version not found
+ */
+router.patch(
+  '/route-versions/:versionId/deactivate',
+  authenticate,
+  requirePermission('manage_routes'),
+  validateParams(z.object({ versionId: z.string().uuid() })),
+  deactivateRouteVersion
 );
 
 export default router;

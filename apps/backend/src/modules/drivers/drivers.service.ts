@@ -25,6 +25,7 @@ export async function createDriver(data: any, actorId?: string) {
       licenseExpiry: data.licenseExpiry,
       preferredLanguage: data.preferredLanguage,
       department: data.department,
+      mustChangePassword: true,
       ...(actorId && { createdById: actorId }),
       userRoles: { create: { roleId: driverRole.id, ...(actorId && { createdById: actorId }) } },
     });

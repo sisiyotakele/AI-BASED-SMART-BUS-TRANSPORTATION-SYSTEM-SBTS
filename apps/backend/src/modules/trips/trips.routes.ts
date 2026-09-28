@@ -3,12 +3,15 @@ import { validateBody, validateParams, validateQuery } from '@/common/validate';
 import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createTripSchema, tripIdParamSchema, tripQuerySchema } from './trips.validation';
-import { createTrip, listTrips, getTrip, startTrip, pauseTrip, resumeTrip, endTrip, cancelTrip, deleteTrip } from './trips.controller';
+import { createTrip, previewSchedule, listTrips, getTrip, startTrip, pauseTrip, resumeTrip, endTrip, cancelTrip, deleteTrip } from './trips.controller';
+import { auditMiddleware } from '@/modules/audit';
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+router.get('/preview-schedule', previewSchedule);
+
+// Remove global authenticate to allow public GET access to trips
+// router.use(authenticate);
 
 /**
  * @swagger
@@ -62,7 +65,18 @@ router.use(authenticate);
  *       500:
  *         description: Server error
  */
-router.post('/', requirePermission('create_trip'), validateBody(createTripSchema), createTrip);
+router.post(
+  '/', 
+  authenticate,
+  requirePermission('create_trip'), 
+  validateBody(createTripSchema), 
+  auditMiddleware({
+    action: 'CREATE',
+    entityName: 'Trip',
+    getDescription: () => `Created a new trip assignment`
+  }),
+  createTrip
+);
 
 /**
  * @swagger
@@ -101,7 +115,7 @@ router.post('/', requirePermission('create_trip'), validateBody(createTripSchema
  *       500:
  *         description: Server error
  */
-router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema), listTrips);
+router.get('/', validateQuery(tripQuerySchema), listTrips);
 
 /**
  * @swagger
@@ -131,7 +145,7 @@ router.get('/', requirePermission('view_trips'), validateQuery(tripQuerySchema),
  *       500:
  *         description: Server error
  */
-router.get('/:id', requirePermission('view_trips'), validateParams(tripIdParamSchema), getTrip);
+router.get('/:id', validateParams(tripIdParamSchema), getTrip);
 
 /**
  * @swagger
@@ -163,7 +177,19 @@ router.get('/:id', requirePermission('view_trips'), validateParams(tripIdParamSc
  *       500:
  *         description: Server error
  */
-router.patch('/:id/start', requirePermission('start_trip'), validateParams(tripIdParamSchema), startTrip);
+router.patch(
+  '/:id/start', 
+  authenticate,
+  requirePermission('start_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Started trip execution`
+  }),
+  startTrip
+);
 
 /**
  * @swagger
@@ -195,7 +221,19 @@ router.patch('/:id/start', requirePermission('start_trip'), validateParams(tripI
  *       500:
  *         description: Server error
  */
-router.patch('/:id/pause', requirePermission('start_trip'), validateParams(tripIdParamSchema), pauseTrip);
+router.patch(
+  '/:id/pause', 
+  authenticate,
+  requirePermission('start_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Paused trip execution`
+  }),
+  pauseTrip
+);
 
 /**
  * @swagger
@@ -227,7 +265,19 @@ router.patch('/:id/pause', requirePermission('start_trip'), validateParams(tripI
  *       500:
  *         description: Server error
  */
-router.patch('/:id/resume', requirePermission('start_trip'), validateParams(tripIdParamSchema), resumeTrip);
+router.patch(
+  '/:id/resume', 
+  authenticate,
+  requirePermission('start_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Resumed paused trip`
+  }),
+  resumeTrip
+);
 
 /**
  * @swagger
@@ -259,7 +309,19 @@ router.patch('/:id/resume', requirePermission('start_trip'), validateParams(trip
  *       500:
  *         description: Server error
  */
-router.patch('/:id/end', requirePermission('end_trip'), validateParams(tripIdParamSchema), endTrip);
+router.patch(
+  '/:id/end', 
+  authenticate,
+  requirePermission('end_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Ended and completed trip`
+  }),
+  endTrip
+);
 
 /**
  * @swagger
@@ -291,7 +353,19 @@ router.patch('/:id/end', requirePermission('end_trip'), validateParams(tripIdPar
  *       500:
  *         description: Server error
  */
-router.patch('/:id/cancel', requirePermission('cancel_trip'), validateParams(tripIdParamSchema), cancelTrip);
+router.patch(
+  '/:id/cancel', 
+  authenticate,
+  requirePermission('cancel_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Cancelled trip schedule`
+  }),
+  cancelTrip
+);
 
 /**
  * @swagger
@@ -321,6 +395,18 @@ router.patch('/:id/cancel', requirePermission('cancel_trip'), validateParams(tri
  *       500:
  *         description: Server error
  */
-router.delete('/:id', requirePermission('cancel_trip'), validateParams(tripIdParamSchema), deleteTrip);
+router.delete(
+  '/:id', 
+  authenticate,
+  requirePermission('cancel_trip'), 
+  validateParams(tripIdParamSchema), 
+  auditMiddleware({
+    action: 'DELETE',
+    entityName: 'Trip',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Deleted trip record`
+  }),
+  deleteTrip
+);
 
 export default router;

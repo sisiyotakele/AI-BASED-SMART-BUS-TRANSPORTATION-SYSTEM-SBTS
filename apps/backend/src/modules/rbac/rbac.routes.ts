@@ -10,6 +10,8 @@ import {
   assignRoleSchema,
   listPermissionsQuerySchema,
   listRolesQuerySchema,
+  removePermissionParamSchema,
+  removeRoleParamSchema,
 } from './rbac.validation';
 import {
   createRole,
@@ -24,7 +26,7 @@ import {
   removeRoleFromUser,
   getUserRoles,
 } from './rbac.controller';
-import { requirePermission } from './rbac.middleware';
+import { requirePermission, requireSuperAdmin } from './rbac.middleware';
 
 const router = Router();
 
@@ -72,6 +74,7 @@ router.use(authenticate);
  */
 router.post(
   '/roles',
+  requireSuperAdmin(),
   requirePermission('roles:create'),
   validateBody(createRoleSchema),
   createRole
@@ -184,6 +187,7 @@ router.get(
  */
 router.patch(
   '/roles/:id',
+  requireSuperAdmin(),
   requirePermission('roles:update'),
   validateParams(roleIdParamSchema),
   validateBody(updateRoleSchema),
@@ -222,6 +226,7 @@ router.patch(
  */
 router.delete(
   '/roles/:id',
+  requireSuperAdmin(),
   requirePermission('roles:delete'),
   validateParams(roleIdParamSchema),
   deleteRole
@@ -262,6 +267,7 @@ router.delete(
  */
 router.get(
   '/permissions',
+  requireSuperAdmin(),
   requirePermission('roles:read'),
   validateQuery(listPermissionsQuerySchema),
   listPermissions
@@ -317,6 +323,7 @@ router.get(
  */
 router.post(
   '/roles/:id/permissions',
+  requireSuperAdmin(),
   requirePermission('roles:update'),
   validateParams(roleIdParamSchema),
   validateBody(assignPermissionSchema),
@@ -360,8 +367,9 @@ router.post(
  */
 router.delete(
   '/roles/:id/permissions/:permissionId',
+  requireSuperAdmin(),
   requirePermission('roles:update'),
-  validateParams(roleIdParamSchema),
+  validateParams(removePermissionParamSchema),
   removePermissionFromRole
 );
 
@@ -459,7 +467,7 @@ router.post(
 router.delete(
   '/users/:id/roles/:roleId',
   requirePermission('users:update'),
-  validateParams(userIdParamSchema),
+  validateParams(removeRoleParamSchema),
   removeRoleFromUser
 );
 

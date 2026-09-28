@@ -1,0 +1,145 @@
+# GitLab CI/CD Pipeline for SBTS
+# This pipeline will automatically build, test, and deploy your application
+
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  NODE_VERSION: "20"
+  PYTHON_VERSION: "3.9"
+
+# ============================================
+# TEST STAGE - Run tests on every commit
+# ============================================
+
+test:backend:
+  stage: test
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd apps/backend
+    - npm ci
+  script:
+    - npm run lint
+    - npx prisma generate
+    # - npm test  # Uncomment when tests are ready
+  only:
+    - merge_requests
+    - main
+    - develop
+
+test:ai-service:
+  stage: test
+  image: python:${PYTHON_VERSION}
+  before_script:
+    - cd apps/ai-service
+    - pip install -r requirements.txt
+  script:
+    - python -m pytest tests/ || echo "No tests found"
+  only:
+    - merge_requests
+    - main
+    - develop
+
+# ============================================
+# BUILD STAGE - Build application
+# ============================================
+
+build:backend:
+  stage: build
+  image: node:${NODE_VERSION}
+  before_script:
+    - cd apps/backend
+    - npm ci
+  script:
+    - npx prisma generate
+    - npm run build
+  artifacts:
+    paths:
+      - apps/backend/dist/
+      - apps/backend/node_modules/
+      - apps/backend/package*.json
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+
+# ============================================
+# DEPLOY STAGE - Deploy to institute server
+# ============================================
+
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_SERVER << 'EOF'
+        cd ~/smart-bus || cd /var/www/smart-bus
+        git pull gitlab main
+        
+        # Deploy Backend
+        cd apps/backend
+        npm install
+        npm run build
+        npx prisma migrate deploy
+        pm2 restart sbts-backend || pm2 start ecosystem.config.js --env production
+        
+        # Deploy AI Service
+        cd ../ai-service
+        pip3 install -r requirements.txt
+        pm2 restart sbts-ai-service || pm2 start "uvicorn app.main:app --host 0.0.0.0 --port 5000" --name sbts-ai-service
+        
+        # Check status
+        pm2 status
+      EOF
+  environment:
+    name: production
+    url: http://$DEPLOY_SERVER:4000
+  only:
+    - main
+  when: manual  # Requires manual trigger for safety
+
+deploy:staging:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H $DEPLOY_SERVER >> ~/.ssh/known_hosts
+  script:
+    - |
+      ssh $DEPLOY_USER@$DEPLOY_SERVER << 'EOF'
+        cd ~/smart-bus-staging || cd /var/www/smart-bus-staging
+        git pull gitlab develop
+        
+        # Deploy Backend
+        cd apps/backend
+        npm install
+        npm run build
+        npx prisma migrate deploy
+        pm2 restart sbts-backend-staging || pm2 start ecosystem.config.js --name sbts-backend-staging --env production
+        
+        # Deploy AI Service
+        cd ../ai-service
+        pip3 install -r requirements.txt
+        pm2 restart sbts-ai-service-staging || pm2 start "uvicorn app.main:app --host 0.0.0.0 --port 5001" --name sbts-ai-service-staging
+        
+        pm2 status
+      EOF
+  environment:
+    name: staging
+    url: http://$DEPLOY_SERVER:4001
+  only:
+    - develop
+  when: manual

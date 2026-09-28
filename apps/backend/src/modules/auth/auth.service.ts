@@ -110,6 +110,7 @@ export async function login(email: string, password: string, ipAddress?: string)
     return {
         accessToken,
         refreshToken,
+        mustChangePassword: user.mustChangePassword,
         user: {
             id: user.id,
             email: user.email,
@@ -222,10 +223,95 @@ export async function getMe(userId: string) {
         email: user.email,
         fullName: user.fullName,
         phone: user.phone,
+        mustChangePassword: user.mustChangePassword,
         roles: user.userRoles.map((ur) => ({
             id: ur.role.id,
             name: ur.role.roleName,
             permissions: ur.role.rolePermissions.map((rp) => rp.permission.permissionName),
         })),
     };
+}
+
+/**
+ * Change password - used when:
+ *   1. User is forced to change admin-assigned password (mustChangePassword = true)
+ *   2. User voluntarily changes their own password
+ */
+export async function changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string
+) {
+    const user = await repository.findUserById(userId);
+
+    if (!user) {
+        throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isValidPassword) {
+        throw new UnauthorizedError('Current password is incorrect');
+    }
+
+    if (currentPassword === newPassword) {
+        throw new AppError(
+            'New password must be different from the current password',
+            400,
+            'SAME_PASSWORD'
+        );
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await repository.updateUserPassword(userId, newPasswordHash);
+
+    logger.info('Password changed', { userId });
+    return { message: 'Password changed successfully' };
+}
+
+/**
+ * Initiate forgot-password flow:
+ * Generates a time-limited reset token and stores it on the user.
+ * In production this token would be emailed; here we return it directly.
+ */
+export async function forgotPassword(email: string) {
+    const user = await repository.findUserByEmail(email.toLowerCase());
+
+    // Always return the same message so we don't leak whether an email exists
+    if (!user) {
+        logger.warn('Forgot-password attempt for unknown email', { email });
+        return { message: 'If this email exists, a reset link has been sent.' };
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await repository.setPasswordResetToken(user.id, resetToken, expiry);
+
+    logger.info('Password reset token generated', { userId: user.id });
+
+    // TODO: Send email with reset link containing the token
+    // For now, return the token so it can be used directly in development
+    return {
+        message: 'If this email exists, a reset link has been sent.',
+        // Only expose in development
+        ...(process.env.NODE_ENV === 'development' && { resetToken }),
+    };
+}
+
+/**
+ * Reset password using the token provided during forgot-password flow.
+ * Sets mustChangePassword = false after successful reset.
+ */
+export async function resetPassword(token: string, newPassword: string) {
+    const user = await repository.findUserByResetToken(token);
+
+    if (!user) {
+        throw new AppError('Invalid or expired reset token', 400, 'INVALID_RESET_TOKEN');
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await repository.updateUserPassword(user.id, newPasswordHash);
+
+    logger.info('Password reset via token', { userId: user.id });
+    return { message: 'Password reset successfully. Please log in with your new password.' };
 }

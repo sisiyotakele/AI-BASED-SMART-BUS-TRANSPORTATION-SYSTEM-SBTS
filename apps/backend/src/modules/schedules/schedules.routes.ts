@@ -7,8 +7,8 @@ import { createSchedule, listSchedules, getSchedule, updateSchedule, deleteSched
 
 const router = Router();
 
-// Apply authentication to all routes
-router.use(authenticate);
+// Remove global authenticate to allow public GET access to schedules
+// router.use(authenticate);
 
 /**
  * @swagger
@@ -61,7 +61,7 @@ router.use(authenticate);
  *       500:
  *         description: Server error
  */
-router.post('/', requirePermission('manage_schedules'), validateBody(createScheduleSchema), createSchedule);
+router.post('/', authenticate, requirePermission('manage_schedules'), validateBody(createScheduleSchema), createSchedule);
 
 /**
  * @swagger
@@ -95,7 +95,7 @@ router.post('/', requirePermission('manage_schedules'), validateBody(createSched
  *       500:
  *         description: Server error
  */
-router.get('/', requirePermission('view_schedules'), validateQuery(scheduleQuerySchema), listSchedules);
+router.get('/', validateQuery(scheduleQuerySchema), listSchedules);
 
 /**
  * @swagger
@@ -125,7 +125,7 @@ router.get('/', requirePermission('view_schedules'), validateQuery(scheduleQuery
  *       500:
  *         description: Server error
  */
-router.get('/:id', requirePermission('view_schedules'), validateParams(scheduleIdParamSchema), getSchedule);
+router.get('/:id', validateParams(scheduleIdParamSchema), getSchedule);
 
 /**
  * @swagger
@@ -174,7 +174,7 @@ router.get('/:id', requirePermission('view_schedules'), validateParams(scheduleI
  *       500:
  *         description: Server error
  */
-router.patch('/:id', requirePermission('manage_schedules'), validateParams(scheduleIdParamSchema), validateBody(updateScheduleSchema), updateSchedule);
+router.patch('/:id', authenticate, requirePermission('manage_schedules'), validateParams(scheduleIdParamSchema), validateBody(updateScheduleSchema), updateSchedule);
 
 /**
  * @swagger
@@ -204,6 +204,6 @@ router.patch('/:id', requirePermission('manage_schedules'), validateParams(sched
  *       500:
  *         description: Server error
  */
-router.delete('/:id', requirePermission('manage_schedules'), validateParams(scheduleIdParamSchema), deleteSchedule);
+router.delete('/:id', authenticate, requirePermission('manage_schedules'), validateParams(scheduleIdParamSchema), deleteSchedule);
 
 export default router;

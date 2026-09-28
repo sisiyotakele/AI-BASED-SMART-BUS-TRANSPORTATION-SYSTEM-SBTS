@@ -19,13 +19,23 @@ export async function createTerminal(data: any) {
 export async function findTerminals(where: any) {
     return prisma.terminal.findMany({
         where,
+        include: {
+            buses: {
+                select: { id: true, model: true, plateNumber: true, maintenanceStatus: true }
+            }
+        },
         orderBy: { terminalName: 'asc' }
     });
 }
 
 export async function findTerminalById(id: string) {
     return prisma.terminal.findFirst({
-        where: { id, deletedAt: null }
+        where: { id, deletedAt: null },
+        include: {
+            buses: {
+                select: { id: true, model: true, plateNumber: true, maintenanceStatus: true }
+            }
+        }
     });
 }
 

@@ -223,7 +223,11 @@ async function main() {
       (p.resource === 'KeyHandover') ||
       (p.resource === 'Trip') ||
       (p.resource === 'Tracking') ||
-      (p.resource === 'Incident' && (p.action === 'read' || p.action === 'create'))
+      (p.resource === 'Incident' && (p.action === 'read' || p.action === 'create')) ||
+      (p.resource === 'Route' && p.action === 'read') ||
+      (p.resource === 'Stop' && p.action === 'read') ||
+      (p.resource === 'Schedule' && p.action === 'read') ||
+      (p.resource === 'Notification')
   );
 
   const driverRole = await prisma.role.create({
@@ -243,7 +247,14 @@ async function main() {
     (p) =>
       p.resource === 'Booking' ||
       (p.resource === 'Terminal' && p.action === 'read') ||
-      (p.resource === 'Bus' && p.action === 'read')
+      (p.resource === 'Bus' && p.action === 'read') ||
+      (p.resource === 'Tracking' && p.action === 'read') ||
+      (p.resource === 'Route' && p.action === 'read') ||
+      (p.resource === 'Stop' && p.action === 'read') ||
+      (p.resource === 'Notification' && p.action === 'read') ||
+      (p.resource === 'Trip' && p.action === 'read') ||
+      (p.resource === 'Incident' && p.action === 'create') ||
+      (p.resource === 'AIPrediction' && p.action === 'read')
   );
 
   const passengerRole = await prisma.role.create({

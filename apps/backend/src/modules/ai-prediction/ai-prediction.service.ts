@@ -3,11 +3,36 @@ import { logger } from '@/common/logger';
 import * as repository from './ai-prediction.repository';
 
 export async function createModel(data: any) {
+  let accuracy = data.accuracy;
+  let datasetSize = data.datasetSize;
+
+  // Trigger real AI model training synchronization
+  try {
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:5000';
+    logger.info(`Triggering actual Python AI training synchronization at ${aiServiceUrl}/train`);
+    
+    const response = await fetch(`${aiServiceUrl}/train`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (response.ok) {
+        const result = (await response.json()) as any;
+        accuracy = result.metrics?.accuracy || accuracy;
+        datasetSize = result.metrics?.datasetSize || datasetSize;
+        logger.info('Successfully retrieved real metrics from Python AI service API.');
+    } else {
+        logger.warn('Failed to get OK response from Python AI service, using payload defaults.');
+    }
+  } catch (error: any) {
+    logger.error(`Could not connect to Python AI service at /train: ${error.message}`);
+  }
+
   const model = await repository.createModel({
     version: data.version,
-    accuracy: data.accuracy,
+    accuracy: accuracy,
     trainedAt: data.trainedAt,
-    datasetSize: data.datasetSize,
+    datasetSize: datasetSize,
     modelParameters: data.modelParameters,
     isActive: false,
   });

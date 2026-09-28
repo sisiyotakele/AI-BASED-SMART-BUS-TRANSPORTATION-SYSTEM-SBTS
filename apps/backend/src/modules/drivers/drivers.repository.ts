@@ -28,13 +28,15 @@ export async function createDriver(data: any) {
 export async function findDrivers(where: any) {
     return prisma.user.findMany({
         where,
-        orderBy: { fullName: 'asc' }
+        orderBy: { fullName: 'asc' },
+        include: { homeTerminal: true }
     });
 }
 
 export async function findDriverById(id: string) {
     return prisma.user.findFirst({
-        where: { id, deletedAt: null, licenseNumber: { not: null } }
+        where: { id, deletedAt: null, licenseNumber: { not: null } },
+        include: { homeTerminal: true }
     });
 }
 

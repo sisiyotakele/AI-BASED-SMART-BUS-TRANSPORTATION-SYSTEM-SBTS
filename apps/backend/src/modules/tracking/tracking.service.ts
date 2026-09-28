@@ -66,11 +66,21 @@ export async function getBusLocation(busId: string) {
  * Get locations of all active buses
  */
 export async function getAllActiveBusLocations() {
-  const buses = await repository.findAllActiveBuses();
+  const locations = await repository.findAllLiveLocations();
 
-  return buses.map(bus => ({
-    busId: bus.id,
-    plateNumber: bus.plateNumber,
-    maintenanceStatus: bus.maintenanceStatus,
+  return locations.map(loc => ({
+    id: loc.id,
+    busId: loc.busId,
+    tripId: loc.tripId,
+    latitude: Number(loc.latitude),
+    longitude: Number(loc.longitude),
+    speed: loc.speed ? Number(loc.speed) : 0,
+    timestamp: loc.recordedAt,
+    bus: loc.bus,
+    trip: loc.trip ? {
+      ...loc.trip,
+      route: loc.trip.version?.route
+    }: null,
+    driver: loc.driver,
   }));
 }

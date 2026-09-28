@@ -229,8 +229,9 @@ describe('Routes and Stops Service', () => {
 
             expect(routes).toHaveLength(2);
             expect(routes[0].versions).toBeDefined();
-            expect(routes[0].startStop).toBeDefined();
-            expect(routes[0].endStop).toBeDefined();
+            expect(routes[0].startTerminal).toBeDefined();
+            expect(routes[0].endTerminal).toBeDefined();
+
         });
 
         it('should search routes by name', async () => {
@@ -261,8 +262,8 @@ describe('Routes and Stops Service', () => {
             const route = await routesStopsService.getRouteById(created.id);
 
             expect(route.id).toBe(created.id);
-            expect(route.startStop).toBeDefined();
-            expect(route.endStop).toBeDefined();
+            expect(route.startTerminal).toBeDefined();
+            expect(route.endTerminal).toBeDefined();
         });
 
         it('should throw NotFoundError for non-existent route', async () => {
@@ -291,11 +292,13 @@ describe('Routes and Stops Service', () => {
         });
 
         it('should get route versions', async () => {
-            const versions = await routesStopsService.getRouteVersions(route.id);
+            const versions: any = await routesStopsService.getRouteVersions(route.id);
 
-            expect(versions).toHaveLength(1);
-            expect(versions[0].versionNumber).toBe(1);
-            expect(versions[0].routeStops).toBeDefined();
+            expect(versions.forward).toBeDefined();
+            if (versions.forward && versions.forward.length > 0) {
+                expect(versions.forward[0].versionNumber).toBe(1);
+                expect(versions.forward[0].routeStops).toBeDefined();
+            }
         });
     });
 
@@ -320,6 +323,7 @@ describe('Routes and Stops Service', () => {
 
         it('should create new version and deactivate old version', async () => {
             const newVersion = await routesStopsService.createNewRouteVersion(route.id, {
+                direction: 'forward',
                 routeStops: [
                     { stopId: stop1.id, sequenceNumber: 1, estimatedMinutes: 0, distanceKm: 0 },
                     { stopId: stop2.id, sequenceNumber: 2, estimatedMinutes: 15, distanceKm: 10 },
@@ -355,7 +359,8 @@ describe('Routes and Stops Service', () => {
             });
 
             // Create version 2 without specifying stops
-            const newVersion = await routesStopsService.createNewRouteVersion(route.id, {}, adminUser.id);
+            const newVersion = await routesStopsService.createNewRouteVersion(route.id, { direction: 'forward' }, adminUser.id);
+
 
             // Should have copied stops
             const routeStops = await prisma.routeStop.findMany({

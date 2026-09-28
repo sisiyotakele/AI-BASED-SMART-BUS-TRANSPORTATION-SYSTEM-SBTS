@@ -18,8 +18,9 @@ export function requirePermission(permissionName: string) {
       const roles = req.user.roles ?? [];
 
       // Fast path: if permissions are already cached in the token payload
+      // Use optional chaining to avoid TypeError if role.permissions is undefined
       const hasPermissionFromToken = roles.some((role) =>
-        role.permissions.includes(permissionName)
+        Array.isArray(role.permissions) && role.permissions.includes(permissionName)
       );
 
       if (hasPermissionFromToken) {
@@ -33,6 +34,35 @@ export function requirePermission(permissionName: string) {
           new ForbiddenError(
             `Access denied: required permission '${permissionName}'`,
             'MISSING_PERMISSION'
+          )
+        );
+      }
+
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+/**
+ * Middleware factory that strictly enforces SUPER_ADMIN role access.
+ */
+export function requireSuperAdmin() {
+  return async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) {
+        return next(new UnauthorizedError('Authentication required'));
+      }
+
+      const roles = req.user.roles || [];
+      const isSuperAdmin = roles.some((role: any) => role.name === 'SUPER_ADMIN' || role.roleName === 'SUPER_ADMIN');
+
+      if (!isSuperAdmin) {
+        return next(
+          new ForbiddenError(
+            'Access denied: Only SUPER_ADMIN can manage roles and permissions',
+            'SUPER_ADMIN_REQUIRED'
           )
         );
       }

@@ -1,6 +1,7 @@
 import { NotFoundError } from '@/common/errors';
 import { logger } from '@/common/logger';
 import * as repository from './notifications.repository';
+import { SocketServer } from '@/config/socket';
 
 export async function createNotification(data: any, actorId?: string) {
   const notification = await repository.createNotification({
@@ -21,6 +22,15 @@ export async function createNotification(data: any, actorId?: string) {
         userId,
       }))
     );
+
+    // Emit live socket event to all recipients
+    try {
+        existingUserIds.forEach((userId: string) => {
+            SocketServer.emitToUser(userId, 'notification:new', notification);
+        });
+    } catch(e) {
+        logger.error('Failed to emit live notification socket event', { error: e });
+    }
   }
 
   logger.info('Notification created', { notificationId: notification.id, recipients: existingUserIds.length });
@@ -43,6 +53,13 @@ export async function markAsRead(notificationUserId: string, userId: string) {
   });
   logger.info('Notification marked as read', { notificationUserId });
   return updated;
+}
+
+export async function deleteNotification(notificationUserId: string, userId: string) {
+  const result = await repository.deleteNotificationUser(notificationUserId, userId);
+  if (result.count === 0) throw new NotFoundError('Notification not found', 'NOTIFICATION_NOT_FOUND');
+  logger.info('Notification deleted', { notificationUserId });
+  return result;
 }
 
 // ============================================================

@@ -16,6 +16,7 @@ import { getSimpleHealth } from '@/common/health';
 
 // Import modules
 import { authRoutes } from '@/modules/auth';
+import { usersRouter } from '@/modules/users/users.routes';
 import { rbacRoutes } from '@/modules/rbac';
 import { terminalRoutes } from '@/modules/terminals';
 import { busRoutes } from '@/modules/buses';
@@ -34,6 +35,9 @@ import { notificationRoutes } from '@/modules/notifications';
 import { aiPredictionRoutes } from '@/modules/ai-prediction';
 import { aiIntegrationRoutes } from '@/modules/ai-integration';
 import auditRoutes from '@/modules/audit/audit.routes';
+import { dashboardRoutes } from '@/modules/dashboard';
+import { reportingRoutes } from '@/modules/reporting';
+import dispatchRoutes from '@/modules/dispatch/dispatch.routes';
 
 // Optional dev routes (only if folder exists locally)
 let devRoutes: any = null;
@@ -74,6 +78,7 @@ app.get('/', (_req: Request, res: Response) => {
       health: '/health',
       api: config.apiPrefix,
       auth: `${config.apiPrefix}/auth`,
+      users: `${config.apiPrefix}/users`,
       rbac: `${config.apiPrefix}/rbac`,
       terminals: `${config.apiPrefix}/terminals`,
       buses: `${config.apiPrefix}/buses`,
@@ -92,6 +97,8 @@ app.get('/', (_req: Request, res: Response) => {
       aiPrediction: `${config.apiPrefix}/ai-prediction`,
       aiIntegration: `${config.apiPrefix}/ai-integration`,
       audit: `${config.apiPrefix}/audit`,
+      dashboard: `${config.apiPrefix}/dashboard`,
+      dispatch: `${config.apiPrefix}/dispatch`,
     },
     documentation: `${config.apiPrefix}/docs`,
   });
@@ -107,6 +114,12 @@ const apiPrefix = config.apiPrefix;
 
 // Authentication
 app.use(`${apiPrefix}/auth`, authRoutes);
+
+// Users
+app.use(`${apiPrefix}/users`, usersRouter);
+
+// Dashboard
+app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
 
 // RBAC
 app.use(`${apiPrefix}/rbac`, rbacRoutes);
@@ -190,6 +203,18 @@ app.use(
 app.use(
   `${apiPrefix}/audit`,
   auditRoutes
+);
+
+// Reports
+app.use(
+  `${apiPrefix}/reports`,
+  reportingRoutes
+);
+
+// Dispatch
+app.use(
+  `${apiPrefix}/dispatch`,
+  dispatchRoutes
 );
 
 // Development helpers (only loaded if dev folder exists locally)

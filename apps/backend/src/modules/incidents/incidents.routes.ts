@@ -4,6 +4,7 @@ import { authenticate } from '@/common/middleware/auth.middleware';
 import { requirePermission } from '@/modules/rbac';
 import { createIncidentSchema, resolveIncidentSchema, incidentIdParamSchema, incidentQuerySchema } from './incidents.validation';
 import { createIncident, listIncidents, getIncident, reviewIncident, resolveIncident, deleteIncident } from './incidents.controller';
+import { auditMiddleware } from '@/modules/audit';
 
 const router = Router();
 
@@ -60,7 +61,17 @@ router.use(authenticate);
  *       500:
  *         description: Internal server error
  */
-router.post('/', requirePermission('report_incident'), validateBody(createIncidentSchema), createIncident);
+router.post(
+  '/', 
+  requirePermission('report_incident'), 
+  validateBody(createIncidentSchema), 
+  auditMiddleware({
+    action: 'CREATE',
+    entityName: 'Incident',
+    getDescription: (req) => `Reported new incident: ${req.body.type}`
+  }),
+  createIncident
+);
 
 /**
  * @swagger
@@ -169,7 +180,18 @@ router.get('/:id', requirePermission('view_incidents'), validateParams(incidentI
  *       500:
  *         description: Internal server error
  */
-router.patch('/:id/review', requirePermission('review_incident'), validateParams(incidentIdParamSchema), reviewIncident);
+router.patch(
+  '/:id/review', 
+  requirePermission('review_incident'), 
+  validateParams(incidentIdParamSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Incident',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Marked incident as under review`
+  }),
+  reviewIncident
+);
 
 /**
  * @swagger
@@ -213,7 +235,19 @@ router.patch('/:id/review', requirePermission('review_incident'), validateParams
  *       500:
  *         description: Internal server error
  */
-router.patch('/:id/resolve', requirePermission('resolve_incident'), validateParams(incidentIdParamSchema), validateBody(resolveIncidentSchema), resolveIncident);
+router.patch(
+  '/:id/resolve', 
+  requirePermission('resolve_incident'), 
+  validateParams(incidentIdParamSchema), 
+  validateBody(resolveIncidentSchema), 
+  auditMiddleware({
+    action: 'UPDATE',
+    entityName: 'Incident',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Resolved incident`
+  }),
+  resolveIncident
+);
 
 /**
  * @swagger
@@ -245,6 +279,17 @@ router.patch('/:id/resolve', requirePermission('resolve_incident'), validatePara
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', requirePermission('delete_incident'), validateParams(incidentIdParamSchema), deleteIncident);
+router.delete(
+  '/:id', 
+  requirePermission('delete_incident'), 
+  validateParams(incidentIdParamSchema), 
+  auditMiddleware({
+    action: 'DELETE',
+    entityName: 'Incident',
+    getEntityId: (req) => req.params.id,
+    getDescription: () => `Deleted incident log`
+  }),
+  deleteIncident
+);
 
 export default router;

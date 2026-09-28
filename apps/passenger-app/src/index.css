@@ -1,0 +1,132 @@
+/* ─── GOOGLE FONT: Inter (Standard typeface for all pages) ─────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import "leaflet/dist/leaflet.css";
+
+@import "tailwindcss";
+
+/* ─── Leaflet DivIcon Animations ──────────────────────────────────────── */
+@keyframes ping {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+
+@theme {
+  --color-brand-600: #5D42D0;
+  --color-brand-700: #4c35b0;
+}
+
+/* ─── GLOBAL TYPOGRAPHY SYSTEM ──────────────────────────────────────── */
+/*
+  Standard Font: Inter (Google Fonts)
+  Scale used throughout the app:
+    --text-2xs  : 10px  → timestamps, badges
+    --text-xs   : 12px  → labels, captions
+    --text-sm   : 14px  → body text, card content, inputs
+    --text-base : 16px  → primary body, nav items
+    --text-lg   : 18px  → card titles, section headings
+    --text-xl   : 20px  → page subheadings
+    --text-2xl  : 24px  → page titles, hero headings
+    --text-3xl  : 30px  → major hero titles
+*/
+:root {
+  --text-2xs: 10px;
+  --text-xs:  12px;   /* labels, captions */
+  --text-sm:  14px;   /* body, card content, inputs */
+  --text-base: 16px;
+  --text-lg:  18px;
+  --text-xl:  20px;
+  --text-2xl: 24px;
+  --text-3xl: 30px;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'Courier New', monospace;
+
+  --fw-normal:    400;
+  --fw-medium:    500;
+  --fw-semibold:  600;
+  --fw-bold:      700;
+  --fw-extrabold: 800;
+  --fw-black:     900;
+}
+
+/* Apply Inter globally to every element */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm); /* 14px — base for card content & inputs */
+  font-weight: var(--fw-normal);
+  line-height: 1.6;
+}
+
+.mobile-bottom-nav {
+  position: fixed !important;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  width: 100vw;
+  padding-bottom: calc(0.375rem + env(safe-area-inset-bottom));
+  isolation: isolate;
+  transform: translateZ(0);
+}
+
+/* Label & caption utility class */
+.text-label {
+  font-size: var(--text-xs); /* 12px */
+  font-weight: var(--fw-semibold);
+  line-height: 1.4;
+}
+
+/* Input & card body utility class */
+.text-body {
+  font-size: var(--text-sm); /* 14px */
+  font-weight: var(--fw-normal);
+  line-height: 1.6;
+}
+
+/* Headings use consistent scale */
+h1 { font-size: var(--text-3xl); font-weight: var(--fw-black);    line-height: 1.15; }
+h2 { font-size: var(--text-2xl); font-weight: var(--fw-bold);     line-height: 1.2;  }
+h3 { font-size: var(--text-xl);  font-weight: var(--fw-bold);     line-height: 1.3;  }
+h4 { font-size: var(--text-lg);  font-weight: var(--fw-semibold); line-height: 1.4;  }
+h5 { font-size: var(--text-base);font-weight: var(--fw-semibold); line-height: 1.4;  }
+h6 { font-size: var(--text-sm);  font-weight: var(--fw-semibold); line-height: 1.5;  }
+
+/* Inputs and buttons inherit the font */
+input, select, textarea, button {
+  font-family: var(--font-sans);
+}
+
+/* Utility: mono for coordinates, IDs, timestamps */
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+/* ─── Google Maps Silver / Retro Clean Transit Theme ────────────────── */
+.leaflet-silver-theme,
+.leaflet-silver-theme img {
+  filter: saturate(0.78) contrast(1.04) brightness(1.02);
+}
+
+.leaflet-3d-mode {
+  perspective: 900px;
+  perspective-origin: 50% 60%;
+}
+
+.leaflet-3d-mode .leaflet-map-pane {
+  transform: rotateX(48deg) scale(1.16) !important;
+  transform-origin: 50% 100%;
+  transition: transform 300ms ease;
+}
+

@@ -37,8 +37,8 @@ describe('Bus Route Assignments Service', () => {
 
         route1 = await createRoute({
             routeName: 'Route 1',
-            startStopId: stop1.id,
-            endStopId: stop2.id
+            startTerminalId: terminal.id,
+            endTerminalId: terminal.id
         });
 
         const stop3 = await createStop({ stopName: 'Stop 3', stopCode: `S3-${Date.now()}` });
@@ -46,8 +46,8 @@ describe('Bus Route Assignments Service', () => {
 
         route2 = await createRoute({
             routeName: 'Route 2',
-            startStopId: stop3.id,
-            endStopId: stop4.id
+            startTerminalId: terminal.id,
+            endTerminalId: terminal.id
         });
     });
 
@@ -165,7 +165,7 @@ describe('Bus Route Assignments Service', () => {
             const assignments = await assignmentService.listAssignments({ busId: bus1.id });
 
             expect(assignments).toHaveLength(2);
-            expect(assignments.every(a => a.busId === bus1.id)).toBe(true);
+            expect(assignments.every((a: any) => a.busId === bus1.id)).toBe(true);
         });
 
         it('should not return soft-deleted assignments', async () => {
@@ -178,8 +178,9 @@ describe('Bus Route Assignments Service', () => {
             await assignmentService.deleteAssignment(assignment.id);
 
             const assignments = await assignmentService.listAssignments();
-            expect(assignments.find(a => a.id === assignment.id)).toBeUndefined();
+            expect(assignments.find((a: any) => a.id === assignment.id)).toBeUndefined();
         });
+
     });
 
     describe('getAssignmentById', () => {
@@ -276,7 +277,7 @@ describe('Bus Route Assignments Service', () => {
             expect(deleted.deletedAt).toBeInstanceOf(Date);
 
             const assignments = await assignmentService.listAssignments();
-            expect(assignments.find(a => a.id === assignment.id)).toBeUndefined();
+            expect(assignments.find((a: any) => a.id === assignment.id)).toBeUndefined();
         });
 
         it('should throw NotFoundError when deleting non-existent assignment', async () => {
@@ -310,14 +311,15 @@ describe('Bus Route Assignments Service', () => {
 
             // 3. Assignment still visible in list
             const assignments = await assignmentService.listAssignments();
-            expect(assignments.find(a => a.id === assignment.id)).toBeDefined();
+            expect(assignments.find((a: any) => a.id === assignment.id)).toBeDefined();
 
             // 4. Soft delete assignment
             await assignmentService.deleteAssignment(assignment.id);
 
             // 5. Assignment no longer visible
             const afterDelete = await assignmentService.listAssignments();
-            expect(afterDelete.find(a => a.id === assignment.id)).toBeUndefined();
+            expect(afterDelete.find((a: any) => a.id === assignment.id)).toBeUndefined();
         });
     });
 });
+

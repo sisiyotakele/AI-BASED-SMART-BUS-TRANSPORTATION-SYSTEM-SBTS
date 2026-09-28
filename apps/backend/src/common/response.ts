@@ -20,12 +20,14 @@ export function successResponse<T>(
   res: Response,
   data: T,
   message: string = 'Success',
-  statusCode: number = 200
+  statusCode: number = 200,
+  meta?: ApiResponse['meta']
 ): Response {
   return res.status(statusCode).json({
     success: true,
     message,
     data,
+    meta
   });
 }
 

@@ -18,9 +18,35 @@ export async function findRoutes(where: any) {
     return prisma.route.findMany({
         where,
         include: {
-            versions: { where: { isActive: true, deletedAt: null }, take: 1 },
-            startStop: { select: { id: true, stopName: true } },
-            endStop: { select: { id: true, stopName: true } },
+            startTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true
+                }
+            },
+            endTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true
+                }
+            },
+            versions: {
+                where: { deletedAt: null },
+                take: 1,
+                include: {
+                    routeStops: {
+                        where: { deletedAt: null },
+                        orderBy: { sequenceNumber: 'asc' },
+                        include: { stop: true }
+                    }
+                }
+            },
+            busRouteAssignments: {
+                where: { isActive: true, deletedAt: null },
+                include: { bus: true }
+            }
         },
         orderBy: { routeName: 'asc' },
     });
@@ -30,8 +56,35 @@ export async function findRouteById(id: string) {
     return prisma.route.findFirst({
         where: { id, deletedAt: null },
         include: {
-            startStop: { select: { id: true, stopName: true } },
-            endStop: { select: { id: true, stopName: true } },
+            startTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true,
+                    latitude: true,
+                    longitude: true
+                }
+            },
+            endTerminal: {
+                select: {
+                    id: true,
+                    terminalName: true,
+                    address: true,
+                    latitude: true,
+                    longitude: true
+                }
+            },
+            versions: {
+                where: { deletedAt: null },
+                orderBy: { versionNumber: 'desc' },
+                include: {
+                    routeStops: {
+                        where: { deletedAt: null },
+                        orderBy: { sequenceNumber: 'asc' },
+                        include: { stop: true }
+                    }
+                }
+            }
         },
     });
 }
@@ -57,12 +110,26 @@ export async function softDeleteRoute(id: string) {
 export async function findRouteVersions(routeId: string) {
     return prisma.routeVersion.findMany({
         where: { routeId, deletedAt: null },
-        orderBy: { versionNumber: 'desc' },
+        orderBy: [
+            { direction: 'asc' },      // forward first, then backward
+            { isPrimary: 'desc' },     // primary routes first
+            { versionNumber: 'asc' }   // then by route number
+        ],
         include: {
             routeStops: {
                 where: { deletedAt: null },
                 orderBy: { sequenceNumber: 'asc' },
-                include: { stop: { select: { id: true, stopName: true, stopCode: true } } },
+                include: { stop: { select: { id: true, stopName: true, stopCode: true, latitude: true, longitude: true } } },
+            },
+            schedules: {
+                where: { deletedAt: null, isActive: true },
+                orderBy: { departureTime: 'asc' },
+                include: {
+                    busRouteAssignments: {
+                        where: { isActive: true, deletedAt: null },
+                        select: { id: true, busId: true, bus: { select: { plateNumber: true } } }
+                    }
+                }
             },
         },
     });
@@ -139,6 +206,16 @@ export async function findStopsInBox(
             latitude: { gte: latMin, lte: latMax },
             longitude: { gte: lngMin, lte: lngMax },
         },
+    });
+}
+
+// ============================================================
+// TERMINAL QUERIES
+// ============================================================
+
+export async function findTerminalById(id: string) {
+    return prisma.terminal.findFirst({
+        where: { id, deletedAt: null }
     });
 }
 

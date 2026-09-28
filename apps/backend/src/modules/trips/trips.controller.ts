@@ -9,11 +9,19 @@ export const createTrip = asyncHandler(async (req: AuthenticatedRequest, res: Re
   successResponse(res, result, 'Trip created', 201);
 });
 
+export const previewSchedule = asyncHandler(async (req: Request, res: Response) => {
+  const scheduleId = req.query.scheduleId as string;
+  const tripDate = (req.query.tripDate as string) || new Date().toISOString().split('T')[0];
+  const result = await service.previewScheduleForTrip(scheduleId, tripDate);
+  successResponse(res, result, 'Schedule preview retrieved');
+});
+
 export const listTrips = asyncHandler(async (req: Request, res: Response) => {
   const result = await service.listTrips({
     driverId: req.query.driverId as string,
     status: req.query.status as string,
     busId: req.query.busId as string,
+    routeId: req.query.routeId as string,
     date: req.query.date ? new Date(req.query.date as string) : undefined,
   });
   successResponse(res, result, 'Trips retrieved');
